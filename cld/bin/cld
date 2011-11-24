@@ -1,0 +1,5 @@
+#!/bin/bash
+java -cp $CLOUDCMD_HOME/target/cld-1.0-SNAPSHOT-jar-with-dependencies.jar \
+  $BULLHORN_OPTS \
+  cloudcmd.cld.Main \
+  "$@"
