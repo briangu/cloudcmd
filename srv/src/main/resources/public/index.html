@@ -1,0 +1,378 @@
+
+<html>
+<head>
+<title>Photon</title>
+
+<script type="text/javascript" src="http://platform.linkedin.com/in.js">
+  api_key: yqQd9hQtbDqlu6ns_mY8r10oBFoj2PrTp6mJkea879iGwVpNyfdmXPcKZNMF7upb
+  authorize: true
+</script>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title>Photon - Photo Sharing at the speed of light</title>
+  <style>
+    body {
+      font-size: 13px;
+      font-family: arial, sans-serif;
+      width: 700px;
+      margin: 100px auto;
+    }
+  </style>
+  <meta name="description" content="A small little demo of the power of viper.io">
+  <meta name="author" content="Brian Guarraci">
+
+  <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <!-- Le styles -->
+  <link href="/css/base.css" rel="stylesheet">
+  <link href="/css/styles.css" rel="stylesheet">
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>
+  <script src="/js/mustache.js"></script>
+  <script src="/js/jquery-ui-1.8.16.custom.min.js"></script>
+  <script src="/js/easydate.js" type="text/javascript" charset="utf-8"></script>
+  <script src="/js/spin.js"></script>
+
+  <!-- Code Mirror -->
+  <link rel="stylesheet" href="/codemirror/lib/codemirror.css">
+  <link rel="stylesheet" href="/codemirror/theme/default.css">
+  <script src="/codemirror/lib/codemirror.js"></script>
+  <script src="/codemirror/mode/xml/xml.js"></script>
+  <script src="/codemirror/lib/overlay.js" type="text/javascript" charset="utf-8"></script>
+  <script src="/codemirror/lib/runmode.js" type="text/javascript" charset="utf-8"></script>
+
+  <!-- Le fav and touch icons -->
+  <link rel="shortcut icon" href="images/favicon.ico">
+  <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+
+  <!-- lightbox -->
+  <script type="text/javascript" src="js/jquery.lightbox-0.5.js"></script>
+  <link rel="stylesheet" type="text/css" href="css/jquery.lightbox-0.5.css" media="screen" />
+  <script type="text/javascript" src="js/jquery.idTabs.js"></script>
+
+  <link href="css/fileuploader.css" rel="stylesheet" type="text/css">
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.7/jquery-ui.min.js"></script>
+  <script type="text/javascript" src="js/fileuploader.js"></script>
+  <script type="text/javascript">
+    var params = {};
+    var activityIdMap = {};
+
+    function loadData() {
+      IN.API.Profile("me")
+        .fields(["id", "firstName", "lastName", "pictureUrl","headline","publicProfileUrl"])
+        .result(function(result) {
+          profile = result.values[0];
+          params.id = profile.id;
+          profHTML = "<p><a href=\"" + profile.publicProfileUrl + "\">";
+          profHTML += "<img class=img_border align=\"left\" src=\"" + profile.pictureUrl + "\"></a>";
+          profHTML += "<a href=\"" + profile.publicProfileUrl + "\">";
+          profHTML += "<h2 class=myname>" + profile.firstName + " " + profile.lastName + "</a> </h2>";
+          profHTML += "<span class=myheadline>" + profile.headline + "</span>";
+          $("#profile").html(profHTML);
+
+          photonApp();
+        });
+    }
+
+    $(function() {
+        $('ul.idTabs').idTabs();
+    });
+
+  </script>
+</head>
+<body>
+
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="topbar-inner">
+        <div class="container">
+          <h3><a id="logo" href="/"></a></h3>
+        </div>
+      </div>
+    </div>
+
+<script type="text/javascript" src="js/app.js"></script>
+<style type="text/css" media="screen">
+  .CodeMirror-scroll {
+    background-color: #F7F7F7;
+    border: 1px solid #CCC;
+    border-radius: 3px;
+    margin: 5px 0;
+    padding: 5px 10px 10px 10px;
+    -webkit-box-shadow: 0px 1px 2px #CCC;
+    height: auto;
+    overflow: hidden;
+    position: relative;
+  }
+</style>
+
+<div id="profile"></div>
+<script type="IN/Login" data-onAuth="loadData"></script>
+
+<br/>
+<br/>
+ <!-- Main Content-->
+    <div id="main-content">
+      <div class="inner">
+          <div class="container">
+              <div class="row update-box-container">
+                  <div class="span14 columns">
+                      <ul class="idTabs">
+                          <li><a href="#publicphotos">Public Photos</a></li>
+                          <li><a href="#myphotos">My Photos</a></li>
+                          <li><a href="#overview">About</a></li>
+                      </ul>
+
+                        <div id="overview" class="tab">
+                          <h2>Overview</h2>
+                          <p><strong>Photon</strong> is a photo sharing app built upon the Social Content Platform (SCP), <a href="http://github.com/briangu/viper.io">viper.io</a> and the search-as-a-service platform <a href="http://linkedin.jira.com/wiki/display/SIN/Home">SIN</a>.</p>
+                          <p>The application is easy to build as it uses vertical feeds queried from SCP to construct public and personal (my) image feeds.  Commenting and soon-to-be-completed Liking are inherited behaviors from SCP.
+                        </div>
+
+                        <div class="publicphotos tab">
+
+                              <!-- Update Box -->
+                              <div class="modal update-box" id="update-box">
+                                <div class="modal-body">
+                                  <p>To upload a file, click on the button below. Drag-and-drop is supported in FF, Chrome.</p>
+                                  <div id="file-uploader-demo1">
+                                    <noscript>
+                                      <p>Please enable JavaScript to use file uploader.</p>
+                                      <!-- or put a simple form for upload here -->
+                                    </noscript>
+                                  </div>
+                                </div>
+                              </div>
+                              <!-- END Update Box -->
+
+                              <!-- Stream -->
+                            <table  border="0" cellspacing="0" class="TwentyFour stream">
+                              <tbody>
+                              <tr valign="bottom">
+                                <td id="ir0c0" class="Photo"></td>
+                                <td id="ir0c1" class="Photo"></td>
+                                <td id="ir0c2" class="Photo"></td>
+                              </tr>
+                              <tr valign="top">
+                                <td id="or0c0" class="Owner"></td>
+                                <td id="or0c1" class="Owner"></td>
+                                <td id="or0c2" class="Owner"></td>
+                              </tr>
+                              <tr valign="bottom">
+                                <td id="ir1c0" class="Photo"></td>
+                                <td id="ir1c1" class="Photo"></td>
+                                <td id="ir1c2" class="Photo"></td>
+                              </tr>
+                              <tr valign="top">
+                                <td id="or1c0" class="Owner"></td>
+                                <td id="or1c1" class="Owner"></td>
+                                <td id="or1c2" class="Owner"></td>
+                              </tr>
+                              <tr valign="bottom">
+                                <td id="ir2c0" class="Photo"></td>
+                                <td id="ir2c1" class="Photo"></td>
+                                <td id="ir2c2" class="Photo"></td>
+                              </tr>
+                              <tr valign="top">
+                                <td id="or2c0" class="Owner"></td>
+                                <td id="or2c1" class="Owner"></td>
+                                <td id="or2c2" class="Owner"></td>
+                              </tr>
+                              </tbody>
+                            </table>
+                              <!-- END Stream -->
+
+                         </div>
+
+                            <div class="myphotos tab">
+
+                                  <!-- Update Box -->
+                                  <div class="modal update-box" id="my-update-box">
+                                    <div class="modal-body">
+                                      <p>To upload a file, click on the button below. Drag-and-drop is supported in FF, Chrome.</p>
+                                      <div id="my-file-uploader-demo1">
+                                        <noscript>
+                                          <p>Please enable JavaScript to use file uploader.</p>
+                                          <!-- or put a simple form for upload here -->
+                                        </noscript>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <!-- END Update Box -->
+
+                                  <!-- Stream -->
+                                <table border="0" cellspacing="0" class="TwentyFour stream">
+                                  <tbody>
+                                  <tr valign="bottom">
+                                    <td id="my_ir0c0" class="Photo"></td>
+                                    <td id="my_ir0c1" class="Photo"></td>
+                                    <td id="my_ir0c2" class="Photo"></td>
+                                  </tr>
+                                  <tr valign="top">
+                                    <td id="my_or0c0" class="Owner"></td>
+                                    <td id="my_or0c1" class="Owner"></td>
+                                    <td id="my_or0c2" class="Owner"></td>
+                                  </tr>
+                                  <tr valign="bottom">
+                                    <td id="my_ir1c0" class="Photo"></td>
+                                    <td id="my_ir1c1" class="Photo"></td>
+                                    <td id="my_ir1c2" class="Photo"></td>
+                                  </tr>
+                                  <tr valign="top">
+                                    <td id="my_or1c0" class="Owner"></td>
+                                    <td id="my_or1c1" class="Owner"></td>
+                                    <td id="my_or1c2" class="Owner"></td>
+                                  </tr>
+                                  <tr valign="bottom">
+                                    <td id="my_ir2c0" class="Photo"></td>
+                                    <td id="my_ir2c1" class="Photo"></td>
+                                    <td id="my_ir2c2" class="Photo"></td>
+                                  </tr>
+                                  <tr valign="top">
+                                    <td id="my_or2c0" class="Owner"></td>
+                                    <td id="my_or2c1" class="Owner"></td>
+                                    <td id="my_or2c2" class="Owner"></td>
+                                  </tr>
+                                  </tbody>
+                                </table>
+                                  <!-- END Stream -->
+
+                          </div>
+                  </div>
+              </div>
+          </div>
+        </div>
+    </div>
+  </div>
+<!-- templates -->
+
+<!-- Update kind: Share -->
+
+<script type="text/html" id="template-photo-owner">
+  {{#socialSummary}}
+  <div class="update-actions">
+    <a href="javascript:void(0)" class="add-comment">Comment {{#totalComments}}({{totalComments}}){{/totalComments}}</a> ·
+    {{#actor}}
+       {{#links}}
+    <a href="{{url}}"><b>{{title}}</b></a>
+    {{/links}}
+   {{/actor}}
+    <span rel="{{createdDate}}" class="easydate"></span>
+    {{/socialSummary}}
+  </div>
+    <div>
+      {{#object}}
+        {{#links}}
+      <a href="{{url}}"><b><i>{{description}}</i></b></a><br>
+      {{/links}}
+    {{/object}}
+    </div>
+</script>
+
+<script type="text/html" id="template-photo-image">
+  {{#object}}
+    {{#links}}
+  <span class="photo_container pc_m">
+    <a href="{{url}}" title="{{title}}" target="_blank" class="lb_pub">
+      <img src="{{thumbnail}}" width="240" height="180" alt="{{title}}" class="pc_img" border="0">
+    </a>
+  </span>
+    {{/links}}
+  {{/object}}
+</script>
+
+<script type="text/html" id="template-photo-image-mine">
+  {{#object}}
+    {{#links}}
+  <span class="photo_container pc_m">
+    <a href="{{url}}" title="{{title}}" target="_blank" class="lb_mine">
+      <img src="{{thumbnail}}" width="240" height="180" alt="{{title}}" class="pc_img" border="0">
+    </a>
+  </span>
+    {{/links}}
+  {{/object}}
+</script>
+
+<script type="text/html" id="template-update">
+<div class="float" id="{{id}}">
+  {{#object}}
+    {{#links}}
+      {{#thumbnail}}
+      <div class="article-photo"><a href="{{url}}" target="_blank"><img src="{{thumbnail}}" alt="{{title}}" /></a></div>
+      {{/thumbnail}}
+    {{/links}}
+  {{/object}}
+  {{#socialSummary}}
+  <div class="update-actions">
+<!--    <a href="#" class="add-like">Like {{#totalLikes}}({{totalLikes}}){{/totalLikes}}</a> ·-->
+    <a href="#" class="add-comment">Comment {{#totalComments}}({{totalComments}}){{/totalComments}}</a> ·
+    <span rel="{{createdDate}}" class="easydate"></span>
+  </div>
+  {{/socialSummary}}
+  </div>
+</div>
+</script>
+
+<!-- Update kind: comment -->
+<script type="text/html" id="template-photo-comment">
+<div class="row update" id="{{id}}">
+  {{#actor}}
+    {{#links}}
+    <div class="span1 columns photo">
+      <img src="http://media03.linkedin.com/mpr/mpr/shrink_80_80{{thumbnail}}" alt="" />
+    </div>
+    <div class="span9 columns body">
+        <div class="name"><a href="#">{{title}}</a></div>
+    {{/links}}
+  {{/actor}}
+  {{#object}}
+    <p>
+     {{body}}
+    </p>
+  {{/object}}
+  {{#socialSummary}}
+  <div class="update-actions">
+    <span rel="{{createdDate}}" class="easydate"></span>
+    <!-- comment list -->
+      <ol class="comment-list">
+      {{#recentComments}}
+        <li>{{message}}</li>
+      {{/recentComments}}
+      </ol>
+    <!-- end of comment box -->
+  </div>
+  {{/socialSummary}}
+  </div>
+</div>
+</script>
+
+    <!-- Update kind: comment -->
+    <script type="text/html" id="template-photo-comment-box">
+    <div class="row update">
+      <div class="update-actions">
+        <!-- comment box -->
+        <div id="comment-box-lightbox" class="comment-box">
+          <form method="post" id="comment-form-lightbox">
+            <textarea name="comment" class="comment-textarea" cols="40" rows="3"></textarea>
+            <div class="post-comment-button">
+              <input type="button" value="Comment" class="share-btn btn primary comment-button" />
+              <a href="javascript:void(0)" class="cancel-comment">cancel</a>
+            </div>
+          </form>
+        </div>
+        <!-- end of comment box -->
+      </div>
+    </div>
+    </script>
+
+<!-- templates -->
+
+<!-- /container -->
+<div id="footer">
+</div>
+</body>
+</html>

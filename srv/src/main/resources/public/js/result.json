@@ -1,0 +1,283 @@
+{
+  "elements": [
+    {
+      "actor": {"id": "urn:member:45310686"},
+      "attributedApplication": "urn:app:photon",
+      "attributedEntity": "urn:member:45310686",
+      "body": " shared a photo",
+      "createdDate": 1316215138057,
+      "id": "urn:activity:142641",
+      "object": {
+        "body": "a photo",
+        "id": "urn:photo:vVLdDfJb6OyUT03iZU1B2g",
+        "links": [{
+          "description": "",
+          "thumbnail": "http://bguarrac-md:3000/d/vVLdDfJb6OyUT03iZU1B2g",
+          "title": "",
+          "url": "http://bguarrac-md:3000/d/vVLdDfJb6OyUT03iZU1B2g"
+        }]
+      },
+      "references": {},
+      "socialSummary": {
+        "recentComments": [],
+        "recentLikes": [],
+        "totalComments": 0,
+        "totalLikes": 0
+      },
+      "verb": "share",
+      "visibility": "PUBLIC"
+    },
+    {
+      "actor": {"id": "urn:member:45310686"},
+      "attributedApplication": "urn:app:photon",
+      "attributedEntity": "urn:member:45310686",
+      "body": " shared a photo",
+      "createdDate": 1316213996675,
+      "id": "urn:activity:142640",
+      "object": {
+        "body": "a photo",
+        "id": "urn:photo:r2JzqrdVA124RL4CL-RLnw",
+        "links": [{
+          "description": "",
+          "thumbnail": "http://bguarrac-md:3000/d/r2JzqrdVA124RL4CL-RLnw",
+          "title": "",
+          "url": "http://bguarrac-md:3000/d/r2JzqrdVA124RL4CL-RLnw"
+        }]
+      },
+      "references": {},
+      "socialSummary": {
+        "recentComments": [],
+        "recentLikes": [],
+        "totalComments": 0,
+        "totalLikes": 0
+      },
+      "verb": "share",
+      "visibility": "PUBLIC"
+    },
+    {
+      "actor": {"id": "urn:member:45310686"},
+      "attributedApplication": "urn:app:photon",
+      "attributedEntity": "urn:member:45310686",
+      "body": " shared a photo",
+      "createdDate": 1316213996672,
+      "id": "urn:activity:142639",
+      "object": {
+        "body": "a photo",
+        "id": "urn:photo:uR0QR9k10XIeUjIFcdJBOg",
+        "links": [{
+          "description": "",
+          "thumbnail": "http://bguarrac-md:3000/d/uR0QR9k10XIeUjIFcdJBOg",
+          "title": "",
+          "url": "http://bguarrac-md:3000/d/uR0QR9k10XIeUjIFcdJBOg"
+        }]
+      },
+      "references": {},
+      "socialSummary": {
+        "recentComments": [],
+        "recentLikes": [],
+        "totalComments": 0,
+        "totalLikes": 0
+      },
+      "verb": "share",
+      "visibility": "PUBLIC"
+    },
+    {
+      "actor": {"id": "urn:member:45310686"},
+      "attributedApplication": "urn:app:photon",
+      "attributedEntity": "urn:member:45310686",
+      "body": " shared a photo",
+      "createdDate": 1316213996662,
+      "id": "urn:activity:142638",
+      "object": {
+        "body": "a photo",
+        "id": "urn:photo:n5WtIw0m9YberrmgeLFH2w",
+        "links": [{
+          "description": "",
+          "thumbnail": "http://bguarrac-md:3000/d/n5WtIw0m9YberrmgeLFH2w",
+          "title": "",
+          "url": "http://bguarrac-md:3000/d/n5WtIw0m9YberrmgeLFH2w"
+        }]
+      },
+      "references": {},
+      "socialSummary": {
+        "recentComments": [],
+        "recentLikes": [],
+        "totalComments": 0,
+        "totalLikes": 0
+      },
+      "verb": "share",
+      "visibility": "PUBLIC"
+    },
+    {
+      "actor": {"id": "urn:member:45310686"},
+      "attributedApplication": "urn:app:photon",
+      "attributedEntity": "urn:member:45310686",
+      "body": " shared a photo",
+      "createdDate": 1316213996654,
+      "id": "urn:activity:142637",
+      "object": {
+        "body": "a photo",
+        "id": "urn:photo:qZ-C4Z0donxJT1ZztzRG6A",
+        "links": [{
+          "description": "",
+          "thumbnail": "http://bguarrac-md:3000/d/qZ-C4Z0donxJT1ZztzRG6A",
+          "title": "",
+          "url": "http://bguarrac-md:3000/d/qZ-C4Z0donxJT1ZztzRG6A"
+        }]
+      },
+      "references": {},
+      "socialSummary": {
+        "recentComments": [],
+        "recentLikes": [],
+        "totalComments": 0,
+        "totalLikes": 0
+      },
+      "verb": "share",
+      "visibility": "PUBLIC"
+    },
+    {
+      "actor": {"id": "urn:member:45310686"},
+      "attributedApplication": "urn:app:photon",
+      "attributedEntity": "urn:member:45310686",
+      "body": " shared a photo",
+      "createdDate": 1316213996634,
+      "id": "urn:activity:142636",
+      "object": {
+        "body": "a photo",
+        "id": "urn:photo:os0OBZX93NHRYP1XmrBCpQ",
+        "links": [{
+          "description": "",
+          "thumbnail": "http://bguarrac-md:3000/d/os0OBZX93NHRYP1XmrBCpQ",
+          "title": "",
+          "url": "http://bguarrac-md:3000/d/os0OBZX93NHRYP1XmrBCpQ"
+        }]
+      },
+      "references": {},
+      "socialSummary": {
+        "recentComments": [],
+        "recentLikes": [],
+        "totalComments": 0,
+        "totalLikes": 0
+      },
+      "verb": "share",
+      "visibility": "PUBLIC"
+    },
+    {
+      "actor": {"id": "urn:member:45310686"},
+      "attributedApplication": "urn:app:photon",
+      "attributedEntity": "urn:member:45310686",
+      "body": " shared a photo",
+      "createdDate": 1316213996615,
+      "id": "urn:activity:142635",
+      "object": {
+        "body": "a photo",
+        "id": "urn:photo:vk2YvZ2j5Ov2i10EHNdANQ",
+        "links": [{
+          "description": "",
+          "thumbnail": "http://bguarrac-md:3000/d/vk2YvZ2j5Ov2i10EHNdANQ",
+          "title": "",
+          "url": "http://bguarrac-md:3000/d/vk2YvZ2j5Ov2i10EHNdANQ"
+        }]
+      },
+      "references": {},
+      "socialSummary": {
+        "recentComments": [],
+        "recentLikes": [],
+        "totalComments": 0,
+        "totalLikes": 0
+      },
+      "verb": "share",
+      "visibility": "PUBLIC"
+    },
+    {
+      "actor": {"id": "urn:member:45310686"},
+      "attributedApplication": "urn:app:photon",
+      "attributedEntity": "urn:member:45310686",
+      "body": " shared a photo",
+      "createdDate": 1316213996596,
+      "id": "urn:activity:142634",
+      "object": {
+        "body": "a photo",
+        "id": "urn:photo:nAyVkgoQLJy62KaGL-5Cmw",
+        "links": [{
+          "description": "",
+          "thumbnail": "http://bguarrac-md:3000/d/nAyVkgoQLJy62KaGL-5Cmw",
+          "title": "",
+          "url": "http://bguarrac-md:3000/d/nAyVkgoQLJy62KaGL-5Cmw"
+        }]
+      },
+      "references": {},
+      "socialSummary": {
+        "recentComments": [],
+        "recentLikes": [],
+        "totalComments": 0,
+        "totalLikes": 0
+      },
+      "verb": "share",
+      "visibility": "PUBLIC"
+    },
+    {
+      "actor": {"id": "urn:member:45310686"},
+      "attributedApplication": "urn:app:photon",
+      "attributedEntity": "urn:member:45310686",
+      "body": " shared a photo",
+      "createdDate": 1316213996580,
+      "id": "urn:activity:142633",
+      "object": {
+        "body": "a photo",
+        "id": "urn:photo:iMOfuCcVcxb0Pqh23N9Inw",
+        "links": [{
+          "description": "",
+          "thumbnail": "http://bguarrac-md:3000/d/iMOfuCcVcxb0Pqh23N9Inw",
+          "title": "",
+          "url": "http://bguarrac-md:3000/d/iMOfuCcVcxb0Pqh23N9Inw"
+        }]
+      },
+      "references": {},
+      "socialSummary": {
+        "recentComments": [],
+        "recentLikes": [],
+        "totalComments": 0,
+        "totalLikes": 0
+      },
+      "verb": "share",
+      "visibility": "PUBLIC"
+    },
+    {
+      "actor": {"id": "urn:member:45310686"},
+      "attributedApplication": "urn:app:photon",
+      "attributedEntity": "urn:member:45310686",
+      "body": " shared a photo",
+      "createdDate": 1316213996562,
+      "id": "urn:activity:142632",
+      "object": {
+        "body": "a photo",
+        "id": "urn:photo:jmEBNOH9UiJr_NjfbR1H-A",
+        "links": [{
+          "description": "",
+          "thumbnail": "http://bguarrac-md:3000/d/jmEBNOH9UiJr_NjfbR1H-A",
+          "title": "",
+          "url": "http://bguarrac-md:3000/d/jmEBNOH9UiJr_NjfbR1H-A"
+        }]
+      },
+      "references": {},
+      "socialSummary": {
+        "recentComments": [],
+        "recentLikes": [],
+        "totalComments": 0,
+        "totalLikes": 0
+      },
+      "verb": "share",
+      "visibility": "PUBLIC"
+    }
+  ],
+  "paging": {
+    "count": 10,
+    "links": [{
+      "href": "/activityviews?id=urn%3Afeed%3Aphoton%3Apublic%3Aa%3A%3AmemberId%3Durn%3Amember%3Anull&count=10&start=10&q=feed",
+      "rel": "next",
+      "type": "application/json"
+    }],
+    "start": 0
+  }
+}

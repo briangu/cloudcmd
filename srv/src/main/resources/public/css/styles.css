@@ -1,0 +1,369 @@
+        body {
+  font-family: Helvetica, arial, sans-serif;
+}
+
+a {
+  color: #006699;
+}
+
+pre {
+  margin: 0 0 5px 0;
+  padding: 5px 10px;
+}
+
+form {
+  margin: 0;
+  padding: 0;
+}
+
+.topbar-inner {
+  background: transparent url("/images/topbar-bg.png") repeat scroll 0 0;
+}
+.topbar, .topbar-inner {
+  height: 44px;
+}
+
+.topbar div > ul > li, .nav > li {
+  font-size: 14px;
+}
+.topbar div > ul a, .nav a {
+  padding: 10px 10px 15px;
+}
+
+#logo {
+  background: transparent url("/images/logo.png") no-repeat scroll 0 6px;
+  display: inline-block;
+  float: left;
+  margin: 0 9px 0 0;
+  height: 40px;
+  width: 110px;
+}
+
+#main-content {
+  clear: both;
+  margin: 32px 0 0 0;
+}
+
+.secondary-nav form {
+  padding-top: 3px;
+}
+
+.update-box-container {
+  margin-bottom: 0;
+}
+.update-box {
+  border: 1px solid #CCC;
+  background-color: #FFFFFF;
+  margin: 10px 0px 20px 30px;
+  position: relative;
+  top: auto;
+  left: auto;
+  z-index: 1;
+  width: 720px;
+}
+.update-box .modal-user {
+  float: left;
+  margin: 10px;
+}
+.update-box .modal-user .photo {
+  border: 1px solid #CCC;
+  background-color: white;
+  padding: 2px;
+}
+.update-box .modal-user img {
+  height: 30px;
+  width: 30px;
+}
+.update-box .modal-body {
+  padding: 10px;
+}
+.update-box .modal-footer {
+  padding: 10px;
+}
+.update-box .modal-body .share-btn {
+  float: right;
+}
+.update-box textarea {
+  margin: 0;
+  height: 25px;
+  width: 410px;
+}
+.update-box textarea:focus {
+}
+
+.topbar input {
+  width: 270px;
+}
+
+.stream {
+  padding-bottom: 20px;
+}
+
+.update {
+  border-bottom: 1px solid #DDD;
+  margin-bottom: 10px;
+  margin-left: 0px;
+  width: 585px;
+}
+
+.update .photo {
+  border: 1px solid #DDD;
+  background-color: white;
+  margin-left: 0;
+  padding: 2px;
+  height: 48px;
+  width: 48px;
+  margin-bottom: 10px;
+}
+
+.update .article {
+  padding: 5px 0 0 0;
+}
+
+.update .article-photo img {
+  height: 80px;
+  width: 80px;
+}
+
+.article-photo img {
+  height: 80px;
+  width: 80px;
+}
+
+.update .article-title, .update .article-photo .article-description {
+  display: inline-block;
+  vertical-align: top;
+}
+
+.update .article-title {
+  padding: 5px 0 0 5px;
+  width: 288px;
+}
+
+.update .photo img {
+  height: 48px;
+  width: 48px;
+}
+
+.name {
+  display: inline-block;
+  padding-right: 3px;
+  font-weight: bold;
+}
+
+.update p {
+  display: inline;
+}
+
+.update .body {
+  color: #333;
+  margin-left: 10px;
+}
+
+.update .body p {
+  margin-bottom: 3px;
+}
+
+.update .body .update-actions {
+  color: #888;
+  font-size: 18px;
+  padding-bottom: 6px;
+}
+
+.update .body .update-actions a, .update .body .update-actions span, .update-actions a, .update-actions span {
+  position: relative;
+  top: -2px;
+  font-size: 11px;
+}
+
+#stream-updates {
+  min-height: 200px;
+  overflow: hidden;
+}
+
+#stream-updates .spinner {
+  left: 270px;
+  top: 40px;
+}
+
+/* Admin */
+.save-templates {
+  float: right;
+  text-align: right;i
+  position: relative;
+  top: 36px;
+}
+
+.urn {
+  width: 522px;
+}
+
+#templates-editor {
+  width: 100%;
+}
+
+.admin h3 {
+  float: left;
+  width: 300px;
+}
+
+.admin form {
+  clear: both;
+}
+
+.admin .urn {
+  clear: both;
+}
+
+/* About */
+ul.team {
+  margin: 0;
+  padding: 10px 0 0 0;
+}
+
+ul.team li {
+  float: left;
+  list-style-type: none;
+  height: 80px;
+  width: 165px;
+}
+
+ul.team li span {
+  display: block;
+  float: right;
+  width: 100px;
+}
+
+ul.team li img {
+  background-color: white;
+  border: 1px solid #DDD;
+  display: block;
+  height: 48px;
+  float: left;
+  padding: 3px;
+  width: 48px;
+}
+
+/* Stock */
+.stock span.stock-name {
+  color: #333;
+  font-weight: bold;
+}
+
+.stock .up, .stock .down {
+  padding-left:30px;
+}
+
+.stock .up {
+  background: transparent url(/images/stocks/stock-up.png) no-repeat scroll 5px 0px;
+}
+
+.stock .down {
+  background: transparent url(/images/stocks/stock-down.png) no-repeat scroll 5px 0px;
+}
+
+.stock .up {
+  color: green;
+}
+
+.stock .down {
+  color: red;
+}
+
+.stock .update-actions a {
+  font-size: 11px;
+}
+
+/* Diff */
+.diff-inline {
+}
+
+
+div.float {
+  float: left;
+}
+
+div.float p {
+  text-align: center;
+}
+
+div.container {
+  width: 760px;
+}
+
+div.spacer {
+  clear: both;
+}
+
+
+/* Style for Usual tabs */
+ul.idTabs { width: 100%; }
+ul.idTabs li {
+	list-style: none;
+	float: left;
+}
+ul.idTabs a {
+  display: block;
+  padding: 6px 10px;
+  text-decoration: none!important;
+  font: 10px Verdana;
+  color: #FFF;
+  background: #333;
+  border-bottom: 1px solid #454545;
+}
+ul.idTabs a:hover {
+  color:#FFF;
+  background:#222;
+}
+ul.idTabs a.selected {
+  color: #fff;
+  font-weight: bold;
+  background-color: #454545;
+  cursor:default;
+}
+div.tab {
+    border: 1px solid #454545;
+    background-color: #FFFFFF;
+    clear: both;
+    padding: 20px;
+    *margin-top: -10px;
+}
+
+.comment-box share-btn {
+  width: 400px;
+}
+
+.comment-box {
+  width: 400px;
+  /* Shake animation is clipped by bg: why?! */
+  z-index: 99999999;
+  /* display: none; */
+}
+
+.comment-box textarea {
+  margin: 0;
+  width: 400px;
+}
+
+.update .body {
+color: #333;
+margin-left: 10px;
+text-align: left;
+}
+
+.comment-box {
+width: 400px;
+z-index: 99999999;
+text-align: center;
+}
+
+#comment-form-lightbox {
+margin: 0 auto;
+width: 200px;
+    text-align: center;
+}
+.post-comment-button {
+width: 390px;
+    padding: 10px;
+    margin: 0 auto;
+}
