@@ -1,0 +1,31 @@
+{
+  "name": "index.ops",
+  "description": "index command ops",
+  "format": "compact",
+  "ops":
+    [
+      ["literalize", "goal", "type"],
+      ["literalize", "rawFile", "file"],
+      ["make", "goal", "type", "process_raw"],
+      ["p", "process_raw",
+        [
+          ["goal", "type", "process_raw"],
+          ["rawFile", "name", "$name", "file", "$file"]
+        ],
+        [
+          ["write", "processing {0}", "$name"],
+          ["process", "$file"],
+          ["remove", 1]
+        ]
+      ],
+      ["p", "finish",
+        [
+          ["goal", "type", "process_raw"]
+        ],
+        [
+          ["write", "done!"],
+          ["remove", 0]
+        ]
+      ]
+    ]
+}

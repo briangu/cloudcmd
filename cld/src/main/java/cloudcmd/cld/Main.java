@@ -1,5 +1,6 @@
 package cloudcmd.cld;
 
+import cloudcmd.cld.commands.Index;
 import jpbetz.cli.CommandSet;
 
 public class Main {
