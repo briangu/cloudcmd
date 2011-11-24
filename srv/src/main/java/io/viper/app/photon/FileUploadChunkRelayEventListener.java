@@ -4,6 +4,9 @@ package io.viper.app.photon;
 import java.io.UnsupportedEncodingException;
 import java.util.Map;
 import java.util.UUID;
+
+import io.viper.core.server.Util;
+import io.viper.core.server.file.HttpChunkRelayEventListener;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFutureListener;
@@ -13,8 +16,6 @@ import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 import org.jboss.netty.handler.codec.http.HttpVersion;
 import org.json.JSONException;
 import org.json.JSONObject;
-import io.viper.net.server.Util;
-import io.viper.net.server.chunkproxy.HttpChunkRelayEventListener;
 
 
 public class FileUploadChunkRelayEventListener implements HttpChunkRelayEventListener
