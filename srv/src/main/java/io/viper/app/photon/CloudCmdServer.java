@@ -1,6 +1,7 @@
 package io.viper.app.photon;
 
 
+import io.viper.core.server.Util;
 import io.viper.core.server.file.*;
 
 import java.io.File;
@@ -15,11 +16,9 @@ import io.viper.core.server.router.*;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.*;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
-import org.jboss.netty.handler.codec.http.DefaultHttpResponse;
-import org.jboss.netty.handler.codec.http.HttpRequestDecoder;
-import org.jboss.netty.handler.codec.http.HttpResponse;
-import org.jboss.netty.handler.codec.http.HttpResponseEncoder;
+import org.jboss.netty.handler.codec.http.*;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 
 public class CloudCmdServer
@@ -98,6 +97,15 @@ public class CloudCmdServer
         }
       }));
 
+      routes.add(new GetRoute("/cas/", new RouteHandler() {
+        @Override
+        public HttpResponse exec(Map<String, String> args) throws Exception {
+          JSONObject obj = new JSONObject();
+          obj.put("status", "woot!");
+          HttpResponse response = Util.createResponse(obj);
+          return response;
+        }
+      }));
 
       routes.add(new GetRoute("/d/$path", new StaticFileServerHandler(_fileStorageProvider)));
       routes.add(new GetRoute("/$path", new StaticFileServerHandler(_staticFileProvider)));
