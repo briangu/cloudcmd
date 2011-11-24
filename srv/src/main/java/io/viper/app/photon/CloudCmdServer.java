@@ -97,11 +97,12 @@ public class CloudCmdServer
         }
       }));
 
-      routes.add(new GetRoute("/cas/", new RouteHandler() {
+      routes.add(new GetRoute("/cas/$var", new RouteHandler() {
         @Override
         public HttpResponse exec(Map<String, String> args) throws Exception {
           JSONObject obj = new JSONObject();
           obj.put("status", "woot!");
+          obj.put("var", args.get("var"));
           HttpResponse response = Util.createResponse(obj);
           return response;
         }
