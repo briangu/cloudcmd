@@ -10,27 +10,6 @@
   <description>
     The server side of cloudcmd.
   </description>
-  <url>https://github.com/briangu/photon</url>
-
-  <developers>
-    <developer>
-      <id>briangu</id>
-      <name>Brian Guarraci</name>
-      <email>brian.guarraci@gmail.com</email>
-      <url>http://eismcc.com</url>
-      <timezone>-8</timezone>
-    </developer>
-  </developers>
-
-  <licenses>
-    <license>
-      <name>MIT License</name>
-      <url>
-        http://www.opensource.org/licenses/mit-license.php
-      </url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
 
   <dependencies>
     <dependency>

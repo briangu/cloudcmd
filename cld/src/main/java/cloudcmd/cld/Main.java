@@ -1,5 +1,7 @@
 package cloudcmd.cld;
 
+import jpbetz.cli.CommandSet;
+
 public class Main {
 
   @SuppressWarnings("unchecked")

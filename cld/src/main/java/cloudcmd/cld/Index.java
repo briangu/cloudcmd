@@ -1,6 +1,8 @@
 package cloudcmd.cld;
 
 
+import jpbetz.cli.*;
+
 @SubCommand(name="index", description="Index stuff")
 public class Index implements Command {
 	
