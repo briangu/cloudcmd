@@ -22,6 +22,21 @@ public class Index implements Command {
 //	@Opt(opt="n", longOpt="repeat", description="Number of times to yell the text")
 //	public Number yells = 1;
 
+    // TODO:
+    //
+    //  extract metadata from file and add back into ops
+    //    calculate hash, get filename and extension, path, size
+    //  add filetype specific processors in ops
+    //  write two files:
+    //    original file data with the name of the file as the hash
+    //    meta data file
+    //  write to log
+    //
+    // add reindex command cli/srv
+    // add search in cli/srv
+    // add fetch cmd in cli/srv
+    //
+
 	@Override
   public void exec(CommandContext commandLine) throws CommandError, Exception {
 
@@ -31,7 +46,6 @@ public class Index implements Command {
       @Override
       public void exec(ops.CommandContext context, Object[] args) throws Exception {
         File file = (File)args[0];
-        System.out.println("processing: " + file.getAbsolutePath());
         String fileName = file.getName();
         int extIndex = fileName.lastIndexOf(".");
         String ext = extIndex > 0 ? fileName.substring(extIndex+1) : null;
