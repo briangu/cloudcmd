@@ -1,6 +1,7 @@
-package io.viper.app.photon;
+package cloudcmd.srv;
 
 
+import cloudcmd.common.OpsLoader;
 import io.viper.core.server.Util;
 import io.viper.core.server.file.*;
 
@@ -13,6 +14,7 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 
 import io.viper.core.server.router.*;
+import ops.MemoryElement;
 import ops.OPS;
 import ops.OpsFactory;
 import org.jboss.netty.bootstrap.ServerBootstrap;
@@ -28,6 +30,8 @@ public class CloudCmdServer
   private ServerBootstrap _bootstrap;
 
   private final static int MAX_FILE_SIZE = (1024*1024)*1024;
+
+  private static Thread _opsThread = null;
 
   public static CloudCmdServer create(
     String localhostName,
@@ -48,8 +52,21 @@ public class CloudCmdServer
 
     new File(fileStorageRoot).mkdir();
 
+    final OPS ops = initializeOps();
+
+    _opsThread = new Thread(new Runnable()
+    {
+      @Override
+      public void run()
+      {
+        ops.run();
+      }
+    });
+    _opsThread.start();
+
     ChannelPipelineFactory channelPipelineFactory =
       new CloudCmdServerChannelPipelineFactory(
+        ops,
         MAX_FILE_SIZE,
         staticFileRoot,
         fileStorageRoot,
@@ -61,22 +78,36 @@ public class CloudCmdServer
     return cloudCmdServer;
   }
 
-  private static void initializeOps()
+  public static void shutdown()
+  {
+    if (_opsThread != null)
+    {
+      _opsThread.interrupt();
+      try
+      {
+        _opsThread.join(1000);
+      } catch (InterruptedException e)
+      {
+      }
+    }
+  }
+
+  private static OPS initializeOps()
   {
     Map<String, ops.Command> registry = OpsFactory.getDefaultRegistry();
 
-    registry.put("process", new ops.Command() {
-
+    registry.put("index", new ops.Command() {
       @Override
       public void exec(ops.CommandContext context, Object[] args) {
         File file = (File)args[0];
-        System.out.println("processing: " + file.getAbsolutePath());
+        System.out.println("srv processing: " + file.getAbsolutePath());
       }
     });
 
-    final OPS ops = OpsFactory.create(registry, OpsLoader.load("index.ops"));
+    OPS ops = OpsFactory.create(registry, OpsLoader.load("index.ops"));
+    ops.waitForWork(true);
 
-    ops.run();
+    return ops;
   }
 
   private static class CloudCmdServerChannelPipelineFactory implements ChannelPipelineFactory
@@ -87,14 +118,17 @@ public class CloudCmdServer
     private final FileContentInfoProvider _staticFileProvider;
     private final FileContentInfoProvider _fileStorageProvider;
     private final String _downloadHostname;
+    private final OPS _ops;
 
     public CloudCmdServerChannelPipelineFactory(
+      OPS ops,
       int maxContentLength,
       String staticFileRoot,
       String uploadFileRoot,
       String downloadHostname)
         throws IOException, JSONException
     {
+      _ops = ops;
       _maxContentLength = maxContentLength;
       _fileStorageRoot = uploadFileRoot;
       _staticFileRoot = staticFileRoot;
@@ -112,8 +146,17 @@ public class CloudCmdServer
 
       routes.add(new PostRoute("/cas/", new RouteHandler() {
         @Override
-        public HttpResponse exec(Map<String, String> args) {
-          return null;
+        public HttpResponse exec(Map<String, String> args) throws Exception {
+          if (!args.containsKey("rawFile"))
+          {
+            return Util.createJsonResponse("status", "false", "error", "missing rawFile argument");
+          }
+
+          File file = new File(args.get("rawFile"));
+          System.out.println("adding: " + file.getAbsolutePath());
+          _ops.make(new MemoryElement("rawFile", "name", file.getName(), "file", file));
+
+          return Util.createJsonResponse("status", "true", "rawFile", args.get("rawFile"));
         }
       }));
 
@@ -123,7 +166,7 @@ public class CloudCmdServer
           JSONObject obj = new JSONObject();
           obj.put("status", "woot!");
           obj.put("var", args.get("var"));
-          HttpResponse response = Util.createResponse(obj);
+          HttpResponse response = Util.createJsonResponse(obj);
           return response;
         }
       }));

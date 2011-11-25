@@ -9,21 +9,11 @@
       ["make", "goal", "type", "process_raw"],
       ["p", "process_raw",
         [
-          ["goal", "type", "process_raw"],
           ["rawFile", "name", "$name", "file", "$file"]
         ],
         [
-          ["write", "processing {0}", "$name"],
-          ["process", "$file"],
-          ["remove", 1]
-        ]
-      ],
-      ["p", "finish",
-        [
-          ["goal", "type", "process_raw"]
-        ],
-        [
-          ["write", "done!"],
+          ["write", "indexing {0}", "$name"],
+          ["index", "$file"],
           ["remove", 0]
         ]
       ]

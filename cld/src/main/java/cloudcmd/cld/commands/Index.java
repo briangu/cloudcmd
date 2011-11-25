@@ -3,7 +3,9 @@ package cloudcmd.cld.commands;
 
 import cloudcmd.cld.FileHandler;
 import cloudcmd.cld.FileWalker;
-import cloudcmd.cld.OpsLoader;
+import cloudcmd.common.OpsLoader;
+import httpjsonclient.HttpJSONClient;
+import io.viper.core.server.Util;
 import jpbetz.cli.*;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
@@ -27,11 +29,13 @@ public class Index implements Command {
     Map<String, ops.Command> registry = OpsFactory.getDefaultRegistry();
 
     registry.put("process", new ops.Command() {
+      final HttpJSONClient indexClient = HttpJSONClient.create("http://localhost:3000/cas/");
 
       @Override
-      public void exec(ops.CommandContext context, Object[] args) {
+      public void exec(ops.CommandContext context, Object[] args) throws Exception {
         File file = (File)args[0];
         System.out.println("processing: " + file.getAbsolutePath());
+        indexClient.doPost(Util.createJson("rawFile", file.getAbsolutePath()));
       }
     });
 

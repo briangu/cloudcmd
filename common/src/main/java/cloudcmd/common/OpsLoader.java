@@ -8,7 +8,7 @@ public class OpsLoader
 {
   public static File load(String opsResource)
   {
-    URL resource = OpsLoader.class.getResource("/"+opsResource);
+    URL resource = OpsLoader.class.getResource("/ops/"+opsResource);
     try {
       return new File(resource.toURI());
     } catch (URISyntaxException e) {
