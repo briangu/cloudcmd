@@ -13,6 +13,8 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 
 import io.viper.core.server.router.*;
+import ops.OPS;
+import ops.OpsFactory;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.*;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
@@ -57,6 +59,24 @@ public class CloudCmdServer
     cloudCmdServer._bootstrap.bind(new InetSocketAddress(port));
 
     return cloudCmdServer;
+  }
+
+  private static void initializeOps()
+  {
+    Map<String, ops.Command> registry = OpsFactory.getDefaultRegistry();
+
+    registry.put("process", new ops.Command() {
+
+      @Override
+      public void exec(ops.CommandContext context, Object[] args) {
+        File file = (File)args[0];
+        System.out.println("processing: " + file.getAbsolutePath());
+      }
+    });
+
+    final OPS ops = OpsFactory.create(registry, OpsLoader.load("index.ops"));
+
+    ops.run();
   }
 
   private static class CloudCmdServerChannelPipelineFactory implements ChannelPipelineFactory

@@ -13,6 +13,11 @@
 
   <dependencies>
     <dependency>
+      <groupId>cloudcmd</groupId>
+      <artifactId>cloudcmd.common</artifactId>
+      <version>1.0-SNAPSHOT</version>
+    </dependency>
+    <dependency>
       <groupId>cyclops</groupId>
       <artifactId>cyclops</artifactId>
       <version>1.0-SNAPSHOT</version>

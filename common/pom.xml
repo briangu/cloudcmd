@@ -3,15 +3,20 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>cloudcmd</groupId>
-  <artifactId>cloudcmd.srv</artifactId>
+  <artifactId>cloudcmd.common</artifactId>
   <version>1.0-SNAPSHOT</version>
-  <name>cloudcmd.srv</name>
+  <name>cloudcmd common</name>
   <packaging>jar</packaging>
   <description>
-    The server side of cloudcmd.
+    CloudCmd common library
   </description>
 
   <dependencies>
+    <dependency>
+      <groupId>cloudcmd</groupId>
+      <artifactId>cloudcmd.common</artifactId>
+      <version>1.0-SNAPSHOT</version>
+    </dependency>
     <dependency>
       <groupId>cyclops</groupId>
       <artifactId>cyclops</artifactId>
