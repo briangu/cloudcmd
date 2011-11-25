@@ -90,7 +90,7 @@ public class CloudCmdServer
     }
   }
 
-  private static OPS initializeOps()
+  private static OPS initializeOps() throws IOException, JSONException
   {
     Map<String, ops.Command> registry = OpsFactory.getDefaultRegistry();
 

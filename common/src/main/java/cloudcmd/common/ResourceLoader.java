@@ -1,11 +1,11 @@
 package cloudcmd.common;
 
+import com.sun.org.apache.bcel.internal.generic.RETURN;
+import org.apache.commons.io.IOUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.MappedByteBuffer;
@@ -14,27 +14,34 @@ import java.nio.charset.Charset;
 
 public class ResourceLoader
 {
-  public static File loadOps(String opsResource)
+  public static JSONObject loadOps(String opsResource) throws IOException, JSONException
   {
-    return load("/ops/"+opsResource);
+    return loadJson("/ops/" + opsResource);
   }
 
   public static JSONObject loadJson(String resource) throws IOException, JSONException
   {
-    File file = load(resource);
-
-    String rawJson = readFile(file);
+    String rawJson = load(resource);
     JSONObject obj = new JSONObject(rawJson);
-
     return obj;
   }
 
-  public static File load(String resource)
+  public static String load(String resource) throws IOException
   {
     resource = resource.startsWith("/") ? resource : "/" + resource;
+
+    InputStream is = ResourceLoader.class.getResourceAsStream(resource);
+    if (is != null)
+    {
+      StringWriter writer = new StringWriter();
+      IOUtils.copy(is, writer);
+      return writer.toString();
+    }
+
     URL resourceUrl = ResourceLoader.class.getResource(resource);
     try {
-      return new File(resourceUrl.toURI());
+      System.out.println(resourceUrl);
+      return readFile(new File(resourceUrl.toURI()));
     } catch (URISyntaxException e) {
       e.printStackTrace();
     }
