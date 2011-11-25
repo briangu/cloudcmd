@@ -2,10 +2,9 @@ package cloudcmd.cld.commands;
 
 
 import cloudcmd.cld.FileHandler;
+import cloudcmd.cld.FileTypeUtil;
 import cloudcmd.cld.FileWalker;
-import cloudcmd.common.OpsLoader;
-import httpjsonclient.HttpJSONClient;
-import io.viper.core.server.Util;
+import cloudcmd.common.ResourceLoader;
 import jpbetz.cli.*;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
@@ -29,17 +28,54 @@ public class Index implements Command {
     Map<String, ops.Command> registry = OpsFactory.getDefaultRegistry();
 
     registry.put("process", new ops.Command() {
-      final HttpJSONClient indexClient = HttpJSONClient.create("http://localhost:3000/cas/");
-
       @Override
       public void exec(ops.CommandContext context, Object[] args) throws Exception {
         File file = (File)args[0];
         System.out.println("processing: " + file.getAbsolutePath());
-        indexClient.doPost(Util.createJson("rawFile", file.getAbsolutePath()));
+        String fileName = file.getName();
+        int extIndex = fileName.lastIndexOf(".");
+        String ext = extIndex > 0 ? fileName.substring(extIndex+1) : null;
+        String type = ext != null ? FileTypeUtil.instance().getTypeFromExtension(ext) : "default";
+        context.make(new MemoryElement("index", "name", fileName, "type", type, "ext", ext, "file", file));
       }
     });
 
-    final OPS ops = OpsFactory.create(registry, OpsLoader.load("index.ops"));
+    registry.put("index_image", new ops.Command() {
+      @Override
+      public void exec(ops.CommandContext context, Object[] args) throws Exception {
+        File file = (File)args[0];
+      }
+    });
+
+    registry.put("index_doc", new ops.Command() {
+      @Override
+      public void exec(ops.CommandContext context, Object[] args) throws Exception {
+        File file = (File)args[0];
+      }
+    });
+
+    registry.put("index_java", new ops.Command() {
+      @Override
+      public void exec(ops.CommandContext context, Object[] args) throws Exception {
+        File file = (File)args[0];
+      }
+    });
+
+    registry.put("index_default", new ops.Command() {
+      @Override
+      public void exec(ops.CommandContext context, Object[] args) throws Exception {
+        File file = (File)args[0];
+      }
+    });
+
+    registry.put("index", new ops.Command() {
+      @Override
+      public void exec(ops.CommandContext context, Object[] args) throws Exception {
+        File file = (File)args[0];
+      }
+    });
+
+    final OPS ops = OpsFactory.create(registry, ResourceLoader.loadOps("index.ops"));
 
     FileWalker.enumerateFolders(path, new FileHandler() {
       @Override

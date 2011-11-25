@@ -6,7 +6,9 @@
     [
       ["literalize", "goal", "type"],
       ["literalize", "rawFile", "file"],
+      ["literalize", "index", "name", "type", "ext", "file"],
       ["make", "goal", "type", "process_raw"],
+      ["make", "goal", "type", "index"],
       ["p", "process_raw",
         [
           ["goal", "type", "process_raw"],
@@ -18,12 +20,65 @@
           ["remove", 1]
         ]
       ],
-      ["p", "finish",
+      ["p", "finish_raw",
         [
           ["goal", "type", "process_raw"]
         ],
         [
-          ["write", "done!"],
+          ["write", "done with raw files!"],
+          ["remove", 0]
+        ]
+      ],
+      ["p", "index_image",
+        [
+          ["goal", "type", "index"],
+          ["index", "name", "$name", "type", "image", "ext", "$ext", "file", "$file"]
+        ],
+        [
+          ["write", "indexing image {0}", "$name"],
+          ["index_image", "$file"],
+          ["remove", 1]
+        ]
+      ],
+      ["p", "index_doc",
+        [
+          ["goal", "type", "index"],
+          ["index", "name", "$name", "type", "doc", "ext", "$ext", "file", "$file"]
+        ],
+        [
+          ["write", "indexing doc {0}", "$name"],
+          ["index_doc", "$file"],
+          ["remove", 1]
+        ]
+      ],
+      ["p", "index_java",
+        [
+          ["goal", "type", "index"],
+          ["index", "name", "$name", "type", "java", "ext", "$ext", "file", "$file"]
+        ],
+        [
+          ["write", "indexing java {0}", "$name"],
+          ["index_java", "$file"],
+          ["remove", 1]
+        ]
+      ],
+      ["p", "index_default",
+        [
+          ["goal", "type", "index"],
+          ["index", "name", "$name", "type", "default", "ext", "$ext", "file", "$file"]
+        ],
+        [
+          ["write", "indexing default {0}", "$name"],
+          ["index_default", "$file"],
+          ["remove", 1]
+        ]
+      ],
+      ["p", "finish_indexing",
+        [
+          ["goal", "type", "index"]
+        ],
+        [
+          ["write", "done indexing!"],
           ["remove", 0]
         ]
       ]

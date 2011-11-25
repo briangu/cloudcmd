@@ -1,7 +1,7 @@
 package cloudcmd.srv;
 
 
-import cloudcmd.common.OpsLoader;
+import cloudcmd.common.ResourceLoader;
 import io.viper.core.server.Util;
 import io.viper.core.server.file.*;
 
@@ -94,6 +94,23 @@ public class CloudCmdServer
   {
     Map<String, ops.Command> registry = OpsFactory.getDefaultRegistry();
 
+    // TODO:
+    //
+    //  extract metadata from file and add back into ops
+    //    calculate hash, get filename and extension, path, size
+    //  add filetype specific processors in ops
+    //  write two files:
+    //    original file data with the name of the file as the hash
+    //    meta data file
+    //  write to log
+    //
+    // add log endpoint in server
+    // add log follower in client
+    // add reindex command cli/srv
+    // add search in cli/srv
+    // add fetch cmd in cli/srv
+    //
+
     registry.put("index", new ops.Command() {
       @Override
       public void exec(ops.CommandContext context, Object[] args) {
@@ -102,7 +119,7 @@ public class CloudCmdServer
       }
     });
 
-    OPS ops = OpsFactory.create(registry, OpsLoader.load("index.ops"));
+    OPS ops = OpsFactory.create(registry, ResourceLoader.loadOps("index.ops"));
     ops.waitForWork(true);
 
     return ops;
