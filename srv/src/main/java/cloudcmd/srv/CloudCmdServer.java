@@ -31,7 +31,7 @@ public class CloudCmdServer
 
   private final static int MAX_FILE_SIZE = (1024*1024)*1024;
 
-  private static Thread _opsThread = null;
+  private Thread _opsThread = null;
 
   public static CloudCmdServer create(
     String localhostName,
@@ -48,13 +48,11 @@ public class CloudCmdServer
                 Executors.newCachedThreadPool(),
                 Executors.newCachedThreadPool()));
 
-    String localhost = String.format("http://%s:%s", localhostName, port);
-
     new File(fileStorageRoot).mkdir();
 
     final OPS ops = initializeOps();
 
-    _opsThread = new Thread(new Runnable()
+    cloudCmdServer._opsThread = new Thread(new Runnable()
     {
       @Override
       public void run()
@@ -62,7 +60,7 @@ public class CloudCmdServer
         ops.run();
       }
     });
-    _opsThread.start();
+    cloudCmdServer._opsThread.start();
 
     ChannelPipelineFactory channelPipelineFactory =
       new CloudCmdServerChannelPipelineFactory(
@@ -78,7 +76,7 @@ public class CloudCmdServer
     return cloudCmdServer;
   }
 
-  public static void shutdown()
+  public void shutdown()
   {
     if (_opsThread != null)
     {

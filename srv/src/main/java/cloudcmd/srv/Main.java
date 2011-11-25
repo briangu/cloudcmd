@@ -10,7 +10,7 @@ public class Main
 {
   public static void main(String[] args)
   {
-    CloudCmdServer cloudCmdServer;
+    CloudCmdServer cloudCmdServer = null;
 
     try
     {
@@ -36,6 +36,13 @@ public class Main
     catch (Exception e)
     {
       e.printStackTrace();
+    }
+    finally
+    {
+      if (cloudCmdServer != null)
+      {
+        cloudCmdServer.shutdown();
+      }
     }
   }
 }

@@ -44,9 +44,7 @@ public class Index implements Command {
     FileWalker.enumerateFolders(path, new FileHandler() {
       @Override
       public void process(File file) {
-
         ops.make(new MemoryElement("rawFile", "name", file.getName(), "file", file));
-
       }
     });
 
