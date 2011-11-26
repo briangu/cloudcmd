@@ -3,6 +3,7 @@ package cloudcmd.cld;
 import cloudcmd.cld.commands.Index;
 import cloudcmd.common.FileUtil;
 import cloudcmd.common.config.ConfigStorageService;
+import cloudcmd.common.engine.CloudEngineService;
 import cloudcmd.common.index.IndexStorageService;
 import jpbetz.cli.CommandSet;
 
@@ -24,6 +25,7 @@ public class Main {
 
     try
     {
+      CloudEngineService.instance().init();
       IndexStorageService.instance().init();
 
       CommandSet app = new CommandSet("cld");

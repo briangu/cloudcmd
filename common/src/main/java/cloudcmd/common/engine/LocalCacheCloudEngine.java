@@ -4,6 +4,7 @@ import cloudcmd.common.FileTypeUtil;
 import cloudcmd.common.MetaUtil;
 import cloudcmd.common.ResourceUtil;
 import cloudcmd.common.adapters.FileAdapter;
+import cloudcmd.common.config.ConfigStorageService;
 import cloudcmd.common.index.IndexStorageService;
 import ops.Command;
 import ops.MemoryElement;
@@ -29,7 +30,7 @@ public class LocalCacheCloudEngine implements CloudEngine
   OPS _ops;
 
   @Override
-  public void init(String configRoot) throws Exception
+  public void init() throws Exception
   {
     Map<String, Command> registry = OpsFactory.getDefaultRegistry();
 
@@ -64,7 +65,7 @@ public class LocalCacheCloudEngine implements CloudEngine
     _localCache = new FileAdapter();
 
     JSONObject obj = new JSONObject();
-    obj.put("rootPath", configRoot + File.separator + "cache");
+    obj.put("rootPath", ConfigStorageService.instance().getConfigRoot() + File.separator + "cache");
 
     _localCache.init(FileAdapter.class.getName(), new HashSet<String>(), obj);
   }
@@ -72,6 +73,7 @@ public class LocalCacheCloudEngine implements CloudEngine
   @Override
   public void shutdown()
   {
+    _threadPool.shutdown();
   }
 
   private void _add(final File file, final Set<String> tags)
