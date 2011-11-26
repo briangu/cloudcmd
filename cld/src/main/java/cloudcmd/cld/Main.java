@@ -14,14 +14,13 @@ public class Main {
   public static void main(String[] args) throws Exception
   {
     String configRoot = FileUtil.findConfigDir(FileUtil.getCurrentWorkingDirectory(), ".cld");
-
     if (configRoot == null)
     {
-      System.err.println("Not in a cloudcmd project.  Please use cld init to create a project.");
-      return;
+      configRoot = System.getenv("HOME") + File.separator + ".cld";
+      new File(configRoot).mkdir();
     }
 
-    ConfigStorageService.instance().init();
+    ConfigStorageService.instance().init(configRoot);
 
     try
     {
