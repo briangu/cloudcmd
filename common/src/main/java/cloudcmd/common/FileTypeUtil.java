@@ -1,6 +1,5 @@
-package cloudcmd.cld;
+package cloudcmd.common;
 
-import cloudcmd.common.ResourceUtil;
 import org.json.JSONException;
 import org.json.JSONObject;
 

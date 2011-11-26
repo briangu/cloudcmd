@@ -9,6 +9,8 @@ public interface ConfigStorage
   void init(String configRoot) throws Exception;
   void shutdown();
 
+  String getConfigRoot();
+
   String getProperty(String key);
   Integer getPropertyAsInt(String key);
 

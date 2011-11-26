@@ -6,7 +6,7 @@
     [
       ["literalize", "goal", "type"],
       ["literalize", "rawFile", "file"],
-      ["literalize", "index", "name", "type", "ext", "file"],
+      ["literalize", "index", "name", "type", "ext", "file", "tags"],
       ["make", "goal", "type", "process_raw"],
       ["make", "goal", "type", "index"],
       ["p", "process_raw",
@@ -29,47 +29,14 @@
           ["remove", 0]
         ]
       ],
-      ["p", "index_image",
-        [
-          ["goal", "type", "index"],
-          ["index", "name", "$name", "type", "image", "ext", "$ext", "file", "$file"]
-        ],
-        [
-          ["write", "indexing image {0}", "$name"],
-          ["index_image", "$file", "$type"],
-          ["remove", 1]
-        ]
-      ],
-      ["p", "index_doc",
-        [
-          ["goal", "type", "index"],
-          ["index", "name", "$name", "type", "doc", "ext", "$ext", "file", "$file"]
-        ],
-        [
-          ["write", "indexing doc {0}", "$name"],
-          ["index_doc", "$file", "$type"],
-          ["remove", 1]
-        ]
-      ],
-      ["p", "index_java",
-        [
-          ["goal", "type", "index"],
-          ["index", "name", "$name", "type", "java", "ext", "$ext", "file", "$file"]
-        ],
-        [
-          ["write", "indexing java {0}", "$name"],
-          ["index_java", "$file", "$type"],
-          ["remove", 1]
-        ]
-      ],
       ["p", "index_default",
         [
           ["goal", "type", "index"],
-          ["index", "name", "$name", "type", "default", "ext", "$ext", "file", "$file"]
+          ["index", "name", "$name", "type", "default", "ext", "$ext", "file", "$file", "tags", "$tags"]
         ],
         [
-          ["write", "indexing default {0}", "$name"],
-          ["index_default", "$file", "$type"],
+          ["write", "indexing (default) {0}", "$name"],
+          ["index_default", "$file", "$type", "$tags"],
           ["remove", 1]
         ]
       ],

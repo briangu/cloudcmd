@@ -1,6 +1,7 @@
 package cloudcmd.common.index;
 
 import cloudcmd.common.StringUtil;
+import cloudcmd.common.config.ConfigStorageService;
 import com.almworks.sqlite4java.SQLiteConnection;
 import com.almworks.sqlite4java.SQLiteException;
 import com.almworks.sqlite4java.SQLiteStatement;
@@ -24,9 +25,9 @@ public class SqliteIndexStorage implements IndexStorage
   }
 
   @Override
-  public void init(String configRoot)
+  public void init()
   {
-    _configRoot = configRoot;
+    _configRoot = ConfigStorageService.instance().getConfigRoot();
 
     File file = getDbFile();
     if (!file.exists())
@@ -169,7 +170,7 @@ public class SqliteIndexStorage implements IndexStorage
 
       statement.stepThrough();
 
-      String[] tags = meta.has("tags") ? (String[]) meta.get("tags") : null;
+      Set<String> tags = meta.has("tags") ? (Set<String>) meta.get("tags") : null;
 
       if (tags != null)
       {
@@ -331,7 +332,7 @@ public class SqliteIndexStorage implements IndexStorage
   }
 
   @Override
-  public void addTag(JSONArray array, String[] tags)
+  public void addTag(JSONArray array, Set<String> tags)
   {
     SQLiteConnection db = null;
     try
@@ -366,18 +367,18 @@ public class SqliteIndexStorage implements IndexStorage
     }
   }
 
-  private void insertTags(SQLiteConnection db, long fieldId, String[] tags) throws SQLiteException
+  private void insertTags(SQLiteConnection db, long fieldId, Set<String> tags) throws SQLiteException
   {
     SQLiteStatement statement = db.prepare("insert or replace into tags (fieldId, tag) values (?, ?)");
 
     try
     {
-      for (int i = 0; i < tags.length; i++)
+      for (String tag : tags)
       {
         statement.reset();
 
         statement.bind(0, fieldId);
-        statement.bind(1, tags[i]);
+        statement.bind(1, tag);
 
         statement.stepThrough();
       }
@@ -393,7 +394,7 @@ public class SqliteIndexStorage implements IndexStorage
   }
 
   @Override
-  public void removeTag(JSONArray array, String[] tags)
+  public void removeTag(JSONArray array, Set<String> tags)
   {
     SQLiteConnection db = null;
     try
@@ -401,11 +402,13 @@ public class SqliteIndexStorage implements IndexStorage
       db = new SQLiteConnection(getDbFile());
       db.open(false);
 
-      String sql = String.format("delete from tags where tag in (%s)", repeat(tags.length, "?"));
+      String sql = String.format("delete from tags where tag in (%s)", repeat(tags.size(), "?"));
       SQLiteStatement statement = db.prepare(sql);
-      for (int i = 0; i < tags.length; i++)
+
+      int i = 0;
+      for (String tag : tags)
       {
-        statement.bind(i, tags[i]);
+        statement.bind(i++, tag);
       }
 
       statement.stepThrough();

@@ -120,6 +120,12 @@ public class JsonConfigStorage implements ConfigStorage
   }
 
   @Override
+  public String getConfigRoot()
+  {
+    return _configRoot;
+  }
+
+  @Override
   public String getProperty(String key)
   {
     try

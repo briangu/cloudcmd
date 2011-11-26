@@ -3,6 +3,8 @@ package cloudcmd.common.index;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.Set;
+
 public interface IndexStorage
 {
   // query
@@ -16,7 +18,7 @@ public interface IndexStorage
   // add tag and batch
   // rm tag and batch
 
-  void init(String configRoot);
+  void init();
   void purge();
   void flush();
   void shutdown();
@@ -25,6 +27,6 @@ public interface IndexStorage
 
   JSONArray find(JSONObject filter);
 
-  void addTag(JSONArray array, String[] tags);
-  void removeTag(JSONArray array, String[] tags);
+  void addTag(JSONArray array, Set<String> tags);
+  void removeTag(JSONArray array, Set<String> tags);
 }

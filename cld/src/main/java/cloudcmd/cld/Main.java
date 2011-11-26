@@ -24,7 +24,7 @@ public class Main {
 
     try
     {
-      IndexStorageService.instance().init(configRoot);
+      IndexStorageService.instance().init();
 
       CommandSet app = new CommandSet("cld");
       app.addSubCommands(Index.class);

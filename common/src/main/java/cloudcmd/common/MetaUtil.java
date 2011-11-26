@@ -5,10 +5,11 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Set;
 
 public class MetaUtil
 {
-  public static JSONObject createMeta(File file, String type, String[] tags)
+  public static JSONObject createMeta(File file, Set<String> tags)
   {
     JSONObject obj;
 
@@ -30,8 +31,7 @@ public class MetaUtil
         "filename", fileName,
         "fileext", extIndex >= 0 ? fileName.substring(extIndex) : null,
         "filesize", file.length(),
-        "filedate", file.lastModified(),
-        "type", type
+        "filedate", file.lastModified()
       );
 
       if (tags != null) obj.put("tags", tags);
