@@ -17,6 +17,7 @@ public class SqliteIndexStorage implements IndexStorage
 
   private static File getDbFile()
   {
+    // TODO: we need config
     return new File("./cloudcmd.db");
   }
 
