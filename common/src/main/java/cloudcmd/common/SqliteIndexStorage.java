@@ -76,10 +76,13 @@ public class SqliteIndexStorage implements IndexStorage
   @Override
   public void flush()
   {
+    if (_queue.size() == 0) return;
+
     SQLiteConnection db = null;
 
     try
     {
+      db = new SQLiteConnection(getDbFile());
       db.exec("begin");
 
       for (int i = 0; i < _queue.size(); i++)
