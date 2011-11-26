@@ -4,11 +4,14 @@ package cloudcmd.cld.commands;
 import cloudcmd.cld.FileHandler;
 import cloudcmd.cld.FileTypeUtil;
 import cloudcmd.cld.FileWalker;
+import cloudcmd.common.IndexStorageService;
+import cloudcmd.common.MetaUtil;
 import cloudcmd.common.ResourceLoader;
 import jpbetz.cli.*;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
 import ops.*;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.util.Map;
@@ -16,11 +19,11 @@ import java.util.Map;
 @SubCommand(name="index", description="Index files")
 public class Index implements Command {
 	
-	@Arg(name="Path to index", optional=true)
-	public String path = ".";
+	@Arg(name="path", optional=true)
+	public String _path = ".";
 
-//	@Opt(opt="n", longOpt="repeat", description="Number of times to yell the text")
-//	public Number yells = 1;
+	@Arg(name="tags", optional = true, isVararg = true)
+	public String[] _tags = null;
 
     // TODO:
     //
@@ -54,14 +57,28 @@ public class Index implements Command {
       }
     });
 
+    //           ["index", "name", "$name", "type", "image", "ext", "$ext", "file", "$file"]
+
     registry.put("index_image", new ops.Command() {
+      @Override
+      public void exec(ops.CommandContext context, Object[] args) throws Exception {
+        File file = (File)args[0];
+        String type = args[1].toString();
+
+        JSONObject meta = MetaUtil.createMeta(file, type);
+
+        IndexStorageService.instance().add(meta, _tags);
+      }
+    });
+
+    registry.put("index_doc", new ops.Command() {
       @Override
       public void exec(ops.CommandContext context, Object[] args) throws Exception {
         File file = (File)args[0];
       }
     });
 
-    registry.put("index_doc", new ops.Command() {
+    registry.put("index_music", new ops.Command() {
       @Override
       public void exec(ops.CommandContext context, Object[] args) throws Exception {
         File file = (File)args[0];
@@ -82,16 +99,9 @@ public class Index implements Command {
       }
     });
 
-    registry.put("index", new ops.Command() {
-      @Override
-      public void exec(ops.CommandContext context, Object[] args) throws Exception {
-        File file = (File)args[0];
-      }
-    });
-
     final OPS ops = OpsFactory.create(registry, ResourceLoader.loadOps("index.ops"));
 
-    FileWalker.enumerateFolders(path, new FileHandler() {
+    FileWalker.enumerateFolders(_path, new FileHandler() {
       @Override
       public void process(File file) {
         ops.make(new MemoryElement("rawFile", "name", file.getName(), "file", file));

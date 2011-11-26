@@ -1,0 +1,414 @@
+package cloudcmd.common;
+
+import com.almworks.sqlite4java.SQLiteConnection;
+import com.almworks.sqlite4java.SQLiteException;
+import com.almworks.sqlite4java.SQLiteStatement;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.File;
+import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
+
+public class SqliteIndexStorage implements IndexStorage
+{
+  private static final int MAX_QUEUE_SIZE = 1000;
+
+  private static File getDbFile()
+  {
+    return new File("");
+  }
+
+  @Override
+  public void init()
+  {
+    SQLiteConnection db = null;
+    try
+    {
+      db = new SQLiteConnection(getDbFile());
+      db.exec("DROP TABLE if exists file_index;");
+      db.exec("CREATE TABLE file_index ( id INTEGER PRIMARY KEY ASC, hash TEXT, path TEXT, filename TEXT, fileext  TEXT, filesize INTEGER, filedate INTEGER, type TEXT );");
+      db.exec("CREATE TABLE tags ( id INTEGER PRIMARY KEY ASC, fileID INTEGER, tag TEXT );");
+      db.exec("CREATE INDEX idx_fi_path on file_index(path);");
+      db.exec("CREATE INDEX idx_fi_hash on file_index(hash);");
+      db.exec("CREATE INDEX idx_fi_filename on file_index(filename);");
+      db.exec("CREATE INDEX idx_tags on tags(tag);");
+    }
+    catch (SQLiteException e)
+    {
+      e.printStackTrace();
+    }
+    finally
+    {
+      if (db != null)
+      {
+        db.dispose();
+      }
+    }
+  }
+
+  @Override
+  public void purge()
+  {
+    SQLiteConnection db = null;
+    try
+    {
+      db = new SQLiteConnection(getDbFile());
+      db.exec("delete from file_index;");
+      db.exec("delete from tags;");
+    }
+    catch (SQLiteException e)
+    {
+      e.printStackTrace();
+    }
+    finally
+    {
+      if (db != null)
+      {
+        db.dispose();
+      }
+    }
+  }
+
+  private ConcurrentLinkedQueue<JSONObject> _queue = new ConcurrentLinkedQueue<JSONObject>();
+
+  @Override
+  public void flush()
+  {
+    SQLiteConnection db = null;
+
+    try
+    {
+      db.exec("begin");
+
+      for (int i = 0; i < _queue.size(); i++)
+      {
+        JSONObject obj = _queue.remove();
+        addMeta(db, obj);
+      }
+
+      db.exec("commit");
+    }
+    catch (SQLiteException e)
+    {
+      e.printStackTrace();
+    }
+    catch (JSONException e)
+    {
+      e.printStackTrace();
+    }
+    finally
+    {
+      if (db != null)
+      {
+        db.dispose();
+      }
+    }
+  }
+
+  private void addMeta(SQLiteConnection db, JSONObject meta) throws JSONException, SQLiteException
+  {
+    String sql;
+
+    List<Object> bind = new ArrayList<Object>();
+
+    Iterator iter = meta.keys();
+
+    while (iter.hasNext())
+    {
+      String key = iter.next().toString();
+      if (key.equals("tags")) continue;
+      Object obj = meta.get(key);
+      bind.add(obj);
+    }
+
+    sql = String.format("insert into file_index values (%s);", repeat(bind.size(), "?"));
+
+    SQLiteStatement statement = db.prepare(sql);
+
+    try
+    {
+      for (int i = 0; i < bind.size(); i++)
+      {
+        Object obj = bind.get(i);
+        if (obj instanceof String)
+        {
+          statement.bind(i, (String)obj);
+        }
+        else if (obj instanceof Long)
+        {
+          statement.bind(i, (Long)obj);
+        }
+        else
+        {
+          throw new IllegalArgumentException("unknown obj type: " + obj.toString());
+        }
+      }
+
+      statement.stepThrough();
+
+      String[] tags = meta.has("tags") ? (String[]) meta.get("tags") : null;
+
+      if (tags != null)
+      {
+        long fieldId = db.getLastInsertId();
+        insertTags(db, fieldId, tags);
+      }
+    }
+    catch (SQLiteException e)
+    {
+      e.printStackTrace();
+    }
+    catch (JSONException e)
+    {
+      e.printStackTrace();
+    }
+    finally
+    {
+      statement.dispose();
+    }
+  }
+
+  @Override
+  public void shutdown()
+  {
+    flush();
+  }
+
+  @Override
+  public void add(JSONObject meta)
+  {
+    _queue.add(meta);
+    if (_queue.size() > MAX_QUEUE_SIZE)
+    {
+      flush();
+    }
+  }
+
+  public static String join(Collection<?> s, String delimiter) {
+    StringBuilder builder = new StringBuilder();
+    Iterator iter = s.iterator();
+    while (iter.hasNext()) {
+       builder.append(iter.next().toString());
+       if (!iter.hasNext()) {
+         break;
+       }
+       builder.append(delimiter);
+    }
+    return builder.toString();
+  }
+
+  @Override
+  public JSONArray find(JSONObject filter)
+  {
+    JSONArray results = new JSONArray();
+
+    SQLiteConnection db = null;
+
+    try
+    {
+      String[] tags = filter.has("tags") ? (String[]) filter.get("tags") : null;
+
+      db = new SQLiteConnection(getDbFile());
+
+      String sql;
+
+      List<Object> bind = new ArrayList<Object>();
+
+      if (tags != null)
+      {
+        String subSelect = String.format("select fileId from from tags where tag in (%s)", repeat(tags.length, "?"));
+        sql = String.format("select * from file_index where id in (%s);", subSelect);
+        bind.addAll(Arrays.asList(tags));
+      }
+      else
+      {
+        List<String> list = new ArrayList<String>();
+
+        Iterator iter = filter.keys();
+
+        while (iter.hasNext())
+        {
+          String key = iter.next().toString();
+          if (key.equals("tags")) continue;
+          Object obj = filter.get(key);
+          if (obj instanceof String[] || obj instanceof Long[])
+          {
+            Collection<Object> foo = Arrays.asList(obj);
+            list.add(String.format("%s in (%s)", key, repeat(foo.size(), "?")));
+            bind.addAll(foo);
+          }
+          else
+          {
+            list.add(String.format("%s in ?", key));
+            bind.add(obj);
+          }
+        }
+
+        sql = String.format("select * from file_index where %s;", join(list, " and "));
+      }
+
+      SQLiteStatement statement = db.prepare(sql);
+
+      try
+      {
+        for (int i = 0; i < bind.size(); i++)
+        {
+          Object obj = bind.get(i);
+          if (obj instanceof String)
+          {
+            statement.bind(i, (String)obj);
+          }
+          else if (obj instanceof Long)
+          {
+            statement.bind(i, (Long)obj);
+          }
+          else
+          {
+            throw new IllegalArgumentException("unknown obj type: " + obj.toString());
+          }
+        }
+
+        while (statement.step())
+        {
+          JSONObject obj = new JSONObject();
+
+          obj.put("hash", statement.columnString(0));
+          obj.put("path", statement.columnString(1));
+          obj.put("filename", statement.columnString(2));
+          obj.put("fileext", statement.columnString(3));
+          obj.put("filesize", new Long(statement.columnLong(4)));
+          obj.put("filedate", new Long(statement.columnLong(5)));
+          obj.put("type", statement.columnString(6));
+          obj.put("tags", tags);
+
+          results.put(obj);
+        }
+      }
+      catch (SQLiteException e)
+      {
+        e.printStackTrace();
+      }
+      catch (JSONException e)
+      {
+        e.printStackTrace();
+      }
+      finally
+      {
+        statement.dispose();
+      }
+    }
+    catch (SQLiteException e)
+    {
+      e.printStackTrace();
+    }
+    catch (JSONException e)
+    {
+      e.printStackTrace();
+    }
+    finally
+    {
+      if (db != null)
+      {
+        db.dispose();
+      }
+    }
+
+    return results;
+  }
+
+  @Override
+  public void addTag(JSONArray array, String[] tags)
+  {
+    SQLiteConnection db = null;
+    try
+    {
+      db = new SQLiteConnection(getDbFile());
+
+      db.exec("begin");
+
+      for (int i = 0; i < array.length(); i++)
+      {
+        long fieldId = array.getJSONObject(i).getLong("id");
+        insertTags(db, fieldId, tags);
+      }
+
+      db.exec("commit");
+    }
+    catch (SQLiteException e)
+    {
+      e.printStackTrace();
+    }
+    catch (JSONException e1)
+    {
+      e1.printStackTrace();
+    }
+    finally
+    {
+      if (db != null)
+      {
+        db.dispose();
+      }
+    }
+  }
+
+  private void insertTags(SQLiteConnection db, long fieldId, String[] tags) throws SQLiteException
+  {
+    SQLiteStatement statement = db.prepare("insert into tags (fieldId, tag) values (?, ?)");
+
+    try
+    {
+      for (int i = 0; i < tags.length; i++)
+      {
+        statement.reset();
+
+        statement.bind(0, fieldId);
+        statement.bind(1, tags[i]);
+
+        statement.stepThrough();
+      }
+    }
+    catch (SQLiteException e)
+    {
+      e.printStackTrace();
+    }
+    finally
+    {
+      statement.dispose();
+    }
+  }
+
+  @Override
+  public void removeTag(JSONArray array, String[] tags)
+  {
+    SQLiteConnection db = null;
+    try
+    {
+      db = new SQLiteConnection(getDbFile());
+      String sql = String.format("delete from tags where tag in (%s)", repeat(tags.length, "?"));
+      SQLiteStatement statement = db.prepare(sql);
+      for (int i = 0; i < tags.length; i++)
+      {
+        statement.bind(i, tags[i]);
+      }
+      statement.stepThrough();
+    }
+    catch (SQLiteException e)
+    {
+      e.printStackTrace();
+    }
+    finally
+    {
+      if (db != null)
+      {
+        db.dispose();
+      }
+    }
+  }
+
+  public String repeat(int n, String s)
+  {
+    return String.format(String.format("%%0%dd", n), 0).replace("0",s);
+  }
+}

@@ -3,6 +3,9 @@
   "jpg": "image",
   "jpeg": "image",
   "png": "image",
+  "gif": "image",
+  "mp3": "music",
+  "wav": "music",
   "doc": "doc",
   "docx": "doc"
 }

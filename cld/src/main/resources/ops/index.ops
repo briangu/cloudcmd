@@ -36,7 +36,7 @@
         ],
         [
           ["write", "indexing image {0}", "$name"],
-          ["index_image", "$file"],
+          ["index_image", "$file", "$type"],
           ["remove", 1]
         ]
       ],
@@ -47,7 +47,7 @@
         ],
         [
           ["write", "indexing doc {0}", "$name"],
-          ["index_doc", "$file"],
+          ["index_doc", "$file", "$type"],
           ["remove", 1]
         ]
       ],
@@ -58,7 +58,7 @@
         ],
         [
           ["write", "indexing java {0}", "$name"],
-          ["index_java", "$file"],
+          ["index_java", "$file", "$type"],
           ["remove", 1]
         ]
       ],
@@ -69,7 +69,7 @@
         ],
         [
           ["write", "indexing default {0}", "$name"],
-          ["index_default", "$file"],
+          ["index_default", "$file", "$type"],
           ["remove", 1]
         ]
       ],
