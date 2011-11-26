@@ -1,6 +1,7 @@
 package cloudcmd.cld;
 
 import cloudcmd.cld.commands.Index;
+import cloudcmd.common.IndexStorageService;
 import jpbetz.cli.CommandSet;
 
 public class Main {
@@ -10,5 +11,7 @@ public class Main {
 		CommandSet app = new CommandSet("cld");
 		app.addSubCommands(Index.class);
 		app.invoke(args);
+
+    IndexStorageService.instance().shutdown();
 	}
 }

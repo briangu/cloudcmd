@@ -25,9 +25,10 @@ public class MetaUtil
         "fileext", extIndex >= 0 ? fileName.substring(extIndex) : null,
         "filesize", file.length(),
         "filedate", file.lastModified(),
-        "type", type,
-        "tags", tags
+        "type", type
       );
+
+      if (tags != null) obj.put("tags", tags);
 
       return obj;
     }
