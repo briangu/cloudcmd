@@ -1,11 +1,10 @@
 package cloudcmd.common;
 
+import org.apache.commons.io.IOUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
@@ -47,6 +46,36 @@ public class FileUtil
     finally
     {
       stream.close();
+    }
+  }
+
+  public static void writeFile(String metaFile, JSONObject meta) throws IOException
+  {
+    ByteArrayInputStream bais;
+
+    try
+    {
+      bais = new ByteArrayInputStream(meta.toString().getBytes("UTF-8"));
+    }
+    catch (UnsupportedEncodingException e)
+    {
+      e.printStackTrace();
+      bais = new ByteArrayInputStream(meta.toString().getBytes());
+    }
+
+    writeFile(metaFile, bais);
+  }
+
+  public static void writeFile(String dataFile, InputStream data) throws IOException
+  {
+    FileOutputStream fos = new FileOutputStream(dataFile);
+    try
+    {
+      IOUtils.copy(data, fos);
+    }
+    finally
+    {
+      fos.close();
     }
   }
 }

@@ -13,7 +13,7 @@ public class S3Adapter extends Adapter
   }
 
   @Override
-  public void init()
+  public void init() throws Exception
   {
     //To change body of implemented methods use File | Settings | File Templates.
   }

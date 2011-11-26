@@ -1,12 +1,11 @@
 package cloudcmd.cld.commands;
 
 
-import cloudcmd.cld.FileHandler;
+import cloudcmd.common.*;
 import cloudcmd.cld.FileTypeUtil;
-import cloudcmd.cld.FileWalker;
+import cloudcmd.common.FileWalker;
+import cloudcmd.common.FileHandler;
 import cloudcmd.common.index.IndexStorageService;
-import cloudcmd.common.MetaUtil;
-import cloudcmd.common.ResourceUtil;
 import jpbetz.cli.*;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
@@ -111,9 +110,11 @@ public class Index implements Command {
 
     final OPS ops = OpsFactory.create(registry, ResourceUtil.loadOps("index.ops"));
 
-    FileWalker.enumerateFolders(_path, new FileHandler() {
+    FileWalker.enumerateFolders(_path, new FileHandler()
+    {
       @Override
-      public void process(File file) {
+      public void process(File file)
+      {
         ops.make(new MemoryElement("rawFile", "name", file.getName(), "file", file));
       }
     });
