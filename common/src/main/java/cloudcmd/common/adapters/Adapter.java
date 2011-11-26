@@ -2,9 +2,7 @@ package cloudcmd.common.adapters;
 
 import org.json.JSONObject;
 
-import java.io.File;
 import java.io.InputStream;
-import java.util.Map;
 import java.util.Set;
 
 public abstract class Adapter
