@@ -17,7 +17,7 @@ public class SqliteIndexStorage implements IndexStorage
 
   private static File getDbFile()
   {
-    return new File("");
+    return new File("./cloudcmd.db");
   }
 
   @Override
@@ -27,6 +27,7 @@ public class SqliteIndexStorage implements IndexStorage
     try
     {
       db = new SQLiteConnection(getDbFile());
+      db.open(true);
       db.exec("DROP TABLE if exists file_index;");
       db.exec("CREATE TABLE file_index ( id INTEGER PRIMARY KEY ASC, hash TEXT, path TEXT, filename TEXT, fileext  TEXT, filesize INTEGER, filedate INTEGER, type TEXT );");
       db.exec("CREATE TABLE tags ( fileId INTEGER, tag TEXT, PRIMARY_KEY(fieldId, tag) );");
@@ -55,6 +56,7 @@ public class SqliteIndexStorage implements IndexStorage
     try
     {
       db = new SQLiteConnection(getDbFile());
+      db.open(false);
       db.exec("delete from file_index;");
       db.exec("delete from tags;");
     }
@@ -83,6 +85,8 @@ public class SqliteIndexStorage implements IndexStorage
     try
     {
       db = new SQLiteConnection(getDbFile());
+      db.open(false);
+
       db.exec("begin");
 
       for (int i = 0; i < _queue.size(); i++)
@@ -214,6 +218,7 @@ public class SqliteIndexStorage implements IndexStorage
       String[] tags = filter.has("tags") ? (String[]) filter.get("tags") : null;
 
       db = new SQLiteConnection(getDbFile());
+      db.openReadonly();
 
       String sql;
 
@@ -329,6 +334,7 @@ public class SqliteIndexStorage implements IndexStorage
     try
     {
       db = new SQLiteConnection(getDbFile());
+      db.open(false);
 
       db.exec("begin");
 
@@ -390,12 +396,15 @@ public class SqliteIndexStorage implements IndexStorage
     try
     {
       db = new SQLiteConnection(getDbFile());
+      db.open(false);
+
       String sql = String.format("delete from tags where tag in (%s)", repeat(tags.length, "?"));
       SQLiteStatement statement = db.prepare(sql);
       for (int i = 0; i < tags.length; i++)
       {
         statement.bind(i, tags[i]);
       }
+
       statement.stepThrough();
     }
     catch (SQLiteException e)
