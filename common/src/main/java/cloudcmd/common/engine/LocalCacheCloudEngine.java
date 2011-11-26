@@ -62,11 +62,10 @@ public class LocalCacheCloudEngine implements CloudEngine
     _ops = OpsFactory.create(registry, ResourceUtil.loadOps("index.ops"));
     _ops.run();
 
-    _localCache = new FileAdapter();
-
     JSONObject obj = new JSONObject();
     obj.put("rootPath", ConfigStorageService.instance().getConfigRoot() + File.separator + "cache");
 
+    _localCache = new FileAdapter();
     _localCache.init(FileAdapter.class.getName(), new HashSet<String>(), obj);
   }
 
