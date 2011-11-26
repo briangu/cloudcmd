@@ -1,6 +1,5 @@
 package cloudcmd.common;
 
-import io.viper.core.server.Util;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -25,7 +24,7 @@ public class MetaUtil
         return null;
       }
 
-      obj = Util.createJson(
+      obj = JsonUtil.createJson(
         "hash", hash,
         "path", file.getCanonicalPath(),
         "filename", fileName,
