@@ -7,14 +7,14 @@ import java.util.Set;
 
 public class S3Adapter extends Adapter
 {
-  public S3Adapter(String type, Set<String> tags, JSONObject config)
+  public S3Adapter()
   {
-    super(type, tags, config);
   }
 
   @Override
-  public void init() throws Exception
+  public void init(String type, Set<String> tags, JSONObject config) throws Exception
   {
+    super.init(type, tags, config);
     //To change body of implemented methods use File | Settings | File Templates.
   }
 

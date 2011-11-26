@@ -13,14 +13,17 @@ public abstract class Adapter
   public Set<String> Tags;
   public JSONObject Config;
 
-  public Adapter(String type, Set<String> tags, JSONObject config)
+  public Adapter()
+  {
+  }
+
+  public void init(String type, Set<String> tags, JSONObject config) throws Exception
   {
     Type = type;
     Tags = tags;
     Config = config;
   }
 
-  public abstract void init() throws Exception;
   public abstract void shutdown() throws Exception;
 
   public abstract void store(InputStream data, JSONObject meta) throws Exception;

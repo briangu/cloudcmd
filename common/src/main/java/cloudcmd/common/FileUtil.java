@@ -78,4 +78,20 @@ public class FileUtil
       fos.close();
     }
   }
+
+  public static String findConfigDir(String curPath, String targetDir)
+  {
+    if (curPath == null || curPath.isEmpty()) return null;
+
+    File dir = new File(curPath + File.separatorChar + targetDir);
+
+    if (dir.exists()) return dir.getAbsolutePath();
+
+    return findConfigDir(dir.getParent(), targetDir);
+  }
+
+  public static String getCurrentWorkingDirectory()
+  {
+    return new File(".").getAbsolutePath();
+  }
 }

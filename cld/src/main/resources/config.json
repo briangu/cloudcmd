@@ -2,10 +2,10 @@
   "db": "cloudcmd.db",
   "adapters": [
     {
-      "type": "filesytstem",
+      "type": "cloudcmd.common.adapters.FileAdapter",
       "tags": [],
       "config": {
-        "rootPath": "/home/brian/.cldstorage"
+        "rootPath": "/var/cldstorage"
       }
     },
     {

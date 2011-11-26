@@ -1,5 +1,6 @@
 package cloudcmd.common.index;
 
+import cloudcmd.common.StringUtil;
 import com.almworks.sqlite4java.SQLiteConnection;
 import com.almworks.sqlite4java.SQLiteException;
 import com.almworks.sqlite4java.SQLiteStatement;
@@ -203,19 +204,6 @@ public class SqliteIndexStorage implements IndexStorage
     }
   }
 
-  public static String join(Collection<?> s, String delimiter) {
-    StringBuilder builder = new StringBuilder();
-    Iterator iter = s.iterator();
-    while (iter.hasNext()) {
-       builder.append(iter.next().toString());
-       if (!iter.hasNext()) {
-         break;
-       }
-       builder.append(delimiter);
-    }
-    return builder.toString();
-  }
-
   @Override
   public JSONArray find(JSONObject filter)
   {
@@ -264,7 +252,7 @@ public class SqliteIndexStorage implements IndexStorage
           }
         }
 
-        sql = String.format("select * from file_index where %s;", join(list, " and "));
+        sql = String.format("select * from file_index where %s;", StringUtil.join(list, " and "));
       }
 
       SQLiteStatement statement = db.prepare(sql);

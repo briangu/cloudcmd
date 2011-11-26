@@ -14,14 +14,15 @@ public class FileAdapter extends Adapter
 {
   String _rootPath;
 
-  public FileAdapter(String type, Set<String> tags, JSONObject config)
+  public FileAdapter()
   {
-    super(type, tags, config);
   }
 
   @Override
-  public void init() throws Exception
+  public void init(String type, Set<String> tags, JSONObject config) throws Exception
   {
+    super.init(type, tags, config);
+
     if (!Config.has("rootPath")) throw new IllegalArgumentException("config missing rootPath");
 
     _rootPath = Config.getString("rootPath");
