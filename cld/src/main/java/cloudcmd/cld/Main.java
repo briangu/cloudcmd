@@ -1,8 +1,8 @@
 package cloudcmd.cld;
 
 import cloudcmd.cld.commands.Index;
-import cloudcmd.common.IndexStorage;
-import cloudcmd.common.IndexStorageService;
+import cloudcmd.common.config.ConfigStorageService;
+import cloudcmd.common.index.IndexStorageService;
 import jpbetz.cli.CommandSet;
 
 public class Main {
@@ -10,6 +10,7 @@ public class Main {
   @SuppressWarnings("unchecked")
   public static void main(String[] args) {
 
+    ConfigStorageService.instance().init();
     IndexStorageService.instance().init();
 
     try
@@ -21,6 +22,7 @@ public class Main {
     finally
     {
       IndexStorageService.instance().shutdown();
+      ConfigStorageService.instance().shutdown();
     }
 	}
 }

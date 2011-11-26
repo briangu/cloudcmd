@@ -1,4 +1,4 @@
-package cloudcmd.common;
+package cloudcmd.common.index;
 
 public class IndexStorageService
 {

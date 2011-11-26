@@ -1,4 +1,4 @@
-package cloudcmd.common;
+package cloudcmd.common.index;
 
 import org.json.JSONArray;
 import org.json.JSONObject;

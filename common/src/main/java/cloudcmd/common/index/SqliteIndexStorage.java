@@ -1,4 +1,4 @@
-package cloudcmd.common;
+package cloudcmd.common.index;
 
 import com.almworks.sqlite4java.SQLiteConnection;
 import com.almworks.sqlite4java.SQLiteException;
@@ -130,11 +130,11 @@ public class SqliteIndexStorage implements IndexStorage
 
     List<Object> bind = new ArrayList<Object>();
 
-    Iterator iter = meta.keys();
+    Iterator<String> iter = meta.keys();
 
     while (iter.hasNext())
     {
-      String key = iter.next().toString();
+      String key = iter.next();
       if (key.equals("tags")) continue;
       Object obj = meta.get(key);
       bind.add(obj);
@@ -244,11 +244,11 @@ public class SqliteIndexStorage implements IndexStorage
       {
         List<String> list = new ArrayList<String>();
 
-        Iterator iter = filter.keys();
+        Iterator<String> iter = filter.keys();
 
         while (iter.hasNext())
         {
-          String key = iter.next().toString();
+          String key = iter.next();
           if (key.equals("tags")) continue;
           Object obj = filter.get(key);
           if (obj instanceof String[] || obj instanceof Long[])

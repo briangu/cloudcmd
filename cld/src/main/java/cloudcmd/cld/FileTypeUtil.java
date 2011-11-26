@@ -1,6 +1,6 @@
 package cloudcmd.cld;
 
-import cloudcmd.common.ResourceLoader;
+import cloudcmd.common.ResourceUtil;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -24,7 +24,7 @@ public class FileTypeUtil
 
           try
           {
-            ftu._typeMap = ResourceLoader.loadJson("filetypes.json");
+            ftu._typeMap = ResourceUtil.loadJson("filetypes.json");
           } catch (IOException e)
           {
             e.printStackTrace();

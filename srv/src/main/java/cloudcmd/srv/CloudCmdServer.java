@@ -1,7 +1,7 @@
 package cloudcmd.srv;
 
 
-import cloudcmd.common.ResourceLoader;
+import cloudcmd.common.ResourceUtil;
 import io.viper.core.server.Util;
 import io.viper.core.server.file.*;
 
@@ -119,7 +119,7 @@ public class CloudCmdServer
       }
     });
 
-    OPS ops = OpsFactory.create(registry, ResourceLoader.loadOps("index.ops"));
+    OPS ops = OpsFactory.create(registry, ResourceUtil.loadOps("index.ops"));
     ops.waitForWork(true);
 
     return ops;

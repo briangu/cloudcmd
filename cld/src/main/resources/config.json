@@ -1,0 +1,16 @@
+{
+  "db": "cloudcmd.db",
+  "adapters": [
+    {
+      "type": "filesytstem",
+      "tags": [],
+      "config": {
+        "rootPath": "/home/brian/.cldstorage"
+      }
+    },
+    {
+      "type": "s3",
+      "tags": ["s3"]
+    }
+  ]
+}
