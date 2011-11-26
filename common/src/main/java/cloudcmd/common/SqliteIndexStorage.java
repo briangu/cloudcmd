@@ -274,13 +274,14 @@ public class SqliteIndexStorage implements IndexStorage
         {
           JSONObject obj = new JSONObject();
 
-          obj.put("hash", statement.columnString(0));
-          obj.put("path", statement.columnString(1));
-          obj.put("filename", statement.columnString(2));
-          obj.put("fileext", statement.columnString(3));
-          obj.put("filesize", new Long(statement.columnLong(4)));
-          obj.put("filedate", new Long(statement.columnLong(5)));
-          obj.put("type", statement.columnString(6));
+          obj.put("id", statement.columnString(0));
+          obj.put("hash", statement.columnString(1));
+          obj.put("path", statement.columnString(2));
+          obj.put("filename", statement.columnString(3));
+          obj.put("fileext", statement.columnString(4));
+          obj.put("filesize", new Long(statement.columnLong(5)));
+          obj.put("filedate", new Long(statement.columnLong(6)));
+          obj.put("type", statement.columnString(7));
           obj.put("tags", tags);
 
           results.put(obj);
