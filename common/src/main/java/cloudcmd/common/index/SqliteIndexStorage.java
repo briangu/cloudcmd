@@ -197,6 +197,8 @@ public class SqliteIndexStorage implements IndexStorage
   @Override
   public void add(JSONObject meta)
   {
+    if (meta == null) return;
+
     _queue.add(meta);
     if (_queue.size() > MAX_QUEUE_SIZE)
     {

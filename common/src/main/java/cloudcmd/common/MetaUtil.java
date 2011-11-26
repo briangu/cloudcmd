@@ -18,8 +18,15 @@ public class MetaUtil
       String fileName = file.getName();
       int extIndex = fileName.lastIndexOf(".");
 
+      String hash = CryptoUtil.computeHashAsString(file);
+      if (hash == null)
+      {
+        System.err.println("failed to compute hash of " + file.getAbsolutePath());
+        return null;
+      }
+
       obj = Util.createJson(
-        "hash", CryptoUtil.computeHash(file),
+        "hash", hash,
         "path", file.getCanonicalPath(),
         "filename", fileName,
         "fileext", extIndex >= 0 ? fileName.substring(extIndex) : null,
