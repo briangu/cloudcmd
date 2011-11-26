@@ -64,10 +64,8 @@ public class Index implements Command {
       public void exec(ops.CommandContext context, Object[] args) throws Exception {
         File file = (File)args[0];
         String type = args[1].toString();
-
-        JSONObject meta = MetaUtil.createMeta(file, type);
-
-        IndexStorageService.instance().add(meta, _tags);
+        JSONObject meta = MetaUtil.createMeta(file, type, _tags);
+        IndexStorageService.instance().add(meta);
       }
     });
 
@@ -75,6 +73,9 @@ public class Index implements Command {
       @Override
       public void exec(ops.CommandContext context, Object[] args) throws Exception {
         File file = (File)args[0];
+        String type = args[1].toString();
+        JSONObject meta = MetaUtil.createMeta(file, type, _tags);
+        IndexStorageService.instance().add(meta);
       }
     });
 
@@ -82,6 +83,9 @@ public class Index implements Command {
       @Override
       public void exec(ops.CommandContext context, Object[] args) throws Exception {
         File file = (File)args[0];
+        String type = args[1].toString();
+        JSONObject meta = MetaUtil.createMeta(file, type, _tags);
+        IndexStorageService.instance().add(meta);
       }
     });
 
@@ -89,6 +93,9 @@ public class Index implements Command {
       @Override
       public void exec(ops.CommandContext context, Object[] args) throws Exception {
         File file = (File)args[0];
+        String type = args[1].toString();
+        JSONObject meta = MetaUtil.createMeta(file, type, _tags);
+        IndexStorageService.instance().add(meta);
       }
     });
 
@@ -96,6 +103,9 @@ public class Index implements Command {
       @Override
       public void exec(ops.CommandContext context, Object[] args) throws Exception {
         File file = (File)args[0];
+        String type = args[1].toString();
+        JSONObject meta = MetaUtil.createMeta(file, type, _tags);
+        IndexStorageService.instance().add(meta);
       }
     });
 

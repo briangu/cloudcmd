@@ -29,7 +29,7 @@ public class SqliteIndexStorage implements IndexStorage
       db = new SQLiteConnection(getDbFile());
       db.exec("DROP TABLE if exists file_index;");
       db.exec("CREATE TABLE file_index ( id INTEGER PRIMARY KEY ASC, hash TEXT, path TEXT, filename TEXT, fileext  TEXT, filesize INTEGER, filedate INTEGER, type TEXT );");
-      db.exec("CREATE TABLE tags ( id INTEGER PRIMARY KEY ASC, fileID INTEGER, tag TEXT );");
+      db.exec("CREATE TABLE tags ( fileId INTEGER, tag TEXT, PRIMARY_KEY(fieldId, tag) );");
       db.exec("CREATE INDEX idx_fi_path on file_index(path);");
       db.exec("CREATE INDEX idx_fi_hash on file_index(hash);");
       db.exec("CREATE INDEX idx_fi_filename on file_index(filename);");
@@ -356,7 +356,7 @@ public class SqliteIndexStorage implements IndexStorage
 
   private void insertTags(SQLiteConnection db, long fieldId, String[] tags) throws SQLiteException
   {
-    SQLiteStatement statement = db.prepare("insert into tags (fieldId, tag) values (?, ?)");
+    SQLiteStatement statement = db.prepare("insert or replace into tags (fieldId, tag) values (?, ?)");
 
     try
     {

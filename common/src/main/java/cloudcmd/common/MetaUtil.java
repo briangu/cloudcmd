@@ -9,7 +9,7 @@ import java.io.IOException;
 
 public class MetaUtil
 {
-  public static JSONObject createMeta(File file, String type)
+  public static JSONObject createMeta(File file, String type, String[] tags)
   {
     JSONObject obj;
 
@@ -25,7 +25,8 @@ public class MetaUtil
         "fileext", extIndex >= 0 ? fileName.substring(extIndex) : null,
         "filesize", file.length(),
         "filedate", file.lastModified(),
-        "type", type
+        "type", type,
+        "tags", tags
       );
 
       return obj;
