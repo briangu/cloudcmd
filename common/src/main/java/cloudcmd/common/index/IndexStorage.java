@@ -16,7 +16,7 @@ public interface IndexStorage
   // add tag and batch
   // rm tag and batch
 
-  void init();
+  void init(String configRoot);
   void purge();
   void flush();
   void shutdown();

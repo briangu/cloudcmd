@@ -16,15 +16,18 @@ public class SqliteIndexStorage implements IndexStorage
 {
   private static final int MAX_QUEUE_SIZE = 1000;
 
+  private static String _configRoot;
+
   private static File getDbFile()
   {
-    // TODO: we need config
-    return new File("./cloudcmd.db");
+    return new File(_configRoot + File.separator + "cloudcmd.db");
   }
 
   @Override
-  public void init()
+  public void init(String configRoot)
   {
+    _configRoot = configRoot;
+
     File file = getDbFile();
     if (!file.exists())
     {
