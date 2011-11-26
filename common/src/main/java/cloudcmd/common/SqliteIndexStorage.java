@@ -24,6 +24,15 @@ public class SqliteIndexStorage implements IndexStorage
   @Override
   public void init()
   {
+    File file = getDbFile();
+    if (!file.exists())
+    {
+      bootstrap();
+    }
+  }
+
+  private void bootstrap()
+  {
     SQLiteConnection db = null;
     try
     {
