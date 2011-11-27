@@ -1,10 +1,10 @@
 package cloudcmd.common.index;
 
 import cloudcmd.common.FileMetaData;
+import cloudcmd.common.MetaUtil;
 import cloudcmd.common.SqlUtil;
 import cloudcmd.common.StringUtil;
 import cloudcmd.common.config.ConfigStorageService;
-import com.sun.java.browser.plugin2.liveconnect.v1.Result;
 import org.h2.fulltext.FullText;
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.json.JSONArray;
@@ -180,7 +180,7 @@ public class H2IndexStorage implements IndexStorage
     bind.add(StringUtil.join(meta.Tags, " "));
     bind.add(meta.Meta.toString());
 
-    sql = String.format("merge into file_index (%s) values (%s);", StringUtil.join(fields, ","), repeat(bind.size(), "?"));
+    sql = String.format("merge into file_index (%s) values (%s);", StringUtil.join(fields, ","), StringUtil.repeat(bind.size(), "?"));
 
     PreparedStatement statement = db.prepareStatement(sql);
 
@@ -265,7 +265,7 @@ public class H2IndexStorage implements IndexStorage
           if (obj instanceof String[] || obj instanceof Long[])
           {
             Collection<Object> foo = Arrays.asList(obj);
-            list.add(String.format("%s in (%s)", key, repeat(foo.size(), "?")));
+            list.add(String.format("%s in (%s)", key, StringUtil.repeat(foo.size(), "?")));
             bind.addAll(foo);
           }
           else
@@ -275,7 +275,14 @@ public class H2IndexStorage implements IndexStorage
           }
         }
 
-        sql = String.format("select hash,tags,rawMeta from file_index where %s;", StringUtil.join(list, " and "));
+        if (list.size() > 0)
+        {
+          sql = String.format("select hash,tags,rawMeta from file_index where %s", StringUtil.join(list, " and "));
+        }
+        else
+        {
+          sql = String.format("select hash,tags,rawMeta from file_index");
+        }
       }
 
       statement = db.prepareStatement(sql);
@@ -318,7 +325,7 @@ public class H2IndexStorage implements IndexStorage
 
     try
     {
-      String sql = String.format("select hash,tags,rawMeta from file_index where hash in (%s);", repeat(hash.size(), "?"));
+      String sql = String.format("select hash,tags,rawMeta from file_index where hash in (%s);", StringUtil.repeat(hash.size(), "?"));
 
       statement = db.prepareStatement(sql);
 
@@ -357,7 +364,7 @@ public class H2IndexStorage implements IndexStorage
       while(rs.next())
       {
         String rowTags = rs.getString("tags");
-        Set<String> rowTagSet = createRowTagSet(rowTags);
+        Set<String> rowTagSet = MetaUtil.createRowTagSet(rowTags);
         rowTagSet.addAll(tags);
         rs.updateString("tags", StringUtil.join(rowTagSet, " "));
         rs.updateRow();
@@ -401,7 +408,7 @@ public class H2IndexStorage implements IndexStorage
       while(rs.next())
       {
         String rowTags = rs.getString("tags");
-        Set<String> rowTagSet = createRowTagSet(rowTags);
+        Set<String> rowTagSet = MetaUtil.createRowTagSet(rowTags);
         rowTagSet.removeAll(tags);
         rs.updateString("tags", StringUtil.join(rowTagSet, " "));
         rs.updateRow();
@@ -421,15 +428,5 @@ public class H2IndexStorage implements IndexStorage
     {
       SqlUtil.SafeClose(db);
     }
-  }
-
-  private Set<String> createRowTagSet(String rowTags)
-  {
-    return new HashSet<String>(Arrays.asList(rowTags.split(" ")));
-  }
-
-  public String repeat(int n, String s)
-  {
-    return String.format(String.format("%%0%dd", n), 0).replace("0",s);
   }
 }

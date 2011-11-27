@@ -6,6 +6,8 @@ import org.json.JSONException;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Set;
 
 public class MetaUtil
@@ -65,5 +67,10 @@ public class MetaUtil
   private static long getFileSize(File file)
   {
     return file.length();
+  }
+
+  public static Set<String> createRowTagSet(String rowTags)
+  {
+    return new HashSet<String>(Arrays.asList(rowTags.split(" ")));
   }
 }

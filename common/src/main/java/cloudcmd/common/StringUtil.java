@@ -17,4 +17,9 @@ public class StringUtil
     }
     return builder.toString();
   }
+
+  public static String repeat(int n, String s)
+  {
+    return String.format(String.format("%%0%dd", n), 0).replace("0",s);
+  }
 }

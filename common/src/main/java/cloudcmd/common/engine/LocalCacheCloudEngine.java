@@ -111,6 +111,8 @@ public class LocalCacheCloudEngine implements CloudEngine
   @Override
   public void push(int maxTier)
   {
+    JSONArray allEntries = IndexStorageService.instance().find(new JSONObject());
+
     final Set<String> localDescription = _localCache.describe();
 
     for (final Adapter adapter : ConfigStorageService.instance().getAdapters())
