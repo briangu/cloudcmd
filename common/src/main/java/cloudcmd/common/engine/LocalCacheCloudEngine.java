@@ -43,7 +43,7 @@ public class LocalCacheCloudEngine implements CloudEngine
         int extIndex = fileName.lastIndexOf(".");
         String ext = extIndex > 0 ? fileName.substring(extIndex+1) : null;
         String type = ext != null ? FileTypeUtil.instance().getTypeFromExtension(ext) : "default";
-        context.make(new MemoryElement("index", "name", fileName, "type", type, "ext", ext, "file", file));
+        context.make(new MemoryElement("index", "name", fileName, "type", type, "ext", ext, "file", file, "tags", args[1]));
       }
     });
 
@@ -51,10 +51,11 @@ public class LocalCacheCloudEngine implements CloudEngine
       @Override
       public void exec(ops.CommandContext context, Object[] args) throws Exception {
         File file = (File)args[0];
+        String type = (String)args[1];
 
         Set<String> tags = new HashSet<String>();
-        tags.add((String)args[1]);
-        tags.addAll(Arrays.asList((String[]) args[2]));
+        tags.add(type);
+        tags.addAll((Set<String>)args[2]);
 
         _add(file, tags);
       }
@@ -130,7 +131,7 @@ public class LocalCacheCloudEngine implements CloudEngine
   @Override
   public void add(File file, List<String> tags)
   {
-    _ops.make(new MemoryElement("rawFile", "name", file.getName(), "file", file));
+    _ops.make(new MemoryElement("rawFile", "name", file.getName(), "file", file, "tags", tags));
   }
 
   @Override

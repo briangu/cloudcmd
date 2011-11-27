@@ -11,41 +11,21 @@
       ["make", "goal", "type", "index"],
       ["p", "process_raw",
         [
-          ["goal", "type", "process_raw"],
-          ["rawFile", "name", "$name", "file", "$file"]
+          ["rawFile", "name", "$name", "file", "$file", "tags", "$tags"]
         ],
         [
           ["write", "processing {0}", "$name"],
-          ["process", "$file"],
-          ["remove", 1]
-        ]
-      ],
-      ["p", "finish_raw",
-        [
-          ["goal", "type", "process_raw"]
-        ],
-        [
-          ["write", "done with raw files!"],
+          ["process", "$file", "$tags"],
           ["remove", 0]
         ]
       ],
       ["p", "index_default",
         [
-          ["goal", "type", "index"],
-          ["index", "name", "$name", "type", "default", "ext", "$ext", "file", "$file", "tags", "$tags"]
+          ["index", "name", "$name", "type", "$type", "ext", "$ext", "file", "$file", "tags", "$tags"]
         ],
         [
           ["write", "indexing (default) {0}", "$name"],
           ["index_default", "$file", "$type", "$tags"],
-          ["remove", 1]
-        ]
-      ],
-      ["p", "finish_indexing",
-        [
-          ["goal", "type", "index"]
-        ],
-        [
-          ["write", "done indexing!"],
           ["remove", 0]
         ]
       ]
