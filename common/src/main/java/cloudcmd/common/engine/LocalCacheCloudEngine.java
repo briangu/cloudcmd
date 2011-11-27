@@ -93,7 +93,7 @@ public class LocalCacheCloudEngine implements CloudEngine
             _localCache.store(new FileInputStream(file), meta.BlockHashes.getString(i));
           }
 
-          _localCache.store(new ByteArrayInputStream(meta.Meta.toString().getBytes()), meta.MetaHash);
+          _localCache.store(new ByteArrayInputStream(meta.MetaBytes), meta.MetaHash);
         }
         catch (Exception e)
         {

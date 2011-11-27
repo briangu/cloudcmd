@@ -32,7 +32,7 @@ public class MetaUtil
       );
 
       meta.MetaBytes = meta.Meta.toString().getBytes();
-      meta.MetaHash = CryptoUtil.computeHashAsString(new ByteArrayInputStream(meta.MetaBytes));
+      meta.MetaHash = CryptoUtil.computeHashAsString(new ByteArrayInputStream(meta.MetaBytes)) + ".meta";
 
       meta.Tags = tags;
     }
