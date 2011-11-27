@@ -12,7 +12,7 @@ public class IndexStorageService
       {
         if (_instance == null)
         {
-          _instance = new SqliteIndexStorage();
+          _instance = new H2IndexStorage();
         }
       }
     }

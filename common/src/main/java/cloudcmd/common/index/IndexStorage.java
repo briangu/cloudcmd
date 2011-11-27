@@ -9,7 +9,7 @@ import java.util.Set;
 
 public interface IndexStorage
 {
-  void init();
+  void init() throws Exception;
   void purge();
   void flush();
   void shutdown();

@@ -1,36 +1,51 @@
 package cloudcmd.common.index;
 
 import cloudcmd.common.FileMetaData;
+import cloudcmd.common.SqlUtil;
 import cloudcmd.common.StringUtil;
 import cloudcmd.common.config.ConfigStorageService;
-import com.almworks.sqlite4java.SQLiteConnection;
-import com.almworks.sqlite4java.SQLiteException;
-import com.almworks.sqlite4java.SQLiteStatement;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class SqliteIndexStorage implements IndexStorage
+public class H2IndexStorage implements IndexStorage
 {
   private static final int MAX_QUEUE_SIZE = 1000;
 
   private static String _configRoot;
 
-  private static File getDbFile()
+  private String getDbFile()
   {
-    return new File(_configRoot + File.separator + "cloudcmd.db");
+    return String.format("%s%sindex.db", _configRoot, File.separator);
+  }
+
+  private Connection getDbConnection() throws SQLException
+  {
+    String cs = String.format("jdbc:h2:%s", getDbFile());
+    Connection conn = DriverManager.getConnection(cs, "sa", "");
+    return conn;
+  }
+
+  private Connection getReadOnlyDbConnection() throws SQLException
+  {
+    Connection conn = getDbConnection();
+    conn.setReadOnly(true);
+    return conn;
   }
 
   @Override
-  public void init()
+  public void init() throws Exception
   {
+    Class.forName("org.h2.Driver");
+
     _configRoot = ConfigStorageService.instance().getConfigRoot();
 
-    File file = getDbFile();
+    File file = new File(getDbFile());
     if (!file.exists())
     {
       bootstrap();
@@ -39,53 +54,53 @@ public class SqliteIndexStorage implements IndexStorage
 
   private void bootstrap()
   {
-    SQLiteConnection db = null;
+    Connection db = null;
+    Statement st = null;
     try
     {
-      db = new SQLiteConnection(getDbFile());
-      db.open(true);
-      db.exec("DROP TABLE if exists file_index;");
-      db.exec("CREATE TABLE file_index ( id INTEGER PRIMARY KEY ASC, hash TEXT, path TEXT, filename TEXT, fileext  TEXT, filesize INTEGER, filedate INTEGER, type TEXT, blob TEXT );");
-      db.exec("CREATE TABLE tags ( id INTEGER PRIMARY KEY ASC, fileId INTEGER, tag TEXT, UNIQUE(fieldId, tag) );");
-      db.exec("CREATE INDEX idx_fi_path on file_index(path);");
-      db.exec("CREATE INDEX idx_fi_hash on file_index(hash);");
-      db.exec("CREATE INDEX idx_fi_filename on file_index(filename);");
-      db.exec("CREATE INDEX idx_tags on tags(tag);");
+      db = getDbConnection();
+      st = db.createStatement();
+
+      st.execute("DROP TABLE if exists file_index;");
+      st.execute("CREATE TABLE file_index ( id INTEGER PRIMARY KEY ASC, hash TEXT, path TEXT, filename TEXT, fileext  TEXT, filesize INTEGER, filedate INTEGER, type TEXT, blob TEXT );");
+      st.execute("CREATE TABLE tags ( id INTEGER PRIMARY KEY ASC, fileId INTEGER, tag TEXT, UNIQUE(fieldId, tag) );");
+      st.execute("CREATE INDEX idx_fi_path on file_index(path);");
+      st.execute("CREATE INDEX idx_fi_hash on file_index(hash);");
+      st.execute("CREATE INDEX idx_fi_filename on file_index(filename);");
+      st.execute("CREATE INDEX idx_tags on tags(tag);");
     }
-    catch (SQLiteException e)
+    catch (SQLException e)
     {
       e.printStackTrace();
     }
     finally
     {
-      if (db != null)
-      {
-        db.dispose();
-      }
+      SqlUtil.SafeClose(st);
+      SqlUtil.SafeClose(db);
     }
   }
 
   @Override
   public void purge()
   {
-    SQLiteConnection db = null;
+    Connection db = null;
+    Statement st = null;
     try
     {
-      db = new SQLiteConnection(getDbFile());
-      db.open(false);
-      db.exec("delete from file_index;");
-      db.exec("delete from tags;");
+      db = getDbConnection();
+      st = db.createStatement();
+
+      st.execute("delete from file_index;");
+      st.execute("delete from tags;");
     }
-    catch (SQLiteException e)
+    catch (SQLException e)
     {
       e.printStackTrace();
     }
     finally
     {
-      if (db != null)
-      {
-        db.dispose();
-      }
+      SqlUtil.SafeClose(st);
+      SqlUtil.SafeClose(db);
     }
   }
 
@@ -96,14 +111,12 @@ public class SqliteIndexStorage implements IndexStorage
   {
     if (_queue.size() == 0) return;
 
-    SQLiteConnection db = null;
-
+    Connection db = null;
     try
     {
-      db = new SQLiteConnection(getDbFile());
-      db.open(false);
+      db = getDbConnection();
 
-      db.exec("begin");
+      db.setAutoCommit(false);
 
       for (int i = 0; i < _queue.size(); i++)
       {
@@ -111,9 +124,9 @@ public class SqliteIndexStorage implements IndexStorage
         addMeta(db, obj);
       }
 
-      db.exec("commit");
+      db.commit();
     }
-    catch (SQLiteException e)
+    catch (SQLException e)
     {
       e.printStackTrace();
     }
@@ -123,14 +136,11 @@ public class SqliteIndexStorage implements IndexStorage
     }
     finally
     {
-      if (db != null)
-      {
-        db.dispose();
-      }
+      SqlUtil.SafeClose(db);
     }
   }
 
-  private void addMeta(SQLiteConnection db, FileMetaData meta) throws JSONException, SQLiteException
+  private void addMeta(Connection db, FileMetaData meta) throws JSONException, SQLException
   {
     String sql;
 
@@ -151,20 +161,20 @@ public class SqliteIndexStorage implements IndexStorage
 
     sql = String.format("insert into file_index (%s) values (%s);", StringUtil.join(fields, ","), repeat(bind.size(), "?"));
 
-    SQLiteStatement statement = db.prepare(sql);
+    PreparedStatement statement = db.prepareStatement(sql);
 
     try
     {
-      for (int i = 0; i < bind.size(); i++)
+      for (int i = 0, paramIdx = 1; i < bind.size(); i++, paramIdx++)
       {
         Object obj = bind.get(i);
         if (obj instanceof String)
         {
-          statement.bind(i, (String)obj);
+          statement.setString(paramIdx, (String) obj);
         }
         else if (obj instanceof Long)
         {
-          statement.bind(i, (Long)obj);
+          statement.setLong(paramIdx, (Long) obj);
         }
         else
         {
@@ -172,7 +182,7 @@ public class SqliteIndexStorage implements IndexStorage
         }
       }
 
-      statement.stepThrough();
+      statement.execute();
 
       if (meta.Tags != null)
       {
@@ -180,13 +190,13 @@ public class SqliteIndexStorage implements IndexStorage
         insertTags(db, fieldId, meta.Tags);
       }
     }
-    catch (SQLiteException e)
+    catch (Exception e)
     {
       e.printStackTrace();
     }
     finally
     {
-      statement.dispose();
+      SqlUtil.SafeClose(statement);
     }
   }
 
@@ -213,14 +223,14 @@ public class SqliteIndexStorage implements IndexStorage
   {
     JSONArray results = new JSONArray();
 
-    SQLiteConnection db = null;
+    Connection db = null;
+    PreparedStatement statement = null;
 
     try
     {
       String[] tags = filter.has("tags") ? (String[]) filter.get("tags") : null;
 
-      db = new SQLiteConnection(getDbFile());
-      db.openReadonly();
+      db = getReadOnlyDbConnection();
 
       String sql;
 
@@ -259,61 +269,43 @@ public class SqliteIndexStorage implements IndexStorage
         sql = String.format("select blob from file_index where %s;", StringUtil.join(list, " and "));
       }
 
-      SQLiteStatement statement = db.prepare(sql);
+       statement = db.prepareStatement(sql);
 
-      try
+      for (int i = 0, paramIdx = 1; i < bind.size(); i++, paramIdx++)
       {
-        for (int i = 0; i < bind.size(); i++)
+        Object obj = bind.get(i);
+        if (obj instanceof String)
         {
-          Object obj = bind.get(i);
-          if (obj instanceof String)
-          {
-            statement.bind(i, (String)obj);
-          }
-          else if (obj instanceof Long)
-          {
-            statement.bind(i, (Long)obj);
-          }
-          else
-          {
-            throw new IllegalArgumentException("unknown obj type: " + obj.toString());
-          }
+          statement.setString(paramIdx, (String)obj);
         }
-
-        while (statement.step())
+        else if (obj instanceof Long)
         {
-          String rawJson = statement.columnString(0);
-          JSONObject obj = new JSONObject(rawJson);
-          results.put(obj);
+          statement.setLong(paramIdx, (Long)obj);
+        }
+        else
+        {
+          throw new IllegalArgumentException("unknown obj type: " + obj.toString());
         }
       }
-      catch (SQLiteException e)
+
+      while (statement.step())
       {
-        e.printStackTrace();
+        String rawJson = statement.columnString(0);
+        JSONObject obj = new JSONObject(rawJson);
+        results.put(obj);
       }
-      catch (JSONException e)
-      {
-        e.printStackTrace();
-      }
-      finally
-      {
-        statement.dispose();
-      }
-    }
-    catch (SQLiteException e)
-    {
-      e.printStackTrace();
     }
     catch (JSONException e)
     {
       e.printStackTrace();
     }
+    catch (SQLException e)
+    {
+      e.printStackTrace();
+    }
     finally
     {
-      if (db != null)
-      {
-        db.dispose();
-      }
+      SqlUtil.SafeClose(db);
     }
 
     return results;
@@ -346,13 +338,12 @@ public class SqliteIndexStorage implements IndexStorage
   @Override
   public void addTag(JSONArray array, Set<String> tags)
   {
-    SQLiteConnection db = null;
+    Connection db = null;
     try
     {
-      db = new SQLiteConnection(getDbFile());
-      db.open(false);
+      db = getDbConnection();
 
-      db.exec("begin");
+      db.setAutoCommit(false);
 
       for (int i = 0; i < array.length(); i++)
       {
@@ -360,81 +351,73 @@ public class SqliteIndexStorage implements IndexStorage
         insertTags(db, fieldId, tags);
       }
 
-      db.exec("commit");
+      db.commit();
     }
-    catch (SQLiteException e)
+    catch (JSONException e)
     {
       e.printStackTrace();
     }
-    catch (JSONException e1)
+    catch (SQLException e)
     {
-      e1.printStackTrace();
+      e.printStackTrace();
     }
     finally
     {
-      if (db != null)
-      {
-        db.dispose();
-      }
+      SqlUtil.SafeClose(db);
     }
   }
 
-  private void insertTags(SQLiteConnection db, long fieldId, Set<String> tags) throws SQLiteException
+  private void insertTags(Connection db, long fieldId, Set<String> tags) throws SQLException
   {
-    SQLiteStatement statement = db.prepare("insert or replace into tags (fieldId, tag) values (?, ?)");
+    PreparedStatement statement = null;
 
     try
     {
+      statement = db.prepareStatement("insert or replace into tags (fieldId, tag) values (?, ?)");
+
       for (String tag : tags)
       {
-        statement.reset();
+        statement.clearParameters();
 
-        statement.bind(0, fieldId);
-        statement.bind(1, tag);
+        statement.setLong(1, fieldId);
+        statement.setString(2, tag);
 
-        statement.stepThrough();
+        statement.execute();
       }
-    }
-    catch (SQLiteException e)
-    {
-      e.printStackTrace();
     }
     finally
     {
-      statement.dispose();
+      SqlUtil.SafeClose(statement);
     }
   }
 
   @Override
   public void removeTag(JSONArray array, Set<String> tags)
   {
-    SQLiteConnection db = null;
+    Connection db = null;
+
     try
     {
-      db = new SQLiteConnection(getDbFile());
-      db.open(false);
+      db = getDbConnection();
 
       String sql = String.format("delete from tags where tag in (%s)", repeat(tags.size(), "?"));
-      SQLiteStatement statement = db.prepare(sql);
+      PreparedStatement statement = db.prepareStatement(sql);
 
-      int i = 0;
+      int i = 1;
       for (String tag : tags)
       {
-        statement.bind(i++, tag);
+        statement.setString(i++, tag);
       }
 
-      statement.stepThrough();
+      statement.execute();
     }
-    catch (SQLiteException e)
+    catch (SQLException e)
     {
       e.printStackTrace();
     }
     finally
     {
-      if (db != null)
-      {
-        db.dispose();
-      }
+      SqlUtil.SafeClose(db);
     }
   }
 
