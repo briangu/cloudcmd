@@ -123,15 +123,27 @@ public class LocalCacheCloudEngine implements CloudEngine
       {
         Set<String> adapterDescription = adapter.describe();
 
-        for (final String hash : localDescription)
+        for (int i = 0; i < allEntries.length(); i++)
         {
-          if (!hash.endsWith(".meta")) continue;
+          JSONObject entry = allEntries.getJSONObject(i);
+
+          String hash = entry.getString("hash");
+
+          if (!hash.endsWith(".meta"))
+          {
+            // TODO: message (this shouldn't happen)
+            continue;
+          }
+
+          if (!localDescription.contains(hash))
+          {
+            // TODO: message (the index should always by in sync with the local cache)
+            continue;
+          }
 
           try
           {
-            JSONObject meta = JsonUtil.loadJson(_localCache.load(hash));
-
-            Set<String> tags = IndexStorageService.instance().getTags(hash);
+            Set<String> tags = MetaUtil.createRowTagSet(entry.getString("tags"));
 
             if (!adapter.acceptsTags(tags)) continue;
 
@@ -139,15 +151,21 @@ public class LocalCacheCloudEngine implements CloudEngine
 
             if (!adapterDescription.contains(hash))
             {
+              // TODO: can we get this blob from the index entry?
               queueStore(adapter, _localCache.load(hash), hash);
             }
 
-            JSONArray blocks = meta.getJSONArray("blocks");
+            JSONArray blocks = entry.getJSONArray("blocks");
 
-            for (int i = 0; i < blocks.length(); i++)
+            for (int blockIdx = 0; blockIdx < blocks.length(); blockIdx++)
             {
-              String blockHash = blocks.getString(i);
+              String blockHash = blocks.getString(blockIdx);
               if (adapterDescription.contains(blockHash)) continue;
+              if (!localDescription.contains(blockHash))
+              {
+                // TODO: message (it's possible that we legitimately don't have the block if we only have the meta data)
+                continue;
+              }
               queueStore(adapter, _localCache.load(blockHash), blockHash);
             }
           }
