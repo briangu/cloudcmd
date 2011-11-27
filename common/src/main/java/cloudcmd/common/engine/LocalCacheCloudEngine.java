@@ -129,7 +129,7 @@ public class LocalCacheCloudEngine implements CloudEngine
   }
 
   @Override
-  public void add(File file, List<String> tags)
+  public void add(File file, Set<String> tags)
   {
     _ops.make(new MemoryElement("rawFile", "name", file.getName(), "file", file, "tags", tags));
   }

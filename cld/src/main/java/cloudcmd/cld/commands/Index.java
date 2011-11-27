@@ -14,6 +14,7 @@ import ops.*;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -39,7 +40,7 @@ public class Index implements Command {
       @Override
       public void process(File file)
       {
-        CloudEngineService.instance().add(file, _tags);
+        CloudEngineService.instance().add(file, new HashSet<String>(_tags));
       }
     });
   }
