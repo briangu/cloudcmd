@@ -8,17 +8,6 @@ import java.util.Set;
 
 public interface IndexStorage
 {
-  // query
-  //  find by tag
-  //  find by other properties
-  // init table
-  // purge table
-  // insert
-  // flush
-  // shutdown
-  // add tag and batch
-  // rm tag and batch
-
   void init();
   void purge();
   void flush();

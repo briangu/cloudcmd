@@ -24,7 +24,7 @@ public class S3Adapter extends Adapter
   }
 
   @Override
-  public void store(InputStream data, JSONObject meta)
+  public void store(InputStream data, String hash)
   {
   }
 
