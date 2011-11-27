@@ -16,10 +16,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -53,7 +50,7 @@ public class LocalCacheCloudEngine implements CloudEngine
       public void exec(ops.CommandContext context, Object[] args) throws Exception {
         File file = (File)args[0];
 
-        Set<String> tags = new HashSet<String>();
+        List<String> tags = new ArrayList<String>();
         tags.add((String)args[1]);
         tags.addAll(Arrays.asList((String[]) args[2]));
 
@@ -77,7 +74,7 @@ public class LocalCacheCloudEngine implements CloudEngine
     _threadPool.shutdown();
   }
 
-  private void _add(final File file, final Set<String> tags)
+  private void _add(final File file, final List<String> tags)
   {
     _threadPool.submit(new Runnable()
     {
@@ -132,7 +129,11 @@ public class LocalCacheCloudEngine implements CloudEngine
           {
             JSONObject meta = JsonUtil.loadJson(_localCache.load(hash));
 
-            if (!adapter.acceptsTags((Set<String>) meta.get("tags"))) continue;
+            List<String> tags = IndexStorageService.instance().getTags(hash);
+
+            if (!adapter.acceptsTags(tags)) continue;
+
+            queueStoreTags(adapter, new JSONArray(tags), hash);
 
             if (!adapterDescription.contains(hash))
             {
@@ -174,29 +175,34 @@ public class LocalCacheCloudEngine implements CloudEngine
       {
         Set<String> adapterDescription = adapter.describe();
 
-        for (final String hash : localDescription)
+        for (final String hash : adapterDescription)
         {
           if (!hash.endsWith(".meta")) continue;
 
           try
           {
-            JSONObject meta = JsonUtil.loadJson(_localCache.load(hash));
+            FileMetaData fmd = new FileMetaData();
 
-            if (!adapterDescription.contains(hash))
+            fmd.Meta = JsonUtil.loadJson(adapter.load(hash));
+            fmd.MetaHash = hash;
+            fmd.BlockHashes = fmd.Meta.getJSONArray("blocks");
+            fmd.Tags = adapter.loadTags(hash);
+
+            if (!localDescription.contains(hash))
             {
               queueStore(_localCache, adapter.load(hash), hash);
             }
 
-            IndexStorageService.instance().add(meta);
+            IndexStorageService.instance().add(fmd);
 
             if (retrieveBlocks)
             {
-              JSONArray blocks = meta.getJSONArray("blocks");
+              JSONArray blocks = fmd.BlockHashes;
 
               for (int i = 0; i < blocks.length(); i++)
               {
                 String blockHash = blocks.getString(i);
-                if (adapterDescription.contains(blockHash)) continue;
+                if (localDescription.contains(blockHash)) continue;
                 queueStore(_localCache, adapter.load(blockHash), blockHash);
               }
             }
@@ -224,6 +230,25 @@ public class LocalCacheCloudEngine implements CloudEngine
         try
         {
           adapter.store(is, hash);
+        }
+        catch (Exception e)
+        {
+          e.printStackTrace();
+        }
+      }
+    });
+  }
+
+  private void queueStoreTags(final Adapter adapter, final JSONArray tags, final String hash)
+  {
+    _threadPool.submit(new Runnable()
+    {
+      @Override
+      public void run()
+      {
+        try
+        {
+          adapter.storeTags(new ByteArrayInputStream(tags.toString().getBytes()), hash);
         }
         catch (Exception e)
         {

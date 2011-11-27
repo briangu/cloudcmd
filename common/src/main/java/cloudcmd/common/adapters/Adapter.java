@@ -2,7 +2,9 @@ package cloudcmd.common.adapters;
 
 import org.json.JSONObject;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -25,7 +27,7 @@ public abstract class Adapter
     Config = config;
   }
 
-  public boolean acceptsTags(Set<String> tags)
+  public boolean acceptsTags(List<String> tags)
   {
     if (Tags == null || Tags.size() == 0) return true;
 
@@ -43,4 +45,8 @@ public abstract class Adapter
   public abstract void store(InputStream data, String hash) throws Exception;
   public abstract InputStream load(String hash) throws Exception;
   public abstract Set<String> describe() throws Exception;
+
+  public abstract void storeTags(ByteArrayInputStream byteArrayInputStream, String hash);
+
+  public abstract List<String> loadTags(String hash);
 }

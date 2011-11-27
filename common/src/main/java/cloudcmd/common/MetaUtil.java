@@ -6,12 +6,12 @@ import org.json.JSONException;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.util.Set;
+import java.util.List;
 
 public class MetaUtil
 {
   // TODO: support file subblocks
-  public static FileMetaData createMeta(File file, Set<String> tags)
+  public static FileMetaData createMeta(File file, List<String> tags)
   {
     FileMetaData meta = new FileMetaData();
 
@@ -31,8 +31,8 @@ public class MetaUtil
         "blocks", meta.BlockHashes
       );
 
-      meta.MetaBytes = meta.Meta.toString().getBytes();
-      meta.MetaHash = CryptoUtil.computeHashAsString(new ByteArrayInputStream(meta.MetaBytes)) + ".meta";
+      byte[] metaBytes = meta.Meta.toString().getBytes();
+      meta.MetaHash = CryptoUtil.computeHashAsString(new ByteArrayInputStream(metaBytes)) + ".meta";
 
       meta.Tags = tags;
     }
