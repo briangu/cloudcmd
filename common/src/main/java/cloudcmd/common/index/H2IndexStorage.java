@@ -80,7 +80,7 @@ public class H2IndexStorage implements IndexStorage
       st = db.createStatement();
 
       st.execute("DROP TABLE if exists FILE_INDEX;");
-      st.execute("CREATE TABLE FILE_INDEX ( HASH VARCHAR PRIMARY KEY, PATH VARCHAR, FILENAME VARCHAR, FILEEXT VARCHAR, FILESIZE INTEGER, FILEDATE INTEGER, TAGS VARCHAR, RAWMETA VARCHAR );");
+      st.execute("CREATE TABLE FILE_INDEX ( HASH VARCHAR PRIMARY KEY, PATH VARCHAR, FILENAME VARCHAR, FILEEXT VARCHAR, FILESIZE INTEGER, FILEDATE BIGINT, TAGS VARCHAR, RAWMETA VARCHAR );");
 
       db.commit();
 
@@ -182,7 +182,7 @@ public class H2IndexStorage implements IndexStorage
     bind.add(StringUtil.join(meta.Tags, " "));
     bind.add(meta.Meta.toString());
 
-    sql = String.format("MERGE INTO FILE_INDEX (%s) VALUES (%s);", StringUtil.join(fields, ","), StringUtil.repeat(bind.size(), "?"));
+    sql = String.format("MERGE INTO FILE_INDEX (%s) VALUES (%s);", StringUtil.join(fields, ","), StringUtil.joinRepeat(bind.size(), "?", ","));
 
     PreparedStatement statement = db.prepareStatement(sql);
 
@@ -267,7 +267,7 @@ public class H2IndexStorage implements IndexStorage
           if (obj instanceof String[] || obj instanceof Long[])
           {
             Collection<Object> foo = Arrays.asList(obj);
-            list.add(String.format("%s In (%s)", key, StringUtil.repeat(foo.size(), "?")));
+            list.add(String.format("%s In (%s)", key, StringUtil.joinRepeat(foo.size(), "?", ",")));
             bind.addAll(foo);
           }
           else
@@ -327,7 +327,7 @@ public class H2IndexStorage implements IndexStorage
 
     try
     {
-      String sql = String.format("SELECT HASH,TAGS,RAWMETA FROM FILE_INDEX WHERE HASH IN (%s);", StringUtil.repeat(hash.size(), "?"));
+      String sql = String.format("SELECT HASH,TAGS,RAWMETA FROM FILE_INDEX WHERE HASH IN (%s);", StringUtil.joinRepeat(hash.size(), "?", ","));
 
       statement = db.prepareStatement(sql);
 

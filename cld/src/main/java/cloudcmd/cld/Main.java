@@ -36,6 +36,7 @@ public class Main {
     }
     finally
     {
+      CloudEngineService.instance().shutdown();
       IndexStorageService.instance().shutdown();
       ConfigStorageService.instance().shutdown();
     }
