@@ -1,7 +1,9 @@
 {
   "db": "cloudcmd.db",
+  "defaultTier": 1,
   "adapters": [
     {
+      "tier": 1,
       "type": "cloudcmd.common.adapters.FileAdapter",
       "tags": [],
       "config": {

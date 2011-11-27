@@ -17,6 +17,7 @@ public class JsonConfigStorage implements ConfigStorage
   private String _configRoot;
   private JSONObject _config = null;
   private List<Adapter> _adapters;
+  private static final Integer DEFAULT_TIER = 1;
 
   private static JSONObject loadConfig(String configRoot)
   {
@@ -69,10 +70,13 @@ public class JsonConfigStorage implements ConfigStorage
 
     List<Adapter> adapters = new ArrayList<Adapter>();
 
+    Integer defaultTier = config.has("defaultTier") ? config.getInt("defaultTier") : DEFAULT_TIER;
+
     for (int i = 0; i < adapterConfigs.length(); i++)
     {
       JSONObject adapterConfig = adapterConfigs.getJSONObject(i);
 
+      Integer tier = adapterConfig.has("tier") ? adapterConfig.getInt("tier") : defaultTier;
       Set<String> tags = getTags(adapterConfig);
       String type = adapterConfig.getString("type");
       JSONObject adapterSubConfig = adapterConfig.getJSONObject("config");
@@ -81,7 +85,7 @@ public class JsonConfigStorage implements ConfigStorage
       try
       {
         Adapter adapter = (Adapter) clazz.newInstance();
-        adapter.init(type, tags, adapterSubConfig);
+        adapter.init(tier, type, tags, adapterSubConfig);
         adapters.add(adapter);
       }
       catch (Exception e)
