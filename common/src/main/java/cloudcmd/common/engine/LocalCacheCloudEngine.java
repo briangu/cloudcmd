@@ -157,6 +157,11 @@ public class LocalCacheCloudEngine implements CloudEngine
     }
   }
 
+  @Override
+  public void pull(int maxTier, boolean retrieveBlocks)
+  {
+  }
+
   private void queueStore(final Adapter adapter, final InputStream is, final String hash)
   {
     _threadPool.submit(new Runnable()

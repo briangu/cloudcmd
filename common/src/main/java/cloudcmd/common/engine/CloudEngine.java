@@ -10,4 +10,6 @@ public interface CloudEngine
   void add(File file, String[] tags);
 
   void push(int maxTier);
+
+  void pull(int maxTier, boolean retrieveBlocks);
 }
