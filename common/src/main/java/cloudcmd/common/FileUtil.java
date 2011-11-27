@@ -81,19 +81,21 @@ public class FileUtil
     }
   }
 
-  public static String findConfigDir(String curPath, String targetDir)
+  public static String findConfigDir(String curPath, String targetDir) throws IOException
   {
     if (curPath == null || curPath.isEmpty()) return null;
 
+    File curDir = new File(curPath);
+
     File dir = new File(curPath + File.separatorChar + targetDir);
 
-    if (dir.exists()) return dir.getAbsolutePath();
+    if (dir.exists()) return dir.getCanonicalPath();
 
-    return findConfigDir(dir.getParent(), targetDir);
+    return findConfigDir(curDir.getParent(), targetDir);
   }
 
-  public static String getCurrentWorkingDirectory()
+  public static String getCurrentWorkingDirectory() throws IOException
   {
-    return new File(".").getAbsolutePath();
+    return new File(".").getCanonicalPath();
   }
 }

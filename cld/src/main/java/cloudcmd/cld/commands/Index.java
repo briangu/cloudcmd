@@ -14,19 +14,25 @@ import ops.*;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.util.List;
 import java.util.Map;
 
 @SubCommand(name="index", description="Index files")
 public class Index implements Command {
 	
-	@Arg(name="path", optional=true)
-	public String _path = FileUtil.getCurrentWorkingDirectory();
+	@Arg(name="path", optional=false)
+	public String _path = null;
 
 	@Arg(name="tags", optional = true, isVararg = true)
-	public String[] _tags = null;
+	public List<String> _tags = null;
 
 	@Override
   public void exec(CommandContext commandLine) throws Exception {
+
+    if (_path == null)
+    {
+      _path = FileUtil.getCurrentWorkingDirectory();
+    }
 
     FileWalker.enumerateFolders(_path, new FileHandler()
     {

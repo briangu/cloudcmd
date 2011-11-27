@@ -81,7 +81,7 @@ public class JsonConfigStorage implements ConfigStorage
       String type = adapterConfig.getString("type");
       JSONObject adapterSubConfig = adapterConfig.getJSONObject("config");
 
-      Class<?> clazz = JsonConfigStorage.class.getClassLoader().loadClass("type");
+      Class<?> clazz = JsonConfigStorage.class.getClassLoader().loadClass(type);
       try
       {
         Adapter adapter = (Adapter) clazz.newInstance();
