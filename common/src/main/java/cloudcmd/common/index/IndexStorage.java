@@ -18,7 +18,7 @@ public interface IndexStorage
 
   JSONArray find(JSONObject filter);
 
-  List<String> getTags(String hash);
+  Set<String> getTags(String hash);
 
   void addTag(JSONArray array, Set<String> tags);
   void removeTag(JSONArray array, Set<String> tags);

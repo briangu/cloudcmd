@@ -2,6 +2,7 @@ package cloudcmd.common.adapters;
 
 import org.json.JSONObject;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Map;
 import java.util.Set;
@@ -38,5 +39,17 @@ public class S3Adapter extends Adapter
   public Set<String> describe()
   {
     return null;
+  }
+
+  @Override
+  public void storeTags(ByteArrayInputStream byteArrayInputStream, String hash)
+  {
+    //To change body of implemented methods use File | Settings | File Templates.
+  }
+
+  @Override
+  public Set<String> loadTags(String hash)
+  {
+    return null;  //To change body of implemented methods use File | Settings | File Templates.
   }
 }

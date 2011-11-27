@@ -27,7 +27,7 @@ public abstract class Adapter
     Config = config;
   }
 
-  public boolean acceptsTags(List<String> tags)
+  public boolean acceptsTags(Set<String> tags)
   {
     if (Tags == null || Tags.size() == 0) return true;
 
@@ -48,5 +48,5 @@ public abstract class Adapter
 
   public abstract void storeTags(ByteArrayInputStream byteArrayInputStream, String hash);
 
-  public abstract List<String> loadTags(String hash);
+  public abstract Set<String> loadTags(String hash);
 }

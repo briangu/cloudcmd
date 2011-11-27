@@ -10,8 +10,7 @@ public class FileMetaData
 {
   // TODO: support file-subblocks
   public JSONArray BlockHashes;
-  public List<String> Tags;
+  public Set<String> Tags;
   public JSONObject Meta;
   public String MetaHash;
-  public byte[] MetaBytes;
 }

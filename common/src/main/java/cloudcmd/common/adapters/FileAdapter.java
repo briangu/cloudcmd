@@ -73,5 +73,16 @@ public class FileAdapter extends Adapter
 
     return hashes;
   }
+
+  @Override
+  public void storeTags(ByteArrayInputStream byteArrayInputStream, String hash)
+  {
+  }
+
+  @Override
+  public Set<String> loadTags(String hash)
+  {
+    return new HashSet<String>();
+  }
 }
 

@@ -320,6 +320,30 @@ public class SqliteIndexStorage implements IndexStorage
   }
 
   @Override
+  public Set<String> getTags(String hash)
+  {
+    Set<String> tags = new HashSet<String>();
+
+    try
+    {
+      JSONObject filter = new JSONObject();
+      filter.put("hash", hash);
+      JSONArray results = find(filter);
+
+      for (int i = 0; i < results.length(); i++)
+      {
+        tags.add(results.getString(i));
+      }
+    }
+    catch (JSONException e)
+    {
+      e.printStackTrace();
+    }
+
+    return tags;
+  }
+
+  @Override
   public void addTag(JSONArray array, Set<String> tags)
   {
     SQLiteConnection db = null;

@@ -50,7 +50,7 @@ public class LocalCacheCloudEngine implements CloudEngine
       public void exec(ops.CommandContext context, Object[] args) throws Exception {
         File file = (File)args[0];
 
-        List<String> tags = new ArrayList<String>();
+        Set<String> tags = new HashSet<String>();
         tags.add((String)args[1]);
         tags.addAll(Arrays.asList((String[]) args[2]));
 
@@ -74,7 +74,7 @@ public class LocalCacheCloudEngine implements CloudEngine
     _threadPool.shutdown();
   }
 
-  private void _add(final File file, final List<String> tags)
+  private void _add(final File file, final Set<String> tags)
   {
     _threadPool.submit(new Runnable()
     {
@@ -90,7 +90,7 @@ public class LocalCacheCloudEngine implements CloudEngine
             _localCache.store(new FileInputStream(file), meta.BlockHashes.getString(i));
           }
 
-          _localCache.store(new ByteArrayInputStream(meta.MetaBytes), meta.MetaHash);
+          _localCache.store(new ByteArrayInputStream(meta.Meta.toString().getBytes()), meta.MetaHash);
         }
         catch (Exception e)
         {
@@ -129,7 +129,7 @@ public class LocalCacheCloudEngine implements CloudEngine
           {
             JSONObject meta = JsonUtil.loadJson(_localCache.load(hash));
 
-            List<String> tags = IndexStorageService.instance().getTags(hash);
+            Set<String> tags = IndexStorageService.instance().getTags(hash);
 
             if (!adapter.acceptsTags(tags)) continue;
 
