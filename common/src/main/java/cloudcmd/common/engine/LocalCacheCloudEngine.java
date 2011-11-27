@@ -164,6 +164,54 @@ public class LocalCacheCloudEngine implements CloudEngine
   @Override
   public void pull(int maxTier, boolean retrieveBlocks)
   {
+    final Set<String> localDescription = _localCache.describe();
+
+    for (final Adapter adapter : ConfigStorageService.instance().getAdapters())
+    {
+      if (adapter.Tier > maxTier) continue;
+
+      try
+      {
+        Set<String> adapterDescription = adapter.describe();
+
+        for (final String hash : localDescription)
+        {
+          if (!hash.endsWith(".meta")) continue;
+
+          try
+          {
+            JSONObject meta = JsonUtil.loadJson(_localCache.load(hash));
+
+            if (!adapterDescription.contains(hash))
+            {
+              queueStore(_localCache, adapter.load(hash), hash);
+            }
+
+            IndexStorageService.instance().add(meta);
+
+            if (retrieveBlocks)
+            {
+              JSONArray blocks = meta.getJSONArray("blocks");
+
+              for (int i = 0; i < blocks.length(); i++)
+              {
+                String blockHash = blocks.getString(i);
+                if (adapterDescription.contains(blockHash)) continue;
+                queueStore(_localCache, adapter.load(blockHash), blockHash);
+              }
+            }
+          }
+          catch (Exception e)
+          {
+            e.printStackTrace();
+          }
+        }
+      }
+      catch (Exception e)
+      {
+        e.printStackTrace();
+      }
+    }
   }
 
   private void queueStore(final Adapter adapter, final InputStream is, final String hash)
