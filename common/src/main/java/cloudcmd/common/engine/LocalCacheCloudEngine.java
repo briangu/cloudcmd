@@ -28,6 +28,8 @@ public class LocalCacheCloudEngine implements CloudEngine
 
   OPS _ops;
 
+  Thread _opsThread = null;
+
   @Override
   public void init() throws Exception
   {
@@ -59,7 +61,17 @@ public class LocalCacheCloudEngine implements CloudEngine
     });
 
     _ops = OpsFactory.create(registry, ResourceUtil.loadOps("index.ops"));
-    _ops.run();
+    _ops.waitForWork(true);
+
+    _opsThread = new Thread(new Runnable()
+    {
+      @Override
+      public void run()
+      {
+        _ops.run();
+      }
+    });
+    _opsThread.start();
 
     JSONObject obj = new JSONObject();
     obj.put("rootPath", ConfigStorageService.instance().getConfigRoot() + File.separator + "cache");
@@ -71,6 +83,19 @@ public class LocalCacheCloudEngine implements CloudEngine
   @Override
   public void shutdown()
   {
+    if (_opsThread != null)
+    {
+      _opsThread.interrupt();
+      try
+      {
+        _opsThread.join(1000);
+      }
+      catch (InterruptedException e)
+      {
+        e.printStackTrace();
+      }
+    }
+
     _threadPool.shutdown();
   }
 

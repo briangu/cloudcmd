@@ -31,6 +31,8 @@ public class Main {
       CommandSet app = new CommandSet("cld");
       app.addSubCommands(Index.class);
       app.invoke(args);
+
+      System.in.read();
     }
     finally
     {
