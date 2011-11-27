@@ -24,7 +24,6 @@ public class MetaUtil
 
       meta.Tags = tags;
       meta.BlockHashes = getBlockHashes(file);
-      meta.MetaHash = CryptoUtil.computeHashAsString(new ByteArrayInputStream(meta.Meta.toString().getBytes())) + ".meta";
       meta.Meta = JsonUtil.createJson(
         "path", file.getCanonicalPath(),
         "filename", fileName,
@@ -33,6 +32,7 @@ public class MetaUtil
         "filedate", file.lastModified(),
         "blocks", meta.BlockHashes
       );
+      meta.MetaHash = CryptoUtil.computeHashAsString(new ByteArrayInputStream(meta.Meta.toString().getBytes())) + ".meta";
     }
     catch (JSONException e)
     {

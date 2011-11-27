@@ -69,7 +69,7 @@ public class FileUtil
   public static void writeFile(String dataFile, InputStream data) throws IOException
   {
     File file = new File(dataFile);
-//    file.mkdir();
+    file.getParentFile().mkdirs();
     FileOutputStream fos = new FileOutputStream(file);
     try
     {
