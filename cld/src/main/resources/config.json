@@ -1,5 +1,4 @@
 {
-  "db": "cloudcmd.db",
   "defaultTier": 1,
   "adapters": [
     {
@@ -9,10 +8,6 @@
       "config": {
         "rootPath": "/var/cldstorage"
       }
-    },
-    {
-      "type": "s3",
-      "tags": ["s3"]
     }
   ]
 }
