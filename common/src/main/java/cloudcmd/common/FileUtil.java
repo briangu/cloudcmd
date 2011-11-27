@@ -68,7 +68,9 @@ public class FileUtil
 
   public static void writeFile(String dataFile, InputStream data) throws IOException
   {
-    FileOutputStream fos = new FileOutputStream(dataFile);
+    File file = new File(dataFile);
+//    file.mkdir();
+    FileOutputStream fos = new FileOutputStream(file);
     try
     {
       IOUtils.copy(data, fos);

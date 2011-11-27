@@ -1,5 +1,6 @@
 package cloudcmd.common.index;
 
+import cloudcmd.common.FileMetaData;
 import cloudcmd.common.StringUtil;
 import cloudcmd.common.config.ConfigStorageService;
 import com.almworks.sqlite4java.SQLiteConnection;
@@ -44,7 +45,7 @@ public class SqliteIndexStorage implements IndexStorage
       db = new SQLiteConnection(getDbFile());
       db.open(true);
       db.exec("DROP TABLE if exists file_index;");
-      db.exec("CREATE TABLE file_index ( id INTEGER PRIMARY KEY ASC, hash TEXT, path TEXT, filename TEXT, fileext  TEXT, filesize INTEGER, filedate INTEGER, type TEXT );");
+      db.exec("CREATE TABLE file_index ( id INTEGER PRIMARY KEY ASC, hash TEXT, path TEXT, filename TEXT, fileext  TEXT, filesize INTEGER, filedate INTEGER, type TEXT, blob TEXT );");
       db.exec("CREATE TABLE tags ( id INTEGER PRIMARY KEY ASC, fileId INTEGER, tag TEXT, UNIQUE(fieldId, tag) );");
       db.exec("CREATE INDEX idx_fi_path on file_index(path);");
       db.exec("CREATE INDEX idx_fi_hash on file_index(hash);");
@@ -88,7 +89,7 @@ public class SqliteIndexStorage implements IndexStorage
     }
   }
 
-  private ConcurrentLinkedQueue<JSONObject> _queue = new ConcurrentLinkedQueue<JSONObject>();
+  private ConcurrentLinkedQueue<FileMetaData> _queue = new ConcurrentLinkedQueue<FileMetaData>();
 
   @Override
   public void flush()
@@ -106,7 +107,7 @@ public class SqliteIndexStorage implements IndexStorage
 
       for (int i = 0; i < _queue.size(); i++)
       {
-        JSONObject obj = _queue.remove();
+        FileMetaData obj = _queue.remove();
         addMeta(db, obj);
       }
 
@@ -129,23 +130,26 @@ public class SqliteIndexStorage implements IndexStorage
     }
   }
 
-  private void addMeta(SQLiteConnection db, JSONObject meta) throws JSONException, SQLiteException
+  private void addMeta(SQLiteConnection db, FileMetaData meta) throws JSONException, SQLiteException
   {
     String sql;
 
     List<Object> bind = new ArrayList<Object>();
+    List<String> fields = new ArrayList<String>();
 
-    Iterator<String> iter = meta.keys();
+    Iterator<String> iter = meta.Meta.keys();
 
     while (iter.hasNext())
     {
       String key = iter.next();
-      if (key.equals("tags")) continue;
-      Object obj = meta.get(key);
+      Object obj = meta.Meta.get(key);
       bind.add(obj);
     }
 
-    sql = String.format("insert into file_index values (%s);", repeat(bind.size(), "?"));
+    fields.add("blob");
+    bind.add(meta.Meta.toString());
+
+    sql = String.format("insert into file_index (%s) values (%s);", StringUtil.join(fields, ","), repeat(bind.size(), "?"));
 
     SQLiteStatement statement = db.prepare(sql);
 
@@ -170,19 +174,13 @@ public class SqliteIndexStorage implements IndexStorage
 
       statement.stepThrough();
 
-      Set<String> tags = meta.has("tags") ? (Set<String>) meta.get("tags") : null;
-
-      if (tags != null)
+      if (meta.Tags != null)
       {
         long fieldId = db.getLastInsertId();
-        insertTags(db, fieldId, tags);
+        insertTags(db, fieldId, meta.Tags);
       }
     }
     catch (SQLiteException e)
-    {
-      e.printStackTrace();
-    }
-    catch (JSONException e)
     {
       e.printStackTrace();
     }
@@ -199,7 +197,7 @@ public class SqliteIndexStorage implements IndexStorage
   }
 
   @Override
-  public void add(JSONObject meta)
+  public void add(FileMetaData meta)
   {
     if (meta == null) return;
 
@@ -231,7 +229,7 @@ public class SqliteIndexStorage implements IndexStorage
       if (tags != null)
       {
         String subSelect = String.format("select fileId from from tags where tag in (%s)", repeat(tags.length, "?"));
-        sql = String.format("select * from file_index where id in (%s);", subSelect);
+        sql = String.format("select blob from file_index where id in (%s);", subSelect);
         bind.addAll(Arrays.asList(tags));
       }
       else
@@ -258,7 +256,7 @@ public class SqliteIndexStorage implements IndexStorage
           }
         }
 
-        sql = String.format("select * from file_index where %s;", StringUtil.join(list, " and "));
+        sql = String.format("select blob from file_index where %s;", StringUtil.join(list, " and "));
       }
 
       SQLiteStatement statement = db.prepare(sql);
@@ -284,18 +282,8 @@ public class SqliteIndexStorage implements IndexStorage
 
         while (statement.step())
         {
-          JSONObject obj = new JSONObject();
-
-          obj.put("id", statement.columnString(0));
-          obj.put("hash", statement.columnString(1));
-          obj.put("path", statement.columnString(2));
-          obj.put("filename", statement.columnString(3));
-          obj.put("fileext", statement.columnString(4));
-          obj.put("filesize", new Long(statement.columnLong(5)));
-          obj.put("filedate", new Long(statement.columnLong(6)));
-          obj.put("type", statement.columnString(7));
-          obj.put("tags", tags);
-
+          String rawJson = statement.columnString(0);
+          JSONObject obj = new JSONObject(rawJson);
           results.put(obj);
         }
       }

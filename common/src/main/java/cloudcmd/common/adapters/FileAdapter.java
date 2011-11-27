@@ -43,22 +43,10 @@ public class FileAdapter extends Adapter
     return getPathFromHash(hash) + File.separator + hash;
   }
 
-  private String getMetaFileFromHash(String hash) throws JSONException
-  {
-    return getPathFromHash(hash) + ".meta";
-  }
-
   @Override
-  public void store(InputStream data, JSONObject meta) throws Exception
+  public void store(InputStream data, String hash) throws Exception
   {
-    if (!meta.has("hash")) throw new IllegalArgumentException("meta missing hash");
-    String hash = meta.getString("hash");
-
-    String path = getPathFromHash(hash);
-    new File(path).mkdir();
-
     FileUtil.writeFile(getDataFileFromHash(hash), data);
-    FileUtil.writeFile(getMetaFileFromHash(hash), meta);
   }
 
   @Override

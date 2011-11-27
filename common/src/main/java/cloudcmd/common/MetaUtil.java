@@ -1,55 +1,68 @@
 package cloudcmd.common;
 
+import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 
 public class MetaUtil
 {
-  public static JSONObject createMeta(File file, Set<String> tags)
+  // TODO: support file subblocks
+  public static FileMetaData createMeta(File file, Set<String> tags)
   {
-    JSONObject obj;
+    FileMetaData meta = new FileMetaData();
 
     try
     {
       String fileName = file.getName();
       int extIndex = fileName.lastIndexOf(".");
 
-      String hash = CryptoUtil.computeHashAsString(file);
-      if (hash == null)
-      {
-        System.err.println("failed to compute hash of " + file.getAbsolutePath());
-        return null;
-      }
+      meta.BlockHashes = getBlockHashes(file);
 
-      obj = JsonUtil.createJson(
-        "hash", hash,
+      meta.Meta = JsonUtil.createJson(
         "path", file.getCanonicalPath(),
         "filename", fileName,
         "fileext", extIndex >= 0 ? fileName.substring(extIndex) : null,
         "filesize", file.length(),
-        "filedate", file.lastModified()
+        "filedate", file.lastModified(),
+        "blocks", meta.BlockHashes
       );
 
-      if (tags != null) obj.put("tags", tags);
+      meta.MetaBytes = meta.Meta.toString().getBytes();
+      meta.MetaHash = CryptoUtil.computeHashAsString(new ByteArrayInputStream(meta.MetaBytes));
 
-      return obj;
+      meta.Tags = tags;
     }
     catch (JSONException e)
     {
       e.printStackTrace();
-      obj = null;
+      meta = null;
     }
     catch (IOException e)
     {
       e.printStackTrace();
-      obj = null;
+      meta = null;
     }
 
-    return obj;
+    return meta;
+  }
+
+  static JSONArray getBlockHashes(File file)
+  {
+    String hash = CryptoUtil.computeHashAsString(file);
+    if (hash == null)
+    {
+      System.err.println("failed to compute hash of " + file.getAbsolutePath());
+      return null;
+    }
+
+    JSONArray blockHashes = new JSONArray();
+    blockHashes.put(hash);
+
+    return blockHashes;
   }
 
 

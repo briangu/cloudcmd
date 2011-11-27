@@ -1,5 +1,6 @@
 package cloudcmd.common.index;
 
+import cloudcmd.common.FileMetaData;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -23,7 +24,7 @@ public interface IndexStorage
   void flush();
   void shutdown();
 
-  void add(JSONObject meta);
+  void add(FileMetaData meta);
 
   JSONArray find(JSONObject filter);
 

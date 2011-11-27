@@ -1,9 +1,6 @@
 package cloudcmd.common.engine;
 
-import cloudcmd.common.FileTypeUtil;
-import cloudcmd.common.JsonUtil;
-import cloudcmd.common.MetaUtil;
-import cloudcmd.common.ResourceUtil;
+import cloudcmd.common.*;
 import cloudcmd.common.adapters.Adapter;
 import cloudcmd.common.adapters.FileAdapter;
 import cloudcmd.common.config.ConfigStorageService;
@@ -15,6 +12,7 @@ import ops.OpsFactory;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -86,10 +84,16 @@ public class LocalCacheCloudEngine implements CloudEngine
       @Override
       public void run()
       {
-        JSONObject meta = MetaUtil.createMeta(file, tags);
+        FileMetaData meta = MetaUtil.createMeta(file, tags);
+
         try
         {
-          _localCache.store(new FileInputStream(file), meta);
+          for (int i = 0; i < meta.BlockHashes.length(); i++)
+          {
+            _localCache.store(new FileInputStream(file), meta.BlockHashes.getString(i));
+          }
+
+          _localCache.store(new ByteArrayInputStream(meta.Meta.toString().getBytes()), meta.MetaHash);
         }
         catch (Exception e)
         {
