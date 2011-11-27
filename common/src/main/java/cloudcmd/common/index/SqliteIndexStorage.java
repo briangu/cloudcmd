@@ -45,7 +45,7 @@ public class SqliteIndexStorage implements IndexStorage
       db.open(true);
       db.exec("DROP TABLE if exists file_index;");
       db.exec("CREATE TABLE file_index ( id INTEGER PRIMARY KEY ASC, hash TEXT, path TEXT, filename TEXT, fileext  TEXT, filesize INTEGER, filedate INTEGER, type TEXT );");
-      db.exec("CREATE TABLE tags ( fileId INTEGER, tag TEXT, PRIMARY_KEY(fieldId, tag) );");
+      db.exec("CREATE TABLE tags ( id INTEGER PRIMARY KEY ASC, fileId INTEGER, tag TEXT, UNIQUE(fieldId, tag) );");
       db.exec("CREATE INDEX idx_fi_path on file_index(path);");
       db.exec("CREATE INDEX idx_fi_hash on file_index(hash);");
       db.exec("CREATE INDEX idx_fi_filename on file_index(filename);");

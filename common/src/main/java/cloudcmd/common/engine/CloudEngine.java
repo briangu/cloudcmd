@@ -8,4 +8,6 @@ public interface CloudEngine
   void shutdown();
 
   void add(File file, String[] tags);
+
+  void push(int maxTier);
 }

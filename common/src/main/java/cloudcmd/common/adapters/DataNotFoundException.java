@@ -1,12 +1,10 @@
 package cloudcmd.common.adapters;
 
-import org.json.JSONObject;
-
 public class DataNotFoundException extends Exception
 {
-  public JSONObject Meta;
-  public DataNotFoundException(JSONObject meta)
+  public String Hash;
+  public DataNotFoundException(String hash)
   {
-    Meta = meta;
+    Hash = hash;
   }
 }

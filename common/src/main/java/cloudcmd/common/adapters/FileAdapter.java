@@ -19,9 +19,9 @@ public class FileAdapter extends Adapter
   }
 
   @Override
-  public void init(String type, Set<String> tags, JSONObject config) throws Exception
+  public void init(Integer tier, String type, Set<String> tags, JSONObject config) throws Exception
   {
-    super.init(type, tags, config);
+    super.init(tier, type, tags, config);
 
     if (!Config.has("rootPath")) throw new IllegalArgumentException("config missing rootPath");
 
@@ -62,42 +62,28 @@ public class FileAdapter extends Adapter
   }
 
   @Override
-  public InputStream load(JSONObject meta) throws Exception
+  public InputStream load(String hash) throws Exception
   {
-    if (!meta.has("hash")) throw new IllegalArgumentException("meta missing hash");
-    File file = new File(getDataFileFromHash(meta.getString("hash")));
-    if (!file.exists()) throw new DataNotFoundException(meta);
+    File file = new File(getDataFileFromHash(hash));
+    if (!file.exists()) throw new DataNotFoundException(hash);
     return new FileInputStream(file);
   }
 
   @Override
-  public Set<JSONObject> describe()
+  public Set<String> describe()
   {
-    final Set<JSONObject> allMeta = new HashSet<JSONObject>();
+    final Set<String> hashes = new HashSet<String>();
 
     FileWalker.enumerateFolders(_rootPath, new FileHandler()
     {
       @Override
       public void process(File file)
       {
-        if (!file.getName().endsWith(".meta")) return;
-        try
-        {
-          allMeta.add(FileUtil.readJson(file));
-        }
-        catch (IOException e)
-        {
-          System.err.println(file.getAbsoluteFile());
-          e.printStackTrace();
-        }
-        catch (JSONException e)
-        {
-          System.err.println(file.getAbsoluteFile());
-          e.printStackTrace();
-        }
+        hashes.add(file.getName());
       }
     });
 
-    return allMeta;
+    return hashes;
   }
 }
+

@@ -3,6 +3,7 @@ package cloudcmd.common;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.*;
 import java.util.Iterator;
 
 public class JsonUtil
@@ -29,6 +30,15 @@ public class JsonUtil
       obj.put(args[i].toString(), args[i+1]);
     }
 
+    return obj;
+  }
+
+  public static JSONObject loadJson(InputStream load) throws IOException, JSONException
+  {
+    DataInputStream bis = new DataInputStream(load);
+    BufferedReader br = new BufferedReader(new InputStreamReader(bis));
+    String rawJson = br.readLine();
+    JSONObject obj = new JSONObject(rawJson);
     return obj;
   }
 }

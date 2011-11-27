@@ -3,6 +3,7 @@ package cloudcmd.common.adapters;
 import org.json.JSONObject;
 
 import java.io.InputStream;
+import java.util.Map;
 import java.util.Set;
 
 public class S3Adapter extends Adapter
@@ -12,33 +13,30 @@ public class S3Adapter extends Adapter
   }
 
   @Override
-  public void init(String type, Set<String> tags, JSONObject config) throws Exception
+  public void init(Integer tier, String type, Set<String> tags, JSONObject config) throws Exception
   {
-    super.init(type, tags, config);
-    //To change body of implemented methods use File | Settings | File Templates.
+    super.init(tier, type, tags, config);
   }
 
   @Override
   public void shutdown()
   {
-    //To change body of implemented methods use File | Settings | File Templates.
   }
 
   @Override
   public void store(InputStream data, JSONObject meta)
   {
-    //To change body of implemented methods use File | Settings | File Templates.
   }
 
   @Override
-  public InputStream load(JSONObject meta)
+  public InputStream load(String hash)
   {
-    return null;  //To change body of implemented methods use File | Settings | File Templates.
+    return null;
   }
 
   @Override
-  public Set<JSONObject> describe()
+  public Set<String> describe()
   {
-    return null;  //To change body of implemented methods use File | Settings | File Templates.
+    return null;
   }
 }
