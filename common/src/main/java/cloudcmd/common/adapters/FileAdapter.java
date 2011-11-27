@@ -44,9 +44,9 @@ public class FileAdapter extends Adapter
   }
 
   @Override
-  public void store(InputStream data, String hash) throws Exception
+  public void store(InputStream is, String hash) throws Exception
   {
-    FileUtil.writeFile(getDataFileFromHash(hash), data);
+    FileUtil.writeFile(getDataFileFromHash(hash), is);
   }
 
   @Override
