@@ -4,6 +4,9 @@ import cloudcmd.common.FileMetaData;
 import cloudcmd.common.SqlUtil;
 import cloudcmd.common.StringUtil;
 import cloudcmd.common.config.ConfigStorageService;
+import com.sun.java.browser.plugin2.liveconnect.v1.Result;
+import org.h2.fulltext.FullText;
+import org.h2.jdbcx.JdbcConnectionPool;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -24,11 +27,16 @@ public class H2IndexStorage implements IndexStorage
     return String.format("%s%sindex.db", _configRoot, File.separator);
   }
 
+  JdbcConnectionPool _cp;
+
+  private String createConnectionString()
+  {
+    return String.format("jdbc:h2:%s", getDbFile());
+  }
+
   private Connection getDbConnection() throws SQLException
   {
-    String cs = String.format("jdbc:h2:%s", getDbFile());
-    Connection conn = DriverManager.getConnection(cs, "sa", "");
-    return conn;
+    return _cp.getConnection();
   }
 
   private Connection getReadOnlyDbConnection() throws SQLException
@@ -45,11 +53,21 @@ public class H2IndexStorage implements IndexStorage
 
     _configRoot = ConfigStorageService.instance().getConfigRoot();
 
+    _cp = JdbcConnectionPool.create(createConnectionString(), "sa", "sa");
+
     File file = new File(getDbFile());
     if (!file.exists())
     {
       bootstrap();
     }
+  }
+
+  @Override
+  public void shutdown()
+  {
+    flush();
+
+    _cp.dispose();
   }
 
   private void bootstrap()
@@ -62,12 +80,11 @@ public class H2IndexStorage implements IndexStorage
       st = db.createStatement();
 
       st.execute("DROP TABLE if exists file_index;");
-      st.execute("CREATE TABLE file_index ( id INTEGER PRIMARY KEY ASC, hash TEXT, path TEXT, filename TEXT, fileext  TEXT, filesize INTEGER, filedate INTEGER, type TEXT, blob TEXT );");
-      st.execute("CREATE TABLE tags ( id INTEGER PRIMARY KEY ASC, fileId INTEGER, tag TEXT, UNIQUE(fieldId, tag) );");
-      st.execute("CREATE INDEX idx_fi_path on file_index(path);");
-      st.execute("CREATE INDEX idx_fi_hash on file_index(hash);");
-      st.execute("CREATE INDEX idx_fi_filename on file_index(filename);");
-      st.execute("CREATE INDEX idx_tags on tags(tag);");
+      st.execute("CREATE TABLE file_index ( hash VARCHAR PRIMARY, path VARCHAR, filename VARCHAR, fileext VARCHAR, filesize INTEGER, filedate INTEGER, tags VARCHAR, rawMeta VARCHAR );");
+
+      FullText.init(db);
+      FullText.setWhitespaceChars(db, " ,:-._"+File.separator);
+      FullText.createIndex(db, "PUBLIC", "file_index", "tags");
     }
     catch (SQLException e)
     {
@@ -91,7 +108,6 @@ public class H2IndexStorage implements IndexStorage
       st = db.createStatement();
 
       st.execute("delete from file_index;");
-      st.execute("delete from tags;");
     }
     catch (SQLException e)
     {
@@ -120,8 +136,7 @@ public class H2IndexStorage implements IndexStorage
 
       for (int i = 0; i < _queue.size(); i++)
       {
-        FileMetaData obj = _queue.remove();
-        addMeta(db, obj);
+        addMeta(db, _queue.remove());
       }
 
       db.commit();
@@ -147,19 +162,25 @@ public class H2IndexStorage implements IndexStorage
     List<Object> bind = new ArrayList<Object>();
     List<String> fields = new ArrayList<String>();
 
-    Iterator<String> iter = meta.Meta.keys();
+    fields.add("hash");
+    fields.add("path");
+    fields.add("filename");
+    fields.add("fileext");
+    fields.add("filesize");
+    fields.add("filedate");
+    fields.add("tags");
+    fields.add("rawMeta");
 
-    while (iter.hasNext())
-    {
-      String key = iter.next();
-      Object obj = meta.Meta.get(key);
-      bind.add(obj);
-    }
-
-    fields.add("blob");
+    bind.add(meta.MetaHash);
+    bind.add(meta.Meta.getString("path"));
+    bind.add(meta.Meta.getString("filename"));
+    bind.add(meta.Meta.getString("fileext"));
+    bind.add(meta.Meta.getLong("filesize"));
+    bind.add(meta.Meta.getLong("filedate"));
+    bind.add(StringUtil.join(meta.Tags, " "));
     bind.add(meta.Meta.toString());
 
-    sql = String.format("insert into file_index (%s) values (%s);", StringUtil.join(fields, ","), repeat(bind.size(), "?"));
+    sql = String.format("merge into file_index (%s) values (%s);", StringUtil.join(fields, ","), repeat(bind.size(), "?"));
 
     PreparedStatement statement = db.prepareStatement(sql);
 
@@ -167,28 +188,10 @@ public class H2IndexStorage implements IndexStorage
     {
       for (int i = 0, paramIdx = 1; i < bind.size(); i++, paramIdx++)
       {
-        Object obj = bind.get(i);
-        if (obj instanceof String)
-        {
-          statement.setString(paramIdx, (String) obj);
-        }
-        else if (obj instanceof Long)
-        {
-          statement.setLong(paramIdx, (Long) obj);
-        }
-        else
-        {
-          throw new IllegalArgumentException("unknown obj type: " + obj.toString());
-        }
+        bind(statement, paramIdx, bind.get(i));
       }
 
       statement.execute();
-
-      if (meta.Tags != null)
-      {
-        long fieldId = db.getLastInsertId();
-        insertTags(db, fieldId, meta.Tags);
-      }
     }
     catch (Exception e)
     {
@@ -200,10 +203,20 @@ public class H2IndexStorage implements IndexStorage
     }
   }
 
-  @Override
-  public void shutdown()
+  private void bind(PreparedStatement statement, int idx, Object obj) throws SQLException
   {
-    flush();
+    if (obj instanceof String)
+    {
+      statement.setString(idx, (String) obj);
+    }
+    else if (obj instanceof Long)
+    {
+      statement.setLong(idx, (Long) obj);
+    }
+    else
+    {
+      throw new IllegalArgumentException("unknown obj type: " + obj.toString());
+    }
   }
 
   @Override
@@ -228,19 +241,16 @@ public class H2IndexStorage implements IndexStorage
 
     try
     {
-      String[] tags = filter.has("tags") ? (String[]) filter.get("tags") : null;
-
       db = getReadOnlyDbConnection();
 
       String sql;
 
       List<Object> bind = new ArrayList<Object>();
 
-      if (tags != null)
+      if (filter.has("tags"))
       {
-        String subSelect = String.format("select fileId from from tags where tag in (%s)", repeat(tags.length, "?"));
-        sql = String.format("select blob from file_index where id in (%s);", subSelect);
-        bind.addAll(Arrays.asList(tags));
+        sql = "select hash,tags,rawMeta from file_index where hash in (select hash from FT_SEARCH(?, 0, 0))";
+        bind.addAll(Arrays.asList(filter.getString("tags")));
       }
       else
       {
@@ -251,7 +261,6 @@ public class H2IndexStorage implements IndexStorage
         while (iter.hasNext())
         {
           String key = iter.next();
-          if (key.equals("tags")) continue;
           Object obj = filter.get(key);
           if (obj instanceof String[] || obj instanceof Long[])
           {
@@ -266,32 +275,24 @@ public class H2IndexStorage implements IndexStorage
           }
         }
 
-        sql = String.format("select blob from file_index where %s;", StringUtil.join(list, " and "));
+        sql = String.format("select hash,tags,rawMeta from file_index where %s;", StringUtil.join(list, " and "));
       }
 
-       statement = db.prepareStatement(sql);
+      statement = db.prepareStatement(sql);
 
       for (int i = 0, paramIdx = 1; i < bind.size(); i++, paramIdx++)
       {
-        Object obj = bind.get(i);
-        if (obj instanceof String)
-        {
-          statement.setString(paramIdx, (String)obj);
-        }
-        else if (obj instanceof Long)
-        {
-          statement.setLong(paramIdx, (Long)obj);
-        }
-        else
-        {
-          throw new IllegalArgumentException("unknown obj type: " + obj.toString());
-        }
+        bind(statement, paramIdx, bind.get(i));
       }
 
-      while (statement.step())
+      ResultSet resultSet = statement.executeQuery();
+
+      while (resultSet.next())
       {
-        String rawJson = statement.columnString(0);
+        String rawJson = resultSet.getString("rawMeta");
         JSONObject obj = new JSONObject(rawJson);
+        obj.put("hash", resultSet.getString("hash"));
+        obj.put("tags", resultSet.getString("tags"));
         results.put(obj);
       }
     }
@@ -311,44 +312,55 @@ public class H2IndexStorage implements IndexStorage
     return results;
   }
 
-  @Override
-  public Set<String> getTags(String hash)
+  private ResultSet queryByHash(Connection db, List<String> hash) throws SQLException
   {
-    Set<String> tags = new HashSet<String>();
+    PreparedStatement statement = null;
 
     try
     {
-      JSONObject filter = new JSONObject();
-      filter.put("hash", hash);
-      JSONArray results = find(filter);
+      String sql = String.format("select hash,tags,rawMeta from file_index where hash in (%s);", repeat(hash.size(), "?"));
 
-      for (int i = 0; i < results.length(); i++)
+      statement = db.prepareStatement(sql);
+
+      for (int i = 0, paramIdx = 1; i < hash.size(); i++, paramIdx++)
       {
-        tags.add(results.getString(i));
+        bind(statement, paramIdx, hash.get(i));
       }
-    }
-    catch (JSONException e)
-    {
-      e.printStackTrace();
-    }
 
-    return tags;
+      return statement.executeQuery();
+    }
+    finally
+    {
+      SqlUtil.SafeClose(statement);
+    }
   }
 
   @Override
-  public void addTag(JSONArray array, Set<String> tags)
+  public void addTags(JSONArray array, Set<String> tags)
   {
     Connection db = null;
     try
     {
+      List<String> hashes = new ArrayList<String>();
+
+      for (int i = 0; i < array.length(); i++)
+      {
+        hashes.add(array.getJSONObject(i).getString("hash"));
+      }
+
       db = getDbConnection();
 
       db.setAutoCommit(false);
 
-      for (int i = 0; i < array.length(); i++)
+      ResultSet rs = queryByHash(db, hashes);
+
+      while(rs.next())
       {
-        long fieldId = array.getJSONObject(i).getLong("id");
-        insertTags(db, fieldId, tags);
+        String rowTags = rs.getString("tags");
+        Set<String> rowTagSet = createRowTagSet(rowTags);
+        rowTagSet.addAll(tags);
+        rs.updateString("tags", StringUtil.join(rowTagSet, " "));
+        rs.updateRow();
       }
 
       db.commit();
@@ -367,49 +379,39 @@ public class H2IndexStorage implements IndexStorage
     }
   }
 
-  private void insertTags(Connection db, long fieldId, Set<String> tags) throws SQLException
-  {
-    PreparedStatement statement = null;
-
-    try
-    {
-      statement = db.prepareStatement("insert or replace into tags (fieldId, tag) values (?, ?)");
-
-      for (String tag : tags)
-      {
-        statement.clearParameters();
-
-        statement.setLong(1, fieldId);
-        statement.setString(2, tag);
-
-        statement.execute();
-      }
-    }
-    finally
-    {
-      SqlUtil.SafeClose(statement);
-    }
-  }
-
   @Override
-  public void removeTag(JSONArray array, Set<String> tags)
+  public void removeTags(JSONArray array, Set<String> tags)
   {
     Connection db = null;
-
     try
     {
-      db = getDbConnection();
+      List<String> hashes = new ArrayList<String>();
 
-      String sql = String.format("delete from tags where tag in (%s)", repeat(tags.size(), "?"));
-      PreparedStatement statement = db.prepareStatement(sql);
-
-      int i = 1;
-      for (String tag : tags)
+      for (int i = 0; i < array.length(); i++)
       {
-        statement.setString(i++, tag);
+        hashes.add(array.getJSONObject(i).getString("hash"));
       }
 
-      statement.execute();
+      db = getDbConnection();
+
+      db.setAutoCommit(false);
+
+      ResultSet rs = queryByHash(db, hashes);
+
+      while(rs.next())
+      {
+        String rowTags = rs.getString("tags");
+        Set<String> rowTagSet = createRowTagSet(rowTags);
+        rowTagSet.removeAll(tags);
+        rs.updateString("tags", StringUtil.join(rowTagSet, " "));
+        rs.updateRow();
+      }
+
+      db.commit();
+    }
+    catch (JSONException e)
+    {
+      e.printStackTrace();
     }
     catch (SQLException e)
     {
@@ -419,6 +421,11 @@ public class H2IndexStorage implements IndexStorage
     {
       SqlUtil.SafeClose(db);
     }
+  }
+
+  private Set<String> createRowTagSet(String rowTags)
+  {
+    return new HashSet<String>(Arrays.asList(rowTags.split(" ")));
   }
 
   public String repeat(int n, String s)

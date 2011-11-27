@@ -27,6 +27,7 @@ public class SqlUtil
     try
     {
       connection.setAutoCommit(true);
+      connection.setReadOnly(false);
       connection.close();
     }
     catch (SQLException e)

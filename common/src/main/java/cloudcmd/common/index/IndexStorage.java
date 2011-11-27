@@ -18,8 +18,6 @@ public interface IndexStorage
 
   JSONArray find(JSONObject filter);
 
-  Set<String> getTags(String hash);
-
-  void addTag(JSONArray array, Set<String> tags);
-  void removeTag(JSONArray array, Set<String> tags);
+  void addTags(JSONArray array, Set<String> tags);
+  void removeTags(JSONArray array, Set<String> tags);
 }
