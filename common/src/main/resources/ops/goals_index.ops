@@ -8,10 +8,12 @@
       ["literalize", "rawFile", "file"],
       ["literalize", "index", "name", "type", "ext", "file", "tags"],
       ["literalize", "msg", "body"],
-      ["make", "goal", "type", "process_raw"],
+      ["literalize", "async_task", "phase", "id"],
+      ["make", "goal", "type", "scan"],
       ["make", "goal", "type", "index"],
-      ["p", "process_raw",
+      ["p", "scan",
         [
+          ["goal", "type", "scan"],
           ["rawFile", "name", "$name", "file", "$file", "tags", "$tags"]
         ],
         [
@@ -22,6 +24,7 @@
       ],
       ["p", "index_default",
         [
+          ["goal", "type", "index"],
           ["index", "name", "$name", "type", "$type", "ext", "$ext", "file", "$file", "tags", "$tags"]
         ],
         [
@@ -37,6 +40,35 @@
         [
           ["write", "$body"],
           ["remove", 0]
+        ]
+      ],
+      ["p", "goal_scan_complete",
+        [
+          ["goal", "type", "scan"]
+        ],
+        [
+          ["write", "done scanning files!"],
+          ["remove", 0]
+        ]
+      ],
+      ["p", "goal_index_complete",
+        [
+          ["goal", "type", "index"]
+        ],
+        [
+          ["write", "done indexing files!"],
+          ["remove", 0]
+        ]
+      ],
+      ["p", "task_finish",
+        [
+          ["async_task", "phase", "start", "id", "$id"],
+          ["async_task", "phase", "stop", "id", "$id"]
+        ],
+        [
+          ["write", "finished task {0}", "$id"],
+          ["remove", 0],
+          ["remove", 1]
         ]
       ]
     ]

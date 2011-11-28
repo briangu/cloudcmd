@@ -1,0 +1,62 @@
+{
+  "name": "index.ops",
+  "description": "index command ops",
+  "format": "compact",
+  "ops":
+    [
+      ["literalize", "goal", "type"],
+      ["literalize", "rawFile", "file"],
+      ["literalize", "index", "name", "type", "ext", "file", "tags"],
+      ["literalize", "msg", "body"],
+      ["literalize", "async_task", "phase", "id", "name"],
+      ["p", "scan",
+        [
+          ["rawFile", "name", "$name", "file", "$file", "tags", "$tags"]
+        ],
+        [
+          ["write", "processing {0}", "$name"],
+          ["process", "$file", "$tags"],
+          ["remove", 0]
+        ]
+      ],
+      ["p", "index_default",
+        [
+          ["index", "name", "$name", "type", "$type", "ext", "$ext", "file", "$file", "tags", "$tags"]
+        ],
+        [
+          ["write", "indexing (default) {0}", "$name"],
+          ["index_default", "$file", "$type", "$tags"],
+          ["remove", 0]
+        ]
+      ],
+      ["p", "msg",
+        [
+          ["msg", "body", "$body" ]
+        ],
+        [
+          ["write", "$body"],
+          ["remove", 0]
+        ]
+      ],
+      ["p", "task_finish",
+        [
+          ["async_task", "phase", "start", "id", "$id", "name", "$name"],
+          ["async_task", "phase", "stop", "id", "$id", "name", "$name"]
+        ],
+        [
+          ["write", "finished task for file {0}", "$name"],
+          ["remove", 0],
+          ["remove", 1]
+        ]
+      ],
+      ["p", "task_wait",
+        [
+          ["async_task", "phase", "start", "id", "$id", "name", "$name"]
+        ],
+        [
+          ["write", "waiting for file {0}", "$name"],
+          ["sleep", 100]
+        ]
+      ]
+    ]
+}

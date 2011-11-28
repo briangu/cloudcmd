@@ -65,6 +65,16 @@ public class LocalCacheCloudEngine implements CloudEngine
       }
     });
 
+    registry.put("sleep", new ops.Command()
+    {
+      @Override
+      public void exec(ops.CommandContext context, Object[] args) throws Exception
+      {
+        Integer sleep = (Integer) args[0];
+        Thread.sleep(sleep);
+      }
+    });
+
     _ops = OpsFactory.create(registry, ResourceUtil.loadOps("index.ops"));
 
 /*
@@ -115,34 +125,41 @@ public class LocalCacheCloudEngine implements CloudEngine
 
   private void _add(final File file, final Set<String> tags)
   {
+    final String taskId = UUID.randomUUID().toString();
+    final String fileName = file.getName();
+
+    _ops.make(new MemoryElement("async_task", "phase", "start", "id", taskId, "name", fileName));
+
     Runnable runnable = new Runnable()
     {
       @Override
       public void run()
       {
-        FileMetaData meta = MetaUtil.createMeta(file, tags);
-
         try
         {
+          FileMetaData meta = MetaUtil.createMeta(file, tags);
+
           for (int i = 0; i < meta.BlockHashes.length(); i++)
           {
             _localCache.store(new FileInputStream(file), meta.BlockHashes.getString(i));
           }
 
           _localCache.store(new ByteArrayInputStream(meta.Meta.toString().getBytes()), meta.MetaHash);
+
+          IndexStorageService.instance().add(meta);
         }
         catch (Exception e)
         {
           e.printStackTrace();
         }
-
-        IndexStorageService.instance().add(meta);
+        finally
+        {
+          _ops.make(new MemoryElement("async_task", "phase", "stop", "id", taskId, "name", fileName));
+        }
       }
     };
 
-    runnable.run();
-
-//    _threadPool.submit(runnable);
+    _threadPool.submit(runnable);
   }
 
   @Override

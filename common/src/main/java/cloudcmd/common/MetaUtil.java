@@ -20,6 +20,7 @@ public class MetaUtil
     try
     {
       String fileName = file.getName();
+
       int extIndex = fileName.lastIndexOf(".");
 
       meta.Tags = tags;
