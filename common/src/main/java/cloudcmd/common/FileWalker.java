@@ -3,7 +3,8 @@ package cloudcmd.common;
 import java.io.File;
 import java.util.Stack;
 
-public class FileWalker {
+public class FileWalker
+{
 
   public static void enumerateFolders(String startFolder, FileHandler handler)
   {

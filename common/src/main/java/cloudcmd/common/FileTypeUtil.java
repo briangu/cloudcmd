@@ -24,10 +24,12 @@ public class FileTypeUtil
           try
           {
             ftu._typeMap = ResourceUtil.loadJson("filetypes.json");
-          } catch (IOException e)
+          }
+          catch (IOException e)
           {
             e.printStackTrace();
-          } catch (JSONException e)
+          }
+          catch (JSONException e)
           {
             e.printStackTrace();
           }
@@ -46,7 +48,8 @@ public class FileTypeUtil
     try
     {
       return _typeMap.has(ext) ? _typeMap.getString(ext) : "default";
-    } catch (JSONException e)
+    }
+    catch (JSONException e)
     {
       e.printStackTrace();
     }

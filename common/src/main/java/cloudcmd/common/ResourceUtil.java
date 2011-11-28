@@ -35,10 +35,13 @@ public class ResourceUtil
     }
 
     URL resourceUrl = ResourceUtil.class.getResource(resource);
-    try {
+    try
+    {
       System.out.println(resourceUrl);
       return FileUtil.readFile(new File(resourceUrl.toURI()));
-    } catch (URISyntaxException e) {
+    }
+    catch (URISyntaxException e)
+    {
       e.printStackTrace();
     }
     return null;

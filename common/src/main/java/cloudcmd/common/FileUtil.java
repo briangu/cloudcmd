@@ -27,13 +27,13 @@ public class FileUtil
 
   // http://stackoverflow.com/questions/326390/how-to-create-a-java-string-from-the-contents-of-a-file
   public static String readFile(String path)
-      throws IOException
+    throws IOException
   {
     return readFile(new File(path));
   }
 
   public static String readFile(File file)
-      throws IOException
+    throws IOException
   {
     FileInputStream stream = new FileInputStream(file);
     try

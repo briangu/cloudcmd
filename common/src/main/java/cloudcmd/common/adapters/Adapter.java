@@ -43,7 +43,9 @@ public abstract class Adapter
   public abstract void shutdown() throws Exception;
 
   public abstract void store(InputStream data, String hash) throws Exception;
+
   public abstract InputStream load(String hash) throws Exception;
+
   public abstract Set<String> describe() throws Exception;
 
   public abstract void storeTags(ByteArrayInputStream byteArrayInputStream, String hash);

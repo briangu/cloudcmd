@@ -1,4 +1,4 @@
-        body {
+body {
   font-family: Helvetica, arial, sans-serif;
 }
 
@@ -19,6 +19,7 @@ form {
 .topbar-inner {
   background: transparent url("/images/topbar-bg.png") repeat scroll 0 0;
 }
+
 .topbar, .topbar-inner {
   height: 44px;
 }
@@ -26,6 +27,7 @@ form {
 .topbar div > ul > li, .nav > li {
   font-size: 14px;
 }
+
 .topbar div > ul a, .nav a {
   padding: 10px 10px 15px;
 }
@@ -51,6 +53,7 @@ form {
 .update-box-container {
   margin-bottom: 0;
 }
+
 .update-box {
   border: 1px solid #CCC;
   background-color: #FFFFFF;
@@ -61,33 +64,41 @@ form {
   z-index: 1;
   width: 720px;
 }
+
 .update-box .modal-user {
   float: left;
   margin: 10px;
 }
+
 .update-box .modal-user .photo {
   border: 1px solid #CCC;
   background-color: white;
   padding: 2px;
 }
+
 .update-box .modal-user img {
   height: 30px;
   width: 30px;
 }
+
 .update-box .modal-body {
   padding: 10px;
 }
+
 .update-box .modal-footer {
   padding: 10px;
 }
+
 .update-box .modal-body .share-btn {
   float: right;
 }
+
 .update-box textarea {
   margin: 0;
   height: 25px;
   width: 410px;
 }
+
 .update-box textarea:focus {
 }
 
@@ -189,8 +200,8 @@ form {
 /* Admin */
 .save-templates {
   float: right;
-  text-align: right;i
-  position: relative;
+  text-align: right;
+  i position: relative;
   top: 36px;
 }
 
@@ -251,7 +262,7 @@ ul.team li img {
 }
 
 .stock .up, .stock .down {
-  padding-left:30px;
+  padding-left: 30px;
 }
 
 .stock .up {
@@ -278,7 +289,6 @@ ul.team li img {
 .diff-inline {
 }
 
-
 div.float {
   float: left;
 }
@@ -295,38 +305,44 @@ div.spacer {
   clear: both;
 }
 
-
 /* Style for Usual tabs */
-ul.idTabs { width: 100%; }
-ul.idTabs li {
-	list-style: none;
-	float: left;
+ul.idTabs {
+  width: 100%;
 }
+
+ul.idTabs li {
+  list-style: none;
+  float: left;
+}
+
 ul.idTabs a {
   display: block;
   padding: 6px 10px;
-  text-decoration: none!important;
+  text-decoration: none !important;
   font: 10px Verdana;
   color: #FFF;
   background: #333;
   border-bottom: 1px solid #454545;
 }
+
 ul.idTabs a:hover {
-  color:#FFF;
-  background:#222;
+  color: #FFF;
+  background: #222;
 }
+
 ul.idTabs a.selected {
   color: #fff;
   font-weight: bold;
   background-color: #454545;
-  cursor:default;
+  cursor: default;
 }
+
 div.tab {
-    border: 1px solid #454545;
-    background-color: #FFFFFF;
-    clear: both;
-    padding: 20px;
-    *margin-top: -10px;
+  border: 1px solid #454545;
+  background-color: #FFFFFF;
+  clear: both;
+  padding: 20px;
+  *margin-top: -10px;
 }
 
 .comment-box share-btn {
@@ -346,24 +362,25 @@ div.tab {
 }
 
 .update .body {
-color: #333;
-margin-left: 10px;
-text-align: left;
+  color: #333;
+  margin-left: 10px;
+  text-align: left;
 }
 
 .comment-box {
-width: 400px;
-z-index: 99999999;
-text-align: center;
+  width: 400px;
+  z-index: 99999999;
+  text-align: center;
 }
 
 #comment-form-lightbox {
-margin: 0 auto;
-width: 200px;
-    text-align: center;
+  margin: 0 auto;
+  width: 200px;
+  text-align: center;
 }
+
 .post-comment-button {
-width: 390px;
-    padding: 10px;
-    margin: 0 auto;
+  width: 390px;
+  padding: 10px;
+  margin: 0 auto;
 }

@@ -101,20 +101,22 @@
         <artifactId>appassembler-maven-plugin</artifactId>
         <version>1.1.1</version>
         <executions>
-            <execution>
-                <phase>package</phase>
-                <goals><goal>assemble</goal></goals>
-                <configuration>
-                    <assembleDirectory>target</assembleDirectory>
-                    <generateRepository>false</generateRepository>
-                    <programs>
-                        <program>
-                            <mainClass>cloudcmd.srv.Main</mainClass>
-                            <name>photo</name>
-                        </program>
-                    </programs>
-                </configuration>
-            </execution>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>assemble</goal>
+            </goals>
+            <configuration>
+              <assembleDirectory>target</assembleDirectory>
+              <generateRepository>false</generateRepository>
+              <programs>
+                <program>
+                  <mainClass>cloudcmd.srv.Main</mainClass>
+                  <name>photo</name>
+                </program>
+              </programs>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
       <plugin>
@@ -127,17 +129,17 @@
             </manifest>
           </archive>
           <descriptorRefs>
-              <descriptorRef>jar-with-dependencies</descriptorRef>
+            <descriptorRef>jar-with-dependencies</descriptorRef>
           </descriptorRefs>
         </configuration>
         <executions>
-           <execution>
-             <phase>package</phase>
-             <goals>
-               <goal>single</goal>
-             </goals>
-           </execution>
-         </executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

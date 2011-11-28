@@ -1,6 +1,6 @@
 package cloudcmd.cld;
 
-import cloudcmd.cld.commands.Index;
+import cloudcmd.cld.commands.*;
 import cloudcmd.common.FileUtil;
 import cloudcmd.common.config.ConfigStorageService;
 import cloudcmd.common.engine.CloudEngineService;
@@ -9,7 +9,8 @@ import jpbetz.cli.CommandSet;
 
 import java.io.File;
 
-public class Main {
+public class Main
+{
 
   @SuppressWarnings("unchecked")
   public static void main(String[] args) throws Exception
@@ -30,9 +31,16 @@ public class Main {
 
       CommandSet app = new CommandSet("cld");
       app.addSubCommands(Index.class);
+      app.addSubCommands(Reindex.class);
+      app.addSubCommands(Find.class);
+      app.addSubCommands(Get.class);
+      app.addSubCommands(Init.class);
+      app.addSubCommands(Pull.class);
+      app.addSubCommands(Push.class);
+      app.addSubCommands(Tag.class);
       app.invoke(args);
 
-      System.in.read();
+//      System.in.read();
     }
     finally
     {
@@ -40,5 +48,5 @@ public class Main {
       IndexStorageService.instance().shutdown();
       ConfigStorageService.instance().shutdown();
     }
-	}
+  }
 }

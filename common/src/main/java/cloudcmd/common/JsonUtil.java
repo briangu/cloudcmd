@@ -12,7 +12,7 @@ public class JsonUtil
   {
     Iterator<String> keys = src.keys();
 
-    while(keys.hasNext())
+    while (keys.hasNext())
     {
       String key = keys.next();
       dest.put(key, src.get(key));
@@ -21,13 +21,13 @@ public class JsonUtil
 
   public static JSONObject createJson(Object... args) throws JSONException
   {
-    if (args.length %2 != 0) throw new IllegalArgumentException("missing last value: args require key/value pairs");
+    if (args.length % 2 != 0) throw new IllegalArgumentException("missing last value: args require key/value pairs");
 
     JSONObject obj = new JSONObject();
 
     for (int i = 0; i < args.length; i += 2)
     {
-      obj.put(args[i].toString(), args[i+1]);
+      obj.put(args[i].toString(), args[i + 1]);
     }
 
     return obj;

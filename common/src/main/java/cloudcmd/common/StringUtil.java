@@ -7,22 +7,25 @@ import java.util.List;
 
 public class StringUtil
 {
-  public static String join(Collection<?> s, String delimiter) {
+  public static String join(Collection<?> s, String delimiter)
+  {
     StringBuilder builder = new StringBuilder();
     Iterator iter = s.iterator();
-    while (iter.hasNext()) {
-       builder.append(iter.next().toString());
-       if (!iter.hasNext()) {
-         break;
-       }
-       builder.append(delimiter);
+    while (iter.hasNext())
+    {
+      builder.append(iter.next().toString());
+      if (!iter.hasNext())
+      {
+        break;
+      }
+      builder.append(delimiter);
     }
     return builder.toString();
   }
 
   public static String repeat(int n, String s)
   {
-    return String.format(String.format("%%0%dd", n), 0).replace("0",s);
+    return String.format(String.format("%%0%dd", n), 0).replace("0", s);
   }
 
   public static List<String> repeatList(int n, String s)

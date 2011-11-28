@@ -35,27 +35,31 @@ public class LocalCacheCloudEngine implements CloudEngine
   {
     Map<String, Command> registry = OpsFactory.getDefaultRegistry();
 
-    registry.put("process", new ops.Command() {
+    registry.put("process", new ops.Command()
+    {
       @Override
-      public void exec(ops.CommandContext context, Object[] args) throws Exception {
-        File file = (File)args[0];
+      public void exec(ops.CommandContext context, Object[] args) throws Exception
+      {
+        File file = (File) args[0];
         String fileName = file.getName();
         int extIndex = fileName.lastIndexOf(".");
-        String ext = extIndex > 0 ? fileName.substring(extIndex+1) : null;
-        String type = ext != null ? FileTypeUtil.instance().getTypeFromExtension(ext) : "default";
+        String ext = extIndex > 0 ? fileName.substring(extIndex + 1) : null;
+        String type = ext != null ? FileTypeUtil.instance().getTypeFromExtension(ext) : null;
         context.make(new MemoryElement("index", "name", fileName, "type", type, "ext", ext, "file", file, "tags", args[1]));
       }
     });
 
-    registry.put("index_default", new ops.Command() {
+    registry.put("index_default", new ops.Command()
+    {
       @Override
-      public void exec(ops.CommandContext context, Object[] args) throws Exception {
-        File file = (File)args[0];
-        String type = (String)args[1];
+      public void exec(ops.CommandContext context, Object[] args) throws Exception
+      {
+        File file = (File) args[0];
+        String type = (String) args[1];
 
         Set<String> tags = new HashSet<String>();
-        tags.add(type);
-        tags.addAll((Set<String>)args[2]);
+        if (type != null) tags.add(type);
+        tags.addAll((Set<String>) args[2]);
 
         _add(file, tags);
       }
@@ -258,6 +262,37 @@ public class LocalCacheCloudEngine implements CloudEngine
             e.printStackTrace();
           }
         }
+      }
+      catch (Exception e)
+      {
+        e.printStackTrace();
+      }
+    }
+  }
+
+  @Override
+  public void reindex()
+  {
+    final Set<String> localDescription = _localCache.describe();
+
+    for (String hash : localDescription)
+    {
+      if (!hash.endsWith(".meta"))
+      {
+        // TODO: message (this shouldn't happen)
+        continue;
+      }
+
+      try
+      {
+        FileMetaData fmd = new FileMetaData();
+
+        fmd.Meta = JsonUtil.loadJson(_localCache.load(hash));
+        fmd.MetaHash = hash;
+        fmd.BlockHashes = fmd.Meta.getJSONArray("blocks");
+        fmd.Tags = _localCache.loadTags(hash);
+
+        IndexStorageService.instance().add(fmd);
       }
       catch (Exception e)
       {

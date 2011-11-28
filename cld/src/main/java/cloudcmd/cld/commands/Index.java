@@ -18,17 +18,19 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-@SubCommand(name="index", description="Index files")
-public class Index implements Command {
-	
-	@Arg(name="path", optional=false)
-	public String _path = null;
+@SubCommand(name = "index", description = "Index files")
+public class Index implements Command
+{
 
-	@Arg(name="tags", optional = true, isVararg = true)
-	public List<String> _tags = null;
+  @Arg(name = "path", optional = false)
+  public String _path = null;
 
-	@Override
-  public void exec(CommandContext commandLine) throws Exception {
+  @Arg(name = "tags", optional = true, isVararg = true)
+  public List<String> _tags = null;
+
+  @Override
+  public void exec(CommandContext commandLine) throws Exception
+  {
 
     if (_path == null)
     {

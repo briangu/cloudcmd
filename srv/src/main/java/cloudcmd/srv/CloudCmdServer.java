@@ -29,7 +29,7 @@ public class CloudCmdServer
 {
   private ServerBootstrap _bootstrap;
 
-  private final static int MAX_FILE_SIZE = (1024*1024)*1024;
+  private final static int MAX_FILE_SIZE = (1024 * 1024) * 1024;
 
   private Thread _opsThread = null;
 
@@ -43,10 +43,10 @@ public class CloudCmdServer
     CloudCmdServer cloudCmdServer = new CloudCmdServer();
 
     cloudCmdServer._bootstrap =
-        new ServerBootstrap(
-            new NioServerSocketChannelFactory(
-                Executors.newCachedThreadPool(),
-                Executors.newCachedThreadPool()));
+      new ServerBootstrap(
+        new NioServerSocketChannelFactory(
+          Executors.newCachedThreadPool(),
+          Executors.newCachedThreadPool()));
 
     new File(fileStorageRoot).mkdir();
 
@@ -84,7 +84,8 @@ public class CloudCmdServer
       try
       {
         _opsThread.join(1000);
-      } catch (InterruptedException e)
+      }
+      catch (InterruptedException e)
       {
       }
     }
@@ -111,10 +112,12 @@ public class CloudCmdServer
     // add fetch cmd in cli/srv
     //
 
-    registry.put("index", new ops.Command() {
+    registry.put("index", new ops.Command()
+    {
       @Override
-      public void exec(ops.CommandContext context, Object[] args) {
-        File file = (File)args[0];
+      public void exec(ops.CommandContext context, Object[] args)
+      {
+        File file = (File) args[0];
         System.out.println("srv processing: " + file.getAbsolutePath());
       }
     });
@@ -141,7 +144,7 @@ public class CloudCmdServer
       String staticFileRoot,
       String uploadFileRoot,
       String downloadHostname)
-        throws IOException, JSONException
+      throws IOException, JSONException
     {
       _ops = ops;
       _maxContentLength = maxContentLength;
@@ -155,13 +158,15 @@ public class CloudCmdServer
 
     @Override
     public ChannelPipeline getPipeline()
-        throws Exception
+      throws Exception
     {
       List<Route> routes = new ArrayList<Route>();
 
-      routes.add(new PostRoute("/cas/", new RouteHandler() {
+      routes.add(new PostRoute("/cas/", new RouteHandler()
+      {
         @Override
-        public HttpResponse exec(Map<String, String> args) throws Exception {
+        public HttpResponse exec(Map<String, String> args) throws Exception
+        {
           if (!args.containsKey("rawFile"))
           {
             return Util.createJsonResponse("status", "false", "error", "missing rawFile argument");
@@ -175,9 +180,11 @@ public class CloudCmdServer
         }
       }));
 
-      routes.add(new GetRoute("/cas/$var", new RouteHandler() {
+      routes.add(new GetRoute("/cas/$var", new RouteHandler()
+      {
         @Override
-        public HttpResponse exec(Map<String, String> args) throws Exception {
+        public HttpResponse exec(Map<String, String> args) throws Exception
+        {
           JSONObject obj = new JSONObject();
           obj.put("status", "woot!");
           obj.put("var", args.get("var"));
