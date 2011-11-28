@@ -30,6 +30,7 @@ public class Main
       IndexStorageService.instance().init();
 
       CommandSet app = new CommandSet("cld");
+      app.addSubCommands(Listing.class);
       app.addSubCommands(Index.class);
       app.addSubCommands(Reindex.class);
       app.addSubCommands(Find.class);
