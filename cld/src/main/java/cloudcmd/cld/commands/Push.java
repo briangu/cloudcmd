@@ -7,7 +7,6 @@ import jpbetz.cli.*;
 @SubCommand(name = "push", description = "Push the local cache to storage endpoints.")
 public class Push implements Command
 {
-
   @Opt(opt = "t", longOpt = "tier", description = "max tier to push to", required = false)
   Number _maxTier = Integer.MAX_VALUE;
 

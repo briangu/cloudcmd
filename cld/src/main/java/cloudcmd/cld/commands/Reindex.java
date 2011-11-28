@@ -11,8 +11,10 @@ public class Reindex implements Command
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
+    System.err.println("purging index");
     IndexStorageService.instance().purge();
 
+    System.err.println("rebuilding index from local cache");
     CloudEngineService.instance().reindex();
   }
 }

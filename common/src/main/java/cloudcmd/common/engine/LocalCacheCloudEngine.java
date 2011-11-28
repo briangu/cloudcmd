@@ -292,6 +292,8 @@ public class LocalCacheCloudEngine implements CloudEngine
         fmd.BlockHashes = fmd.Meta.getJSONArray("blocks");
         fmd.Tags = _localCache.loadTags(hash);
 
+        _ops.make(new MemoryElement("msg", "body", String.format("reindexing: %s %s", hash, fmd.Meta.getString("filename"))));
+
         IndexStorageService.instance().add(fmd);
       }
       catch (Exception e)

@@ -7,6 +7,7 @@
       ["literalize", "goal", "type"],
       ["literalize", "rawFile", "file"],
       ["literalize", "index", "name", "type", "ext", "file", "tags"],
+      ["literalize", "msg", "body"],
       ["make", "goal", "type", "process_raw"],
       ["make", "goal", "type", "index"],
       ["p", "process_raw",
@@ -26,6 +27,15 @@
         [
           ["write", "indexing (default) {0}", "$name"],
           ["index_default", "$file", "$type", "$tags"],
+          ["remove", 0]
+        ]
+      ],
+      ["p", "msg",
+        [
+          ["msg", "body", "$body" ]
+        ],
+        [
+          ["write", "$body"],
           ["remove", 0]
         ]
       ]
