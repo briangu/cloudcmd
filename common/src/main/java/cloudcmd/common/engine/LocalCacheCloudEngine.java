@@ -66,6 +66,8 @@ public class LocalCacheCloudEngine implements CloudEngine
     });
 
     _ops = OpsFactory.create(registry, ResourceUtil.loadOps("index.ops"));
+
+/*
     _ops.waitForWork(true);
 
     _opsThread = new Thread(new Runnable()
@@ -77,12 +79,19 @@ public class LocalCacheCloudEngine implements CloudEngine
       }
     });
     _opsThread.start();
+*/
 
     JSONObject obj = new JSONObject();
     obj.put("rootPath", ConfigStorageService.instance().getConfigRoot() + File.separator + "cache");
 
     _localCache = new FileAdapter();
     _localCache.init(0, FileAdapter.class.getName(), new HashSet<String>(), obj);
+  }
+
+  @Override
+  public void run()
+  {
+    _ops.run();
   }
 
   @Override
@@ -106,7 +115,7 @@ public class LocalCacheCloudEngine implements CloudEngine
 
   private void _add(final File file, final Set<String> tags)
   {
-    _threadPool.submit(new Runnable()
+    Runnable runnable = new Runnable()
     {
       @Override
       public void run()
@@ -129,7 +138,11 @@ public class LocalCacheCloudEngine implements CloudEngine
 
         IndexStorageService.instance().add(meta);
       }
-    });
+    };
+
+    runnable.run();
+
+//    _threadPool.submit(runnable);
   }
 
   @Override

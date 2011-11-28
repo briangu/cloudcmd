@@ -47,12 +47,12 @@ public class FileTypeUtil
     ext = ext.toLowerCase();
     try
     {
-      return _typeMap.has(ext) ? _typeMap.getString(ext) : "default";
+      return _typeMap.has(ext) ? _typeMap.getString(ext) : null;
     }
     catch (JSONException e)
     {
       e.printStackTrace();
     }
-    return "default";
+    return null;
   }
 }

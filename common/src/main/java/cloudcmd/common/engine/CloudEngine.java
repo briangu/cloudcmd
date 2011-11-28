@@ -7,6 +7,8 @@ public interface CloudEngine
 {
   void init() throws Exception;
 
+  void run() throws Exception;
+
   void shutdown();
 
   void add(File file, Set<String> tags);

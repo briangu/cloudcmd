@@ -161,33 +161,35 @@ public class H2IndexStorage implements IndexStorage
   {
     String sql;
 
-    List<Object> bind = new ArrayList<Object>();
-    List<String> fields = new ArrayList<String>();
-
-    fields.add("HASH");
-    fields.add("PATH");
-    fields.add("FILENAME");
-    fields.add("FILEEXT");
-    fields.add("FILESIZE");
-    fields.add("FILEDATE");
-    fields.add("TAGS");
-    fields.add("RAWMETA");
-
-    bind.add(meta.MetaHash);
-    bind.add(meta.Meta.getString("path"));
-    bind.add(meta.Meta.getString("filename"));
-    bind.add(meta.Meta.getString("fileext"));
-    bind.add(meta.Meta.getLong("filesize"));
-    bind.add(meta.Meta.getLong("filedate"));
-    bind.add(StringUtil.join(meta.Tags, " "));
-    bind.add(meta.Meta.toString());
-
-    sql = String.format("MERGE INTO FILE_INDEX (%s) VALUES (%s);", StringUtil.join(fields, ","), StringUtil.joinRepeat(bind.size(), "?", ","));
-
-    PreparedStatement statement = db.prepareStatement(sql);
+    PreparedStatement statement = null;
 
     try
     {
+      List<Object> bind = new ArrayList<Object>();
+      List<String> fields = new ArrayList<String>();
+
+      fields.add("HASH");
+      fields.add("PATH");
+      fields.add("FILENAME");
+      if (meta.Meta.has("fileext"))fields.add("FILEEXT");
+      fields.add("FILESIZE");
+      fields.add("FILEDATE");
+      fields.add("TAGS");
+      fields.add("RAWMETA");
+
+      bind.add(meta.MetaHash);
+      bind.add(meta.Meta.getString("path"));
+      bind.add(meta.Meta.getString("filename"));
+      if (meta.Meta.has("fileext")) bind.add(meta.Meta.getString("fileext"));
+      bind.add(meta.Meta.getLong("filesize"));
+      bind.add(meta.Meta.getLong("filedate"));
+      bind.add(StringUtil.join(meta.Tags, " "));
+      bind.add(meta.Meta.toString());
+
+      sql = String.format("MERGE INTO FILE_INDEX (%s) VALUES (%s);", StringUtil.join(fields, ","), StringUtil.joinRepeat(bind.size(), "?", ","));
+
+      statement = db.prepareStatement(sql);
+
       for (int i = 0, paramIdx = 1; i < bind.size(); i++, paramIdx++)
       {
         bind(statement, paramIdx, bind.get(i));
@@ -226,10 +228,30 @@ public class H2IndexStorage implements IndexStorage
   {
     if (meta == null) return;
 
+/*
     _queue.add(meta);
     if (_queue.size() > MAX_QUEUE_SIZE)
     {
       flush();
+    }
+*/
+    Connection db = null;
+    try
+    {
+      db = getDbConnection();
+      addMeta(db, meta);
+    }
+    catch (JSONException e)
+    {
+      e.printStackTrace();
+    }
+    catch (SQLException e)
+    {
+      e.printStackTrace();
+    }
+    finally
+    {
+      SqlUtil.SafeClose(db);
     }
   }
 

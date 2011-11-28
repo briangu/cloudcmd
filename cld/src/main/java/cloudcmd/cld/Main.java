@@ -26,8 +26,8 @@ public class Main
 
     try
     {
-      CloudEngineService.instance().init();
       IndexStorageService.instance().init();
+      CloudEngineService.instance().init();
 
       CommandSet app = new CommandSet("cld");
       app.addSubCommands(Listing.class);
@@ -41,7 +41,7 @@ public class Main
       app.addSubCommands(Tag.class);
       app.invoke(args);
 
-      System.in.read();
+//      System.in.read();
     }
     finally
     {
