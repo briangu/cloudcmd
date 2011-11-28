@@ -21,7 +21,7 @@ public class Listing implements Command
     for (int i = 0; i < result.length(); i++)
     {
       JSONObject entry = result.getJSONObject(i);
-      System.out.println(entry.getString("filename"));
+      System.out.println(entry.getString("path"));
     }
   }
 }

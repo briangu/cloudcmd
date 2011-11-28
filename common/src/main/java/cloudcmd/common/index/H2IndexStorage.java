@@ -210,10 +210,12 @@ public class H2IndexStorage implements IndexStorage
     if (obj instanceof String)
     {
       statement.setString(idx, (String) obj);
-    } else if (obj instanceof Long)
+    }
+    else if (obj instanceof Long)
     {
       statement.setLong(idx, (Long) obj);
-    } else
+    }
+    else
     {
       throw new IllegalArgumentException("unknown obj type: " + obj.toString());
     }
@@ -251,7 +253,8 @@ public class H2IndexStorage implements IndexStorage
       {
         sql = "SELECT HASH,TAGS,RAWMETA FROM FILE_INDEX WHERE HASH IN (SELECT HASH FROM FT_SEARCH(?, 0, 0))";
         bind.addAll(Arrays.asList(filter.getString("tags")));
-      } else
+      }
+      else
       {
         List<String> list = new ArrayList<String>();
 
@@ -266,7 +269,8 @@ public class H2IndexStorage implements IndexStorage
             Collection<Object> foo = Arrays.asList(obj);
             list.add(String.format("%s In (%s)", key, StringUtil.joinRepeat(foo.size(), "?", ",")));
             bind.addAll(foo);
-          } else
+          }
+          else
           {
             list.add(String.format("%s IN ?", key));
             bind.add(obj);
@@ -276,7 +280,8 @@ public class H2IndexStorage implements IndexStorage
         if (list.size() > 0)
         {
           sql = String.format("SELECT HASH,TAGS,RAWMETA FROM FILE_INDEX WHERE %s", StringUtil.join(list, " AND "));
-        } else
+        }
+        else
         {
           sql = String.format("SELECT HASH,TAGS,RAWMETA FROM FILE_INDEX");
         }

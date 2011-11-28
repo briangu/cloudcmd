@@ -31,7 +31,6 @@ public class Index implements Command
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
-
     if (_path == null)
     {
       _path = FileUtil.getCurrentWorkingDirectory();
