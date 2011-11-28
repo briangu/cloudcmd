@@ -2,7 +2,6 @@
 *.iml
 target
 out
-src/main/resources/public/uploads
 build
 target
 .project
