@@ -142,7 +142,6 @@ public class LocalCacheCloudEngine implements CloudEngine
 
             if (!adapterDescription.contains(hash))
             {
-              // TODO: can we get this blob from the index entry?
               _ops.make(new MemoryElement("push_block", adapter, localCache, hash));
             }
 

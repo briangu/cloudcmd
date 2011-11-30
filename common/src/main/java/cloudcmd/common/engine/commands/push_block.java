@@ -16,6 +16,10 @@ public class push_block implements Command
     Adapter dest = (Adapter)args[0];
     Adapter src = (Adapter)args[1];
     String hash = (String) args[2];
-    dest.store(src.load(hash), hash);
+
+    if (!dest.contains(hash))
+    {
+      dest.store(src.load(hash), hash);
+    }
   }
 }
