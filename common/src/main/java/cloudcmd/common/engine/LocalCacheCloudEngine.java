@@ -203,7 +203,7 @@ public class LocalCacheCloudEngine implements CloudEngine
     {
       if (!localCache.contains(hash))
       {
-        _ops.make(new MemoryElement("pull_file", hashProviders.get(hash), hash, retrieveBlocks));
+        _ops.make(new MemoryElement("pull_block", hashProviders, hash, retrieveBlocks));
         continue;
       }
 
@@ -218,7 +218,7 @@ public class LocalCacheCloudEngine implements CloudEngine
         {
           String blockHash = blocks.getString(i);
           if (localCache.contains(blockHash)) continue;
-          _ops.make(new MemoryElement("pull_block", hashProviders.get(blockHash), blockHash));
+          _ops.make(new MemoryElement("pull_block", hashProviders, blockHash));
         }
       }
       catch (Exception e)

@@ -4,10 +4,13 @@ package cloudcmd.common.engine.commands;
 import cloudcmd.common.FileMetaData;
 import cloudcmd.common.JsonUtil;
 import cloudcmd.common.adapters.Adapter;
+import cloudcmd.common.engine.LocalCacheService;
 import cloudcmd.common.index.IndexStorageService;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+
 import ops.Command;
 import ops.CommandContext;
 import ops.MemoryElement;
@@ -20,8 +23,16 @@ public class pull_block implements Command
   public void exec(CommandContext context, Object[] args)
       throws Exception
   {
-    List<Adapter> blockProviders = (List<Adapter>)args[0];
+    Map<String, List<Adapter>> hashProviders = (Map<String, List<Adapter>>)args[0];
     String hash = (String) args[1];
+
+    if (!hashProviders.containsKey(hash))
+    {
+      System.err.println("unexpected: could not find block in existing storage!");
+      return;
+    }
+
+    List<Adapter> blockProviders = hashProviders.get(hash);
 
     Collections.sort(blockProviders, new Comparator<Adapter>()
     {
@@ -34,38 +45,47 @@ public class pull_block implements Command
 
     for (Adapter adapter : blockProviders)
     {
-      try
+      if (hash.endsWith(".meta"))
       {
-        FileMetaData fmd = new FileMetaData();
-
-        fmd.Meta = JsonUtil.loadJson(adapter.load(hash));
-        fmd.MetaHash = hash;
-        fmd.BlockHashes = fmd.Meta.getJSONArray("blocks");
-        fmd.Tags = adapter.loadTags(hash);
-
-        if (!localDescription.contains(hash))
+        try
         {
-          _ops.make(new MemoryElement("push_block", localCache, adapter, hash));
-        }
+          Boolean retrieveBlocks = (Boolean)args[2];
 
-        IndexStorageService.instance().add(fmd);
+          FileMetaData fmd = new FileMetaData();
 
-        if (retrieveBlocks)
-        {
-          JSONArray blocks = fmd.BlockHashes;
+          LocalCacheService.instance().store(adapter.load(hash), hash);
 
-          for (int i = 0; i < blocks.length(); i++)
+          fmd.Meta = JsonUtil.loadJson(LocalCacheService.instance().load(hash));
+          fmd.MetaHash = hash;
+          fmd.BlockHashes = fmd.Meta.getJSONArray("blocks");
+          fmd.Tags = adapter.loadTags(hash);
+
+          // if localcache has block continue
+          IndexStorageService.instance().add(fmd);
+
+          if (retrieveBlocks)
           {
-            String blockHash = blocks.getString(i);
-            if (localDescription.contains(blockHash)) continue;
-            _ops.make(new MemoryElement("push_block", localCache, adapter, blockHash));
+            JSONArray blocks = fmd.BlockHashes;
+
+            for (int i = 0; i < blocks.length(); i++)
+            {
+              String blockHash = blocks.getString(i);
+              if (LocalCacheService.instance().contains(blockHash)) continue;
+              context.make(new MemoryElement("pull_block", hashProviders, blockHash));
+            }
           }
         }
+        catch (Exception e)
+        {
+          e.printStackTrace();
+        }
       }
-      catch (Exception e)
+      else
       {
-        e.printStackTrace();
+        LocalCacheService.instance().store(adapter.load(hash), hash);
       }
+
+      break;
     }
   }
 }
