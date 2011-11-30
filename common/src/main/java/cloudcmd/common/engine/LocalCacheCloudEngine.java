@@ -2,8 +2,11 @@ package cloudcmd.common.engine;
 
 import cloudcmd.common.*;
 import cloudcmd.common.adapters.Adapter;
-import cloudcmd.common.adapters.FileAdapter;
 import cloudcmd.common.config.ConfigStorageService;
+import cloudcmd.common.engine.commands.index_default;
+import cloudcmd.common.engine.commands.process_raw;
+import cloudcmd.common.engine.commands.push_block;
+import cloudcmd.common.engine.commands.sleep;
 import cloudcmd.common.index.IndexStorageService;
 import ops.Command;
 import ops.MemoryElement;
@@ -12,22 +15,12 @@ import ops.OpsFactory;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 public class LocalCacheCloudEngine implements CloudEngine
 {
-  ExecutorService _threadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-
-  FileAdapter _localCache;
-
   OPS _ops;
-
   Thread _opsThread = null;
 
   @Override
@@ -35,67 +28,13 @@ public class LocalCacheCloudEngine implements CloudEngine
   {
     Map<String, Command> registry = OpsFactory.getDefaultRegistry();
 
-    registry.put("process", new ops.Command()
-    {
-      @Override
-      public void exec(ops.CommandContext context, Object[] args) throws Exception
-      {
-        File file = (File) args[0];
-        String fileName = file.getName();
-        int extIndex = fileName.lastIndexOf(".");
-        String ext = extIndex > 0 ? fileName.substring(extIndex + 1) : null;
-        String type = ext != null ? FileTypeUtil.instance().getTypeFromExtension(ext) : null;
-        context.make(new MemoryElement("index", "name", fileName, "type", type, "ext", ext, "file", file, "tags", args[1]));
-      }
-    });
-
-    registry.put("index_default", new ops.Command()
-    {
-      @Override
-      public void exec(ops.CommandContext context, Object[] args) throws Exception
-      {
-        File file = (File) args[0];
-        String type = (String) args[1];
-
-        Set<String> tags = new HashSet<String>();
-        if (type != null) tags.add(type);
-        tags.addAll((Set<String>) args[2]);
-
-        _add(file, tags);
-      }
-    });
-
-    registry.put("sleep", new ops.Command()
-    {
-      @Override
-      public void exec(ops.CommandContext context, Object[] args) throws Exception
-      {
-        Integer sleep = (Integer) args[0];
-        Thread.sleep(sleep);
-      }
-    });
+    registry.put("process", new process_raw());
+    registry.put("index_default", new index_default());
+    registry.put("sleep", new sleep());
+    registry.put("push_block", new push_block());
+    registry.put("push_tags", new push_block());
 
     _ops = OpsFactory.create(registry, ResourceUtil.loadOps("index.ops"));
-
-/*
-    _ops.waitForWork(true);
-
-    _opsThread = new Thread(new Runnable()
-    {
-      @Override
-      public void run()
-      {
-        _ops.run();
-      }
-    });
-    _opsThread.start();
-*/
-
-    JSONObject obj = new JSONObject();
-    obj.put("rootPath", ConfigStorageService.instance().getConfigRoot() + File.separator + "cache");
-
-    _localCache = new FileAdapter();
-    _localCache.init(0, FileAdapter.class.getName(), new HashSet<String>(), obj);
   }
 
   @Override
@@ -120,46 +59,7 @@ public class LocalCacheCloudEngine implements CloudEngine
       }
     }
 
-    _threadPool.shutdown();
-  }
-
-  private void _add(final File file, final Set<String> tags)
-  {
-    final String taskId = UUID.randomUUID().toString();
-    final String fileName = file.getName();
-
-    _ops.make(new MemoryElement("async_task", "phase", "start", "id", taskId, "name", fileName));
-
-    Runnable runnable = new Runnable()
-    {
-      @Override
-      public void run()
-      {
-        try
-        {
-          FileMetaData meta = MetaUtil.createMeta(file, tags);
-
-          for (int i = 0; i < meta.BlockHashes.length(); i++)
-          {
-            _localCache.store(new FileInputStream(file), meta.BlockHashes.getString(i));
-          }
-
-          _localCache.store(new ByteArrayInputStream(meta.Meta.toString().getBytes()), meta.MetaHash);
-
-          IndexStorageService.instance().add(meta);
-        }
-        catch (Exception e)
-        {
-          e.printStackTrace();
-        }
-        finally
-        {
-          _ops.make(new MemoryElement("async_task", "phase", "stop", "id", taskId, "name", fileName));
-        }
-      }
-    };
-
-    _threadPool.submit(runnable);
+    _ops.shutdown();
   }
 
   @Override
@@ -170,10 +70,13 @@ public class LocalCacheCloudEngine implements CloudEngine
 
   @Override
   public void push(int maxTier)
+      throws Exception
   {
     JSONArray allEntries = IndexStorageService.instance().find(new JSONObject());
 
-    final Set<String> localDescription = _localCache.describe();
+    Adapter localCache = LocalCacheService.instance();
+
+    final Set<String> localDescription = localCache.describe();
 
     for (final Adapter adapter : ConfigStorageService.instance().getAdapters())
     {
@@ -207,12 +110,12 @@ public class LocalCacheCloudEngine implements CloudEngine
 
             if (!adapter.acceptsTags(tags)) continue;
 
-            queueStoreTags(adapter, new JSONArray(tags), hash);
+            _ops.make(new MemoryElement("push_tags", adapter, hash, new JSONArray(tags)));
 
             if (!adapterDescription.contains(hash))
             {
               // TODO: can we get this blob from the index entry?
-              queueStore(adapter, _localCache.load(hash), hash);
+              _ops.make(new MemoryElement("push_block", adapter, localCache, hash));
             }
 
             JSONArray blocks = entry.getJSONArray("blocks");
@@ -226,7 +129,7 @@ public class LocalCacheCloudEngine implements CloudEngine
                 // TODO: message (it's possible that we legitimately don't have the block if we only have the meta data)
                 continue;
               }
-              queueStore(adapter, _localCache.load(blockHash), blockHash);
+              _ops.make(new MemoryElement("push_block", adapter, localCache, blockHash));
             }
           }
           catch (Exception e)
@@ -244,53 +147,51 @@ public class LocalCacheCloudEngine implements CloudEngine
 
   @Override
   public void pull(int maxTier, boolean retrieveBlocks)
+      throws Exception
   {
-    final Set<String> localDescription = _localCache.describe();
+    Adapter localCache = LocalCacheService.instance();
+
+    final Set<String> localDescription = localCache.describe();
+
+    final Map<String, List<Adapter>> hashProviders = new HashMap<String, List<Adapter>>();
 
     for (final Adapter adapter : ConfigStorageService.instance().getAdapters())
     {
       if (adapter.Tier > maxTier) continue;
 
+      Set<String> adapterDescription = adapter.describe();
+
+      for (final String hash : adapterDescription)
+      {
+        if (!hash.endsWith(".meta")) continue;
+        if (!hashProviders.containsKey(hash))
+        {
+          hashProviders.put(hash, new ArrayList<Adapter>());
+        }
+        hashProviders.get(hash).add(adapter);
+      }
+    }
+
+    for (String hash : hashProviders.keySet())
+    {
+      if (!localDescription.contains(hash))
+      {
+        _ops.make(new MemoryElement("pull_file", hashProviders.get(hash), hash, retrieveBlocks));
+        continue;
+      }
+
+      if (!retrieveBlocks) continue;
+
       try
       {
-        Set<String> adapterDescription = adapter.describe();
+        JSONObject meta = JsonUtil.loadJson(localCache.load(hash));
+        JSONArray blocks = meta.getJSONArray("blocks");
 
-        for (final String hash : adapterDescription)
+        for (int i = 0; i < blocks.length(); i++)
         {
-          if (!hash.endsWith(".meta")) continue;
-
-          try
-          {
-            FileMetaData fmd = new FileMetaData();
-
-            fmd.Meta = JsonUtil.loadJson(adapter.load(hash));
-            fmd.MetaHash = hash;
-            fmd.BlockHashes = fmd.Meta.getJSONArray("blocks");
-            fmd.Tags = adapter.loadTags(hash);
-
-            if (!localDescription.contains(hash))
-            {
-              queueStore(_localCache, adapter.load(hash), hash);
-            }
-
-            IndexStorageService.instance().add(fmd);
-
-            if (retrieveBlocks)
-            {
-              JSONArray blocks = fmd.BlockHashes;
-
-              for (int i = 0; i < blocks.length(); i++)
-              {
-                String blockHash = blocks.getString(i);
-                if (localDescription.contains(blockHash)) continue;
-                queueStore(_localCache, adapter.load(blockHash), blockHash);
-              }
-            }
-          }
-          catch (Exception e)
-          {
-            e.printStackTrace();
-          }
+          String blockHash = blocks.getString(i);
+          if (localDescription.contains(blockHash)) continue;
+          _ops.make(new MemoryElement("pull_block", hashProviders.get(blockHash), blockHash));
         }
       }
       catch (Exception e)
@@ -302,8 +203,11 @@ public class LocalCacheCloudEngine implements CloudEngine
 
   @Override
   public void reindex()
+      throws Exception
   {
-    final Set<String> localDescription = _localCache.describe();
+    Adapter localCache = LocalCacheService.instance();
+
+    final Set<String> localDescription = localCache.describe();
 
     for (String hash : localDescription)
     {
@@ -317,10 +221,10 @@ public class LocalCacheCloudEngine implements CloudEngine
       {
         FileMetaData fmd = new FileMetaData();
 
-        fmd.Meta = JsonUtil.loadJson(_localCache.load(hash));
+        fmd.Meta = JsonUtil.loadJson(localCache.load(hash));
         fmd.MetaHash = hash;
         fmd.BlockHashes = fmd.Meta.getJSONArray("blocks");
-        fmd.Tags = _localCache.loadTags(hash);
+        fmd.Tags = localCache.loadTags(hash);
 
         _ops.make(new MemoryElement("msg", "body", String.format("reindexing: %s %s", hash, fmd.Meta.getString("filename"))));
 
@@ -331,43 +235,5 @@ public class LocalCacheCloudEngine implements CloudEngine
         e.printStackTrace();
       }
     }
-  }
-
-  private void queueStore(final Adapter adapter, final InputStream is, final String hash)
-  {
-    _threadPool.submit(new Runnable()
-    {
-      @Override
-      public void run()
-      {
-        try
-        {
-          adapter.store(is, hash);
-        }
-        catch (Exception e)
-        {
-          e.printStackTrace();
-        }
-      }
-    });
-  }
-
-  private void queueStoreTags(final Adapter adapter, final JSONArray tags, final String hash)
-  {
-    _threadPool.submit(new Runnable()
-    {
-      @Override
-      public void run()
-      {
-        try
-        {
-          adapter.storeTags(new ByteArrayInputStream(tags.toString().getBytes()), hash);
-        }
-        catch (Exception e)
-        {
-          e.printStackTrace();
-        }
-      }
-    });
   }
 }

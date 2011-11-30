@@ -13,9 +13,12 @@ public interface CloudEngine
 
   void add(File file, Set<String> tags);
 
-  void push(int maxTier);
+  void push(int maxTier)
+      throws Exception;
 
-  void pull(int maxTier, boolean retrieveBlocks);
+  void pull(int maxTier, boolean retrieveBlocks)
+      throws Exception;
 
-  void reindex();
+  void reindex()
+      throws Exception;
 }
