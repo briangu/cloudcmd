@@ -31,6 +31,8 @@ public class LocalCacheCloudEngine implements CloudEngine
     registry.put("process", new process_raw());
     registry.put("index_default", new index_default());
     registry.put("sleep", new sleep());
+    registry.put("pull_file", new push_block());
+    registry.put("pull_block", new push_block());
     registry.put("push_block", new push_block());
     registry.put("push_tags", new push_block());
 
@@ -68,10 +70,36 @@ public class LocalCacheCloudEngine implements CloudEngine
     _ops.make(new MemoryElement("rawFile", "name", file.getName(), "file", file, "tags", tags));
   }
 
+  public void refreshCaches()
+  {
+    try
+    {
+      LocalCacheService.instance().refreshCache();
+    }
+    catch (Exception e)
+    {
+      e.printStackTrace();
+    }
+
+    for (final Adapter adapter : ConfigStorageService.instance().getAdapters())
+    {
+      try
+      {
+        adapter.refreshCache();
+      }
+      catch (Exception e)
+      {
+        e.printStackTrace();
+      }
+    }
+  }
+
   @Override
   public void push(int maxTier)
       throws Exception
   {
+    refreshCaches();
+
     JSONArray allEntries = IndexStorageService.instance().find(new JSONObject());
 
     Adapter localCache = LocalCacheService.instance();
@@ -149,9 +177,9 @@ public class LocalCacheCloudEngine implements CloudEngine
   public void pull(int maxTier, boolean retrieveBlocks)
       throws Exception
   {
-    Adapter localCache = LocalCacheService.instance();
+    refreshCaches();
 
-    final Set<String> localDescription = localCache.describe();
+    Adapter localCache = LocalCacheService.instance();
 
     final Map<String, List<Adapter>> hashProviders = new HashMap<String, List<Adapter>>();
 
@@ -174,7 +202,7 @@ public class LocalCacheCloudEngine implements CloudEngine
 
     for (String hash : hashProviders.keySet())
     {
-      if (!localDescription.contains(hash))
+      if (!localCache.contains(hash))
       {
         _ops.make(new MemoryElement("pull_file", hashProviders.get(hash), hash, retrieveBlocks));
         continue;
@@ -190,7 +218,7 @@ public class LocalCacheCloudEngine implements CloudEngine
         for (int i = 0; i < blocks.length(); i++)
         {
           String blockHash = blocks.getString(i);
-          if (localDescription.contains(blockHash)) continue;
+          if (localCache.contains(blockHash)) continue;
           _ops.make(new MemoryElement("pull_block", hashProviders.get(blockHash), blockHash));
         }
       }
@@ -205,6 +233,8 @@ public class LocalCacheCloudEngine implements CloudEngine
   public void reindex()
       throws Exception
   {
+    refreshCaches();
+
     Adapter localCache = LocalCacheService.instance();
 
     final Set<String> localDescription = localCache.describe();

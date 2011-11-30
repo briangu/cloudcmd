@@ -39,6 +39,9 @@ public abstract class Adapter
     return false;
   }
 
+  public abstract void refreshCache() throws Exception;
+
+  public abstract boolean contains(String hash) throws Exception;
 
   public abstract void shutdown() throws Exception;
 
