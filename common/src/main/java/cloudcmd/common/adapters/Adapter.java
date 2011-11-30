@@ -51,7 +51,7 @@ public abstract class Adapter
 
   public abstract Set<String> describe() throws Exception;
 
-  public abstract void storeTags(ByteArrayInputStream byteArrayInputStream, String hash);
+  public abstract void storeTags(ByteArrayInputStream byteArrayInputStream, String hash) throws Exception;
 
-  public abstract Set<String> loadTags(String hash);
+  public abstract Set<String> loadTags(String hash) throws Exception;
 }

@@ -10,12 +10,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
-import ops.Command;
+import ops.AsyncCommand;
 import ops.CommandContext;
-import ops.MemoryElement;
 
-public class index_default implements Command
+public class index_default implements AsyncCommand
 {
   @Override
   public void exec(final CommandContext context, Object[] args)
@@ -28,38 +26,15 @@ public class index_default implements Command
     if (type != null) tags.add(type);
     tags.addAll((Set<String>) args[2]);
 
-    final String taskId = UUID.randomUUID().toString();
-    final String fileName = file.getName();
+    FileMetaData meta = MetaUtil.createMeta(file, tags);
 
-    context.make(new MemoryElement("async_task", "phase", "start", "id", taskId, "name", fileName));
-
-    context.submit(new Runnable()
+    for (int i = 0; i < meta.BlockHashes.length(); i++)
     {
-      @Override
-      public void run()
-      {
-        try
-        {
-          FileMetaData meta = MetaUtil.createMeta(file, tags);
+      LocalCacheService.instance().store(new FileInputStream(file), meta.BlockHashes.getString(i));
+    }
 
-          for (int i = 0; i < meta.BlockHashes.length(); i++)
-          {
-            LocalCacheService.instance().store(new FileInputStream(file), meta.BlockHashes.getString(i));
-          }
+    LocalCacheService.instance().store(new ByteArrayInputStream(meta.Meta.toString().getBytes()), meta.MetaHash);
 
-          LocalCacheService.instance().store(new ByteArrayInputStream(meta.Meta.toString().getBytes()), meta.MetaHash);
-
-          IndexStorageService.instance().add(meta);
-        }
-        catch (Exception e)
-        {
-          e.printStackTrace();
-        }
-        finally
-        {
-          context.make(new MemoryElement("async_task", "phase", "stop", "id", taskId, "name", fileName));
-        }
-      }
-    });
+    IndexStorageService.instance().add(meta);
   }
 }

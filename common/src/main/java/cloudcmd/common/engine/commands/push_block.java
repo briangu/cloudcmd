@@ -3,11 +3,12 @@ package cloudcmd.common.engine.commands;
 
 import cloudcmd.common.adapters.Adapter;
 import cloudcmd.common.engine.LocalCacheService;
+import ops.AsyncCommand;
 import ops.Command;
 import ops.CommandContext;
 
 
-public class push_block implements Command
+public class push_block implements AsyncCommand
 {
   @Override
   public void exec(CommandContext context, Object[] args)
@@ -19,7 +20,15 @@ public class push_block implements Command
 
     if (!dest.contains(hash))
     {
-      dest.store(src.load(hash), hash);
+      try
+      {
+        dest.store(src.load(hash), hash);
+      }
+      catch (Exception e)
+      {
+        // TODO: failed
+        e.printStackTrace();
+      }
     }
   }
 }
