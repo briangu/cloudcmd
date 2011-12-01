@@ -5,7 +5,7 @@ import cloudcmd.common.FileMetaData;
 import cloudcmd.common.JsonUtil;
 import cloudcmd.common.adapters.Adapter;
 import cloudcmd.common.engine.CloudEngineService;
-import cloudcmd.common.engine.LocalCacheService;
+import cloudcmd.common.engine.BlockCacheService;
 import cloudcmd.common.index.IndexStorageService;
 import java.io.InputStream;
 import java.util.Collections;
@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 
 import ops.AsyncCommand;
-import ops.Command;
 import ops.CommandContext;
 import ops.MemoryElement;
 import org.json.JSONArray;
@@ -28,7 +27,7 @@ public class pull_block implements AsyncCommand
   {
     String hash = (String) args[1];
 
-    Map<String, List<Adapter>> hashProviders = CloudEngineService.instance().getHashProviders();
+    Map<String, List<Adapter>> hashProviders = BlockCacheService.instance().getHashProviders();
 
     if (!hashProviders.containsKey(hash))
     {
@@ -86,9 +85,9 @@ public class pull_block implements AsyncCommand
 
         InputStream remoteData = adapter.load(hash);
 
-        LocalCacheService.instance().store(remoteData, hash);
+        BlockCacheService.instance().getBlockCache().store(remoteData, hash);
 
-        fmd.Meta = JsonUtil.loadJson(LocalCacheService.instance().load(hash));
+        fmd.Meta = JsonUtil.loadJson(BlockCacheService.instance().getBlockCache().load(hash));
         fmd.MetaHash = hash;
         fmd.BlockHashes = fmd.Meta.getJSONArray("blocks");
         fmd.Tags = adapter.loadTags(hash);
@@ -103,7 +102,7 @@ public class pull_block implements AsyncCommand
           for (int i = 0; i < blocks.length(); i++)
           {
             String blockHash = blocks.getString(i);
-            if (LocalCacheService.instance().contains(blockHash)) continue;
+            if (BlockCacheService.instance().getBlockCache().contains(blockHash)) continue;
             context.make(new MemoryElement("pull_block", blockHash));
           }
         }
@@ -131,7 +130,7 @@ public class pull_block implements AsyncCommand
       try
       {
         InputStream remoteData = adapter.load(hash);
-        LocalCacheService.instance().store(remoteData, hash);
+        BlockCacheService.instance().getBlockCache().store(remoteData, hash);
         success = true;
         break;
       }

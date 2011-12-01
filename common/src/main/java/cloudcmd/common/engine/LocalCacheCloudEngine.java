@@ -3,10 +3,7 @@ package cloudcmd.common.engine;
 import cloudcmd.common.*;
 import cloudcmd.common.adapters.Adapter;
 import cloudcmd.common.config.ConfigStorageService;
-import cloudcmd.common.engine.commands.index_default;
-import cloudcmd.common.engine.commands.process_raw;
-import cloudcmd.common.engine.commands.push_block;
-import cloudcmd.common.engine.commands.sleep;
+import cloudcmd.common.engine.commands.*;
 import cloudcmd.common.index.IndexStorageService;
 import ops.Command;
 import ops.MemoryElement;
@@ -31,10 +28,9 @@ public class LocalCacheCloudEngine implements CloudEngine
     registry.put("process", new process_raw());
     registry.put("index_default", new index_default());
     registry.put("sleep", new sleep());
-    registry.put("pull_file", new push_block());
-    registry.put("pull_block", new push_block());
+    registry.put("pull_block", new pull_block());
     registry.put("push_block", new push_block());
-    registry.put("push_tags", new push_block());
+    registry.put("push_tags", new push_tags());
 
     _ops = OpsFactory.create(registry, ResourceUtil.loadOps("index.ops"));
   }
@@ -70,39 +66,15 @@ public class LocalCacheCloudEngine implements CloudEngine
     _ops.make(new MemoryElement("rawFile", "name", file.getName(), "file", file, "tags", tags));
   }
 
-  public void refreshCaches()
-  {
-    try
-    {
-      LocalCacheService.instance().refreshCache();
-    }
-    catch (Exception e)
-    {
-      e.printStackTrace();
-    }
-
-    for (final Adapter adapter : ConfigStorageService.instance().getAdapters())
-    {
-      try
-      {
-        adapter.refreshCache();
-      }
-      catch (Exception e)
-      {
-        e.printStackTrace();
-      }
-    }
-  }
-
   @Override
   public void push(int maxTier)
       throws Exception
   {
-    refreshCaches();
+    BlockCacheService.instance().refreshCache(maxTier);
 
     JSONArray allEntries = IndexStorageService.instance().find(new JSONObject());
 
-    Adapter localCache = LocalCacheService.instance();
+    Adapter localCache = BlockCacheService.instance().getBlockCache();
 
     final Set<String> localDescription = localCache.describe();
 
@@ -176,28 +148,11 @@ public class LocalCacheCloudEngine implements CloudEngine
   public void pull(int maxTier, boolean retrieveBlocks)
       throws Exception
   {
-    refreshCaches();
+    BlockCacheService.instance().refreshCache(maxTier);
 
-    Adapter localCache = LocalCacheService.instance();
+    Adapter localCache = BlockCacheService.instance().getBlockCache();
 
-    final Map<String, List<Adapter>> hashProviders = new HashMap<String, List<Adapter>>();
-
-    for (final Adapter adapter : ConfigStorageService.instance().getAdapters())
-    {
-      if (adapter.Tier > maxTier) continue;
-
-      Set<String> adapterDescription = adapter.describe();
-
-      for (final String hash : adapterDescription)
-      {
-        if (!hash.endsWith(".meta")) continue;
-        if (!hashProviders.containsKey(hash))
-        {
-          hashProviders.put(hash, new ArrayList<Adapter>());
-        }
-        hashProviders.get(hash).add(adapter);
-      }
-    }
+    Map<String, List<Adapter>> hashProviders = BlockCacheService.instance().getHashProviders();
 
     for (String hash : hashProviders.keySet())
     {
@@ -232,9 +187,7 @@ public class LocalCacheCloudEngine implements CloudEngine
   public void reindex()
       throws Exception
   {
-    refreshCaches();
-
-    Adapter localCache = LocalCacheService.instance();
+    Adapter localCache = BlockCacheService.instance().getBlockCache();
 
     final Set<String> localDescription = localCache.describe();
 

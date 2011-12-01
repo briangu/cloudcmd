@@ -29,6 +29,17 @@ public class FileAdapter extends Adapter
   }
 
   @Override
+  public void refreshCache() throws Exception
+  {
+  }
+
+  @Override
+  public boolean contains(String hash) throws Exception
+  {
+    return false;
+  }
+
+  @Override
   public void shutdown()
   {
   }

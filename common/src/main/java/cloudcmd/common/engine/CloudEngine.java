@@ -1,6 +1,10 @@
 package cloudcmd.common.engine;
 
+import cloudcmd.common.adapters.Adapter;
+
 import java.io.File;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public interface CloudEngine

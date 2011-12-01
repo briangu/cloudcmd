@@ -20,6 +20,18 @@ public class S3Adapter extends Adapter
   }
 
   @Override
+  public void refreshCache() throws Exception
+  {
+    //To change body of implemented methods use File | Settings | File Templates.
+  }
+
+  @Override
+  public boolean contains(String hash) throws Exception
+  {
+    return false;  //To change body of implemented methods use File | Settings | File Templates.
+  }
+
+  @Override
   public void shutdown()
   {
   }

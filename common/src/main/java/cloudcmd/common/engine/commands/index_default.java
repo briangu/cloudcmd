@@ -3,7 +3,7 @@ package cloudcmd.common.engine.commands;
 
 import cloudcmd.common.FileMetaData;
 import cloudcmd.common.MetaUtil;
-import cloudcmd.common.engine.LocalCacheService;
+import cloudcmd.common.engine.BlockCacheService;
 import cloudcmd.common.index.IndexStorageService;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -30,10 +30,10 @@ public class index_default implements AsyncCommand
 
     for (int i = 0; i < meta.BlockHashes.length(); i++)
     {
-      LocalCacheService.instance().store(new FileInputStream(file), meta.BlockHashes.getString(i));
+      BlockCacheService.instance().getBlockCache().store(new FileInputStream(file), meta.BlockHashes.getString(i));
     }
 
-    LocalCacheService.instance().store(new ByteArrayInputStream(meta.Meta.toString().getBytes()), meta.MetaHash);
+    BlockCacheService.instance().getBlockCache().store(new ByteArrayInputStream(meta.Meta.toString().getBytes()), meta.MetaHash);
 
     IndexStorageService.instance().add(meta);
   }
