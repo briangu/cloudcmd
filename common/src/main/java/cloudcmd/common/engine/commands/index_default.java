@@ -3,6 +3,7 @@ package cloudcmd.common.engine.commands;
 
 import cloudcmd.common.FileMetaData;
 import cloudcmd.common.MetaUtil;
+import cloudcmd.common.adapters.Adapter;
 import cloudcmd.common.engine.BlockCacheService;
 import cloudcmd.common.index.IndexStorageService;
 import java.io.ByteArrayInputStream;
@@ -28,12 +29,16 @@ public class index_default implements AsyncCommand
 
     FileMetaData meta = MetaUtil.createMeta(file, tags);
 
+    // TODO: we will need to break this commadn apart to allow for index_jpg, etc.
+
+    Adapter localCache = BlockCacheService.instance().getBlockCache();
+
     for (int i = 0; i < meta.BlockHashes.length(); i++)
     {
-      BlockCacheService.instance().getBlockCache().store(new FileInputStream(file), meta.BlockHashes.getString(i));
+      localCache.store(new FileInputStream(file), meta.BlockHashes.getString(i));
     }
 
-    BlockCacheService.instance().getBlockCache().store(new ByteArrayInputStream(meta.Meta.toString().getBytes()), meta.MetaHash);
+    localCache.store(new ByteArrayInputStream(meta.Meta.toString().getBytes()), meta.MetaHash);
 
     IndexStorageService.instance().add(meta);
   }
