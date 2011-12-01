@@ -44,7 +44,5 @@ public class Index implements Command
         CloudEngineService.instance().add(file, new HashSet<String>(_tags));
       }
     });
-
-    CloudEngineService.instance().run();
   }
 }
