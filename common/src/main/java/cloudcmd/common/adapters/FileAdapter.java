@@ -26,6 +26,8 @@ public class FileAdapter extends Adapter
     if (!Config.has("rootPath")) throw new IllegalArgumentException("config missing rootPath");
 
     _rootPath = Config.getString("rootPath");
+
+    new File(_rootPath).mkdirs();
   }
 
   @Override

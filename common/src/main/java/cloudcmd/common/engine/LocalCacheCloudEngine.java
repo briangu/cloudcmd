@@ -110,11 +110,11 @@ public class LocalCacheCloudEngine implements CloudEngine
 
             if (!adapter.acceptsTags(tags)) continue;
 
-            _ops.make(new MemoryElement("push_tags", adapter, hash, new JSONArray(tags)));
+            _ops.make(new MemoryElement("push_tags", "adapter", adapter, "hash", hash, "tags", new JSONArray(tags)));
 
             if (!adapterDescription.contains(hash))
             {
-              _ops.make(new MemoryElement("push_block", adapter, localCache, hash));
+              _ops.make(new MemoryElement("push_block", "dest", adapter, "src", localCache, "hash", hash));
             }
 
             JSONArray blocks = entry.getJSONArray("blocks");
@@ -128,7 +128,7 @@ public class LocalCacheCloudEngine implements CloudEngine
                 // TODO: message (it's possible that we legitimately don't have the block if we only have the meta data)
                 continue;
               }
-              _ops.make(new MemoryElement("push_block", adapter, localCache, blockHash));
+              _ops.make(new MemoryElement("push_block", "dest", adapter, "src", localCache, "hash", blockHash));
             }
           }
           catch (Exception e)
@@ -158,7 +158,7 @@ public class LocalCacheCloudEngine implements CloudEngine
     {
       if (!localCache.contains(hash))
       {
-        _ops.make(new MemoryElement("pull_block", hashProviders, hash, retrieveBlocks));
+        _ops.make(new MemoryElement("pull_block", "hash", hash, "retrieveSubBlocks", retrieveBlocks));
         continue;
       }
 
@@ -173,7 +173,7 @@ public class LocalCacheCloudEngine implements CloudEngine
         {
           String blockHash = blocks.getString(i);
           if (localCache.contains(blockHash)) continue;
-          _ops.make(new MemoryElement("pull_block", hashProviders, blockHash));
+          _ops.make(new MemoryElement("pull_block", "hash", blockHash));
         }
       }
       catch (Exception e)

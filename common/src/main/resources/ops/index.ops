@@ -9,6 +9,9 @@
       ["literalize", "index", "name", "type", "ext", "file", "tags"],
       ["literalize", "msg", "body"],
       ["literalize", "async_task", "phase", "id", "name"],
+      ["literalize", "push_block", "dest", "src", "hash"],
+      ["literalize", "push_tags", "adapter", "hash", "tags"],
+      ["literalize", "pull_block", "hash", "retrieveSubBlocks"],
       ["p", "scan",
         [
           ["rawFile", "name", "$name", "file", "$file", "tags", "$tags"]
@@ -26,6 +29,36 @@
         [
           ["write", "indexing (default) {0}", "$name"],
           ["index_default", "$file", "$type", "$tags"],
+          ["remove", 0]
+        ]
+      ],
+      ["p", "pull_block",
+        [
+          ["pull_block", "hash", "$hash", "retrieveSubBlocks", "$sub"]
+        ],
+        [
+          ["write", "pulling {0}", "$hash"],
+          ["pull_block", "$hash", "$sub"],
+          ["remove", 0]
+        ]
+      ],
+      ["p", "push_block",
+        [
+          ["push_block", "dest", "$dest", "src", "$src", "hash", "$hash"]
+        ],
+        [
+          ["write", "pushing {0}", "$hash"],
+          ["push_block", "$dest", "$src", "$hash"],
+          ["remove", 0]
+        ]
+      ],
+      ["p", "push_tags",
+        [
+          ["push_tags", "adapter", "$adapter", "hash", "$hash", "tags", "$tags"]
+        ],
+        [
+          ["write", "pushing tags {0} for {1}", "$tags", "$hash"],
+          ["push_tags", "$adapter", "$hash", "$tags"],
           ["remove", 0]
         ]
       ],
