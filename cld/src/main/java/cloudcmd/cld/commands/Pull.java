@@ -15,7 +15,7 @@ public class Pull implements Command
   Number _maxTier = Integer.MAX_VALUE;
 
   @Opt(opt = "b", longOpt = "blocks", description = "retrieve blocks as well as meta data", required = false)
-  boolean _retrieveBlocks = false;
+  boolean _retrieveBlocks = true;
 
   @Override
   public void exec(CommandContext commandLine) throws Exception

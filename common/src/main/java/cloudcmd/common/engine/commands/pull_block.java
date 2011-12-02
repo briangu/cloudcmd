@@ -25,7 +25,7 @@ public class pull_block implements AsyncCommand
   public void exec(CommandContext context, Object[] args)
       throws Exception
   {
-    String hash = (String) args[1];
+    String hash = (String) args[0];
 
     Map<String, List<Adapter>> hashProviders = BlockCacheService.instance().getHashProviders();
 
@@ -50,7 +50,7 @@ public class pull_block implements AsyncCommand
 
     if (hash.endsWith(".meta"))
     {
-      Boolean retrieveBlocks = (Boolean)args[2];
+      Boolean retrieveBlocks = (Boolean)args[1];
       success = pullMetaBlock(context, blockProviders, retrieveBlocks, hash);
     }
     else
@@ -60,12 +60,12 @@ public class pull_block implements AsyncCommand
 
     if (success)
     {
-      context.make(new MemoryElement("msg", "successfully pulled block {0}", hash));
+      context.make(new MemoryElement("msg", "body", String.format("successfully pulled block %s", hash)));
     }
     else
     {
-      context.make(new MemoryElement("msg", "failed to pull block {0}", hash));
-      context.make(new MemoryElement("recover_block", hash));
+      context.make(new MemoryElement("msg", "body", String.format("failed to pull block %s", hash)));
+      context.make(new MemoryElement("recover_block", "hash", hash));
     }
   }
 
@@ -103,7 +103,7 @@ public class pull_block implements AsyncCommand
           {
             String blockHash = blocks.getString(i);
             if (BlockCacheService.instance().getBlockCache().contains(blockHash)) continue;
-            context.make(new MemoryElement("pull_block", blockHash));
+            context.make(new MemoryElement("pull_block", "hash", blockHash));
           }
         }
         success = true;

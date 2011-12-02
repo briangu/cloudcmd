@@ -12,6 +12,7 @@
       ["literalize", "push_block", "dest", "src", "hash"],
       ["literalize", "push_tags", "adapter", "hash", "tags"],
       ["literalize", "pull_block", "hash", "retrieveSubBlocks"],
+      ["literalize", "recover_block", "hash"],
       ["p", "scan",
         [
           ["rawFile", "name", "$name", "file", "$file", "tags", "$tags"]
@@ -35,6 +36,16 @@
       ["p", "pull_block",
         [
           ["pull_block", "hash", "$hash", "retrieveSubBlocks", "$sub"]
+        ],
+        [
+          ["write", "pulling {0}", "$hash"],
+          ["pull_block", "$hash", "$sub"],
+          ["remove", 0]
+        ]
+      ],
+      ["p", "pull_block",
+        [
+          ["pull_block", "hash", "$hash"]
         ],
         [
           ["write", "pulling {0}", "$hash"],

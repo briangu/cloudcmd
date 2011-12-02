@@ -59,7 +59,7 @@ public class LocalBlockCache implements BlockCache
       }
     }
 
-    final Map<String, List<Adapter>> hashProviders = new HashMap<String, List<Adapter>>();
+    _hashProviders = new HashMap<String, List<Adapter>>();
 
     for (final Adapter adapter : ConfigStorageService.instance().getAdapters())
     {
@@ -69,12 +69,11 @@ public class LocalBlockCache implements BlockCache
 
       for (final String hash : adapterDescription)
       {
-        if (!hash.endsWith(".meta")) continue;
-        if (!hashProviders.containsKey(hash))
+        if (!_hashProviders.containsKey(hash))
         {
-          hashProviders.put(hash, new ArrayList<Adapter>());
+          _hashProviders.put(hash, new ArrayList<Adapter>());
         }
-        hashProviders.get(hash).add(adapter);
+        _hashProviders.get(hash).add(adapter);
       }
     }
   }
