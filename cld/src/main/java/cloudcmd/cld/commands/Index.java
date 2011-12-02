@@ -21,7 +21,6 @@ import java.util.Map;
 @SubCommand(name = "index", description = "Index files")
 public class Index implements Command
 {
-
   @Arg(name = "path", optional = false)
   public String _path = null;
 

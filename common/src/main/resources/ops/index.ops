@@ -88,7 +88,7 @@
           ["async_task", "phase", "stop", "id", "$id", "name", "$name"]
         ],
         [
-          ["write", "finished task for file {0}", "$name"],
+          ["write", "finished task: {0} {1}", "$name", "$id"],
           ["remove", 0],
           ["remove", 1]
         ]

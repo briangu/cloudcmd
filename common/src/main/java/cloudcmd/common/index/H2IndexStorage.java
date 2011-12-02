@@ -273,8 +273,8 @@ public class H2IndexStorage implements IndexStorage
 
       if (filter.has("tags"))
       {
-        sql = "SELECT HASH,TAGS,RAWMETA FROM FILE_INDEX WHERE HASH IN (SELECT HASH FROM FT_SEARCH(?, 0, 0))";
-        bind.addAll(Arrays.asList(filter.getString("tags")));
+        sql = "SELECT T.* FROM FT_SEARCH_DATA(?, 0, 0) FT, FILE_INDEX T WHERE FT.TABLE='FILE_INDEX' AND T.HASH = FT.KEYS[0]";
+        bind.add(filter.getString("tags"));
       }
       else
       {
