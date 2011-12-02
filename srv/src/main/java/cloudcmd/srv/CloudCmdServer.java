@@ -123,7 +123,6 @@ public class CloudCmdServer
     });
 
     OPS ops = OpsFactory.create(registry, ResourceUtil.loadOps("index.ops"));
-    ops.waitForWork(true);
 
     return ops;
   }
