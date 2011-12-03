@@ -90,7 +90,7 @@
         [
           ["add_meta", "$meta"]
         ]
-      ]
+      ],
       ["p", "task_finish",
         [
           ["async_task", "phase", "start", "id", "$id", "name", "$name"],

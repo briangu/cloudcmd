@@ -14,11 +14,18 @@ import java.util.*;
 
 public class JsonConfigStorage implements ConfigStorage
 {
+  private static final String CONFIG_FILE = "config.json";
+
   private String _configRoot;
   private JSONObject _config = null;
   private List<Adapter> _adapters;
   private static final Integer DEFAULT_TIER = 1;
   private boolean _isDebug = false;
+
+  private static String getConfigFile(String path)
+  {
+    return path + File.separator + CONFIG_FILE;
+  }
 
   private static JSONObject loadConfig(String configRoot)
   {
@@ -26,9 +33,9 @@ public class JsonConfigStorage implements ConfigStorage
 
     try
     {
-      config = ResourceUtil.loadJson("config.json");
+      config = ResourceUtil.loadJson(CONFIG_FILE);
 
-      File file = new File(configRoot + File.separatorChar + "config.json");
+      File file = new File(getConfigFile(configRoot));
       if (file.exists())
       {
         JSONObject overrides = FileUtil.readJson(file);
@@ -176,5 +183,15 @@ public class JsonConfigStorage implements ConfigStorage
   public boolean isDebugEnabled()
   {
     return _isDebug;
+  }
+
+  @Override
+  public void createDefaultConfig(String path) throws IOException {
+    String configFile = getConfigFile(path);
+    try {
+      FileUtil.writeFile(configFile, _config.toString(2));
+    } catch (JSONException e) {
+      e.printStackTrace();
+    }
   }
 }

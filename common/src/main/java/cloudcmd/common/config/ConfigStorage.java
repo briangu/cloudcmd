@@ -2,6 +2,7 @@ package cloudcmd.common.config;
 
 import cloudcmd.common.adapters.Adapter;
 
+import java.io.IOException;
 import java.util.List;
 
 public interface ConfigStorage
@@ -19,4 +20,6 @@ public interface ConfigStorage
   List<Adapter> getAdapters();
 
   boolean isDebugEnabled();
+
+  void createDefaultConfig(String path) throws IOException;
 }

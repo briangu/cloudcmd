@@ -49,21 +49,26 @@ public class FileUtil
     }
   }
 
-  public static void writeFile(String metaFile, JSONObject meta) throws IOException
+  public static void writeFile(String outfile, String object) throws IOException
+  {
+    writeFile(outfile, new ByteArrayInputStream(object.getBytes("UTF-8")));
+  }
+
+  public static void writeFile(String outfile, JSONObject object) throws IOException
   {
     ByteArrayInputStream bais;
 
     try
     {
-      bais = new ByteArrayInputStream(meta.toString().getBytes("UTF-8"));
+      bais = new ByteArrayInputStream(object.toString().getBytes("UTF-8"));
     }
     catch (UnsupportedEncodingException e)
     {
       e.printStackTrace();
-      bais = new ByteArrayInputStream(meta.toString().getBytes());
+      bais = new ByteArrayInputStream(object.toString().getBytes());
     }
 
-    writeFile(metaFile, bais);
+    writeFile(outfile, bais);
   }
 
   public static void writeFile(String dataFile, InputStream data) throws IOException

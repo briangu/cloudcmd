@@ -2,6 +2,7 @@ package cloudcmd.cld.commands;
 
 
 import cloudcmd.common.FileUtil;
+import cloudcmd.common.config.ConfigStorageService;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
 import jpbetz.cli.CommandError;
@@ -15,7 +16,12 @@ public class Init implements Command
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
-    new File(FileUtil.getCurrentWorkingDirectory() + File.separatorChar + ".cld").mkdir();
+    String path = FileUtil.getCurrentWorkingDirectory() + File.separatorChar + ".cld";
+    new File(path).mkdirs();
+
+    ConfigStorageService.instance().createDefaultConfig(path);
+
     System.err.println("Project successfully created.");
+    System.err.println("Edit config in: " + path);
   }
 }

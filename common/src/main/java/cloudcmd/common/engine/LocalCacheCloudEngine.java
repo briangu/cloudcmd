@@ -10,6 +10,7 @@ import ops.MemoryElement;
 import ops.OPS;
 import ops.OpsFactory;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -34,7 +35,19 @@ public class LocalCacheCloudEngine implements CloudEngine
     registry.put("push_block", new push_block());
     registry.put("push_tags", new push_tags());
 
-    _ops = OpsFactory.create(registry, ResourceUtil.loadOps("index.ops"));
+    JSONObject indexOps;
+
+    try
+    {
+      indexOps = ResourceUtil.loadOps("index.ops");
+    }
+    catch (JSONException e)
+    {
+      System.err.println("index.ops is not a valid JSON object.");
+      throw e;
+    }
+
+    _ops = OpsFactory.create(registry, indexOps);
   }
 
   @Override
