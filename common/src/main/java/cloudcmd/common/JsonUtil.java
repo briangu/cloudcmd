@@ -1,5 +1,6 @@
 package cloudcmd.common;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -32,6 +33,23 @@ public class JsonUtil
 
     return obj;
   }
+
+  public static JSONArray loadJsonArray(InputStream load) throws IOException, JSONException
+  {
+    try
+    {
+      DataInputStream bis = new DataInputStream(load);
+      BufferedReader br = new BufferedReader(new InputStreamReader(bis));
+      String rawJson = br.readLine();
+      JSONArray arr = new JSONArray(rawJson);
+      return arr;
+    }
+    finally
+    {
+      load.close();
+    }
+  }
+
 
   public static JSONObject loadJson(InputStream load) throws IOException, JSONException
   {

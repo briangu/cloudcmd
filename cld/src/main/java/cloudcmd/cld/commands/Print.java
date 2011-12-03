@@ -14,7 +14,6 @@ public class Print implements Command
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
-    JSONObject obj = JsonUtil.loadJson(System.in);
-    System.out.println(obj.toString(2));
+    System.out.println(JsonUtil.loadJsonArray(System.in).toString(2));
   }
 }

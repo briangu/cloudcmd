@@ -1,6 +1,7 @@
 package cloudcmd.common.engine;
 
 import cloudcmd.common.adapters.Adapter;
+import org.json.JSONArray;
 
 import java.io.File;
 import java.util.List;
@@ -25,4 +26,10 @@ public interface CloudEngine
 
   void reindex()
       throws Exception;
+
+  void fetch(JSONArray selections);
+
+  void push(int i, JSONArray selections);
+
+  void pull(int i, boolean retrieveBlocks, JSONArray selections);
 }

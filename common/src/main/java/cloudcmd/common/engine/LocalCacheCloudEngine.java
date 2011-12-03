@@ -233,4 +233,19 @@ public class LocalCacheCloudEngine implements CloudEngine
       }
     }
   }
+
+  @Override
+  public void fetch(JSONArray selections)
+  {
+  }
+
+  @Override
+  public void push(int i, JSONArray selections)
+  {
+  }
+
+  @Override
+  public void pull(int i, boolean retrieveBlocks, JSONArray selections)
+  {
+  }
 }

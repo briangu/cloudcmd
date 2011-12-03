@@ -1,11 +1,13 @@
 package cloudcmd.cld.commands;
 
 
+import cloudcmd.common.JsonUtil;
 import cloudcmd.common.engine.CloudEngineService;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
 import jpbetz.cli.Opt;
 import jpbetz.cli.SubCommand;
+import org.json.JSONArray;
 
 @SubCommand(name = "pull", description = "Pull the meta data from storage endpoints.")
 public class Pull implements Command
@@ -16,9 +18,20 @@ public class Pull implements Command
   @Opt(opt = "b", longOpt = "blocks", description = "retrieve blocks as well as meta data", required = false)
   boolean _retrieveBlocks = true;
 
+  @Opt(opt = "a", longOpt = "all", description = "push all", required = false)
+  Boolean _pullAll = true;
+
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
-    CloudEngineService.instance().pull(_maxTier.intValue(), _retrieveBlocks);
+    if (_pullAll)
+    {
+      CloudEngineService.instance().pull(_maxTier.intValue(), _retrieveBlocks);
+    }
+    else
+    {
+      JSONArray selections = JsonUtil.loadJsonArray(System.in);
+      CloudEngineService.instance().pull(_maxTier.intValue(), _retrieveBlocks, selections);
+    }
   }
 }
