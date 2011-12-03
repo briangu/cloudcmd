@@ -18,12 +18,24 @@ public class Find implements Command
   @Opt(opt = "t", longOpt = "tag", description = "tags to find by", required = false)
   String _tags;
 
+  @Opt(opt = "p", longOpt = "path", description = "path to find by", required = false)
+  String _path;
+
+  @Opt(opt = "f", longOpt = "name", description = "filename to find by", required = false)
+  String _filename;
+
+  @Opt(opt = "e", longOpt = "ext", description = "file extension to find by", required = false)
+  String _fileext;
+
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
     JSONObject filter = new JSONObject();
 
     if (_tags != null) filter.put("tags", _tags.replace(",", " "));
+    if (_path != null) filter.put("path", _tags.replace(",", " "));
+    if (_filename != null) filter.put("filename", _tags.replace(",", " "));
+    if (_fileext != null) filter.put("fileext", _tags.replace(",", " "));
 
     JSONArray result = IndexStorageService.instance().find(filter);
 
