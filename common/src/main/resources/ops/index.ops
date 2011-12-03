@@ -88,7 +88,7 @@
           ["async_task", "phase", "stop", "id", "$id", "name", "$name"]
         ],
         [
-          ["write", "finished task: {0} {1}", "$name", "$id"],
+          ["debug", "finished task: {0} {1}", "$name", "$id"],
           ["remove", 0],
           ["remove", 1]
         ]
@@ -98,7 +98,7 @@
           ["async_task", "phase", "start", "id", "$id", "name", "$name"]
         ],
         [
-          ["write", "waiting for file {0}", "$name"],
+          ["debug", "waiting for file {0}", "$name"],
           ["sleep", 100]
         ]
       ]

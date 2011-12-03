@@ -18,4 +18,5 @@ public interface ConfigStorage
 
   List<Adapter> getAdapters();
 
+  boolean isDebugEnabled();
 }

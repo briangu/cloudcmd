@@ -18,6 +18,7 @@ public class JsonConfigStorage implements ConfigStorage
   private JSONObject _config = null;
   private List<Adapter> _adapters;
   private static final Integer DEFAULT_TIER = 1;
+  private boolean _isDebug = false;
 
   private static JSONObject loadConfig(String configRoot)
   {
@@ -96,6 +97,13 @@ public class JsonConfigStorage implements ConfigStorage
 
     return adapters;
   }
+  private static boolean loadDebug(JSONObject config) throws JSONException
+  {
+    if (!config.has("debug")) return false;
+
+    return config.getBoolean("debug");
+  }
+
 
   @Override
   public void init(String configRoot) throws Exception
@@ -103,6 +111,7 @@ public class JsonConfigStorage implements ConfigStorage
     _configRoot = configRoot;
     _config = loadConfig(configRoot);
     _adapters = loadAdapters(_config);
+    _isDebug = loadDebug(_config);
   }
 
   @Override
@@ -161,5 +170,11 @@ public class JsonConfigStorage implements ConfigStorage
   public List<Adapter> getAdapters()
   {
     return Collections.unmodifiableList(_adapters);
+  }
+
+  @Override
+  public boolean isDebugEnabled()
+  {
+    return _isDebug;
   }
 }

@@ -25,6 +25,7 @@ public class LocalCacheCloudEngine implements CloudEngine
   {
     Map<String, Command> registry = OpsFactory.getDefaultRegistry();
 
+    registry.put("debug", new debug());
     registry.put("process", new process_raw());
     registry.put("index_default", new index_default());
     registry.put("sleep", new sleep());
