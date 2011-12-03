@@ -35,10 +35,17 @@ public class JsonUtil
 
   public static JSONObject loadJson(InputStream load) throws IOException, JSONException
   {
-    DataInputStream bis = new DataInputStream(load);
-    BufferedReader br = new BufferedReader(new InputStreamReader(bis));
-    String rawJson = br.readLine();
-    JSONObject obj = new JSONObject(rawJson);
-    return obj;
+    try
+    {
+      DataInputStream bis = new DataInputStream(load);
+      BufferedReader br = new BufferedReader(new InputStreamReader(bis));
+      String rawJson = br.readLine();
+      JSONObject obj = new JSONObject(rawJson);
+      return obj;
+    }
+    finally
+    {
+      load.close();
+    }
   }
 }

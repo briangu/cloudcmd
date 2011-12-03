@@ -27,6 +27,6 @@ public class Find implements Command
 
     JSONArray result = IndexStorageService.instance().find(filter);
 
-    System.out.println(result.toString(2));
+    System.out.println(result.toString());
   }
 }
