@@ -1,0 +1,12 @@
+fetch command
+path like handler in find (use sql like style or parts style)
+hash check on block fetch
+adapter status
+  adapter full status 
+  online/offline
+tag update flow
+
+s3 adapter
+
+srv presentation layer
+srv based adapter
