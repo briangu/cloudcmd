@@ -25,6 +25,7 @@ public class LocalCacheCloudEngine implements CloudEngine
   {
     Map<String, Command> registry = OpsFactory.getDefaultRegistry();
 
+    registry.put("add_meta", new add_meta());
     registry.put("debug", new debug());
     registry.put("process", new process_raw());
     registry.put("index_default", new index_default());
@@ -211,7 +212,7 @@ public class LocalCacheCloudEngine implements CloudEngine
 
         _ops.make(new MemoryElement("msg", "body", String.format("reindexing: %s %s", hash, fmd.Meta.getString("filename"))));
 
-        IndexStorageService.instance().add(fmd);
+        _ops.make(new MemoryElement("add_meta", "meta", fmd));
       }
       catch (Exception e)
       {

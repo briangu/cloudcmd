@@ -80,13 +80,13 @@ public class H2IndexStorage implements IndexStorage
       st = db.createStatement();
 
       st.execute("DROP TABLE if exists FILE_INDEX;");
-      st.execute("CREATE TABLE FILE_INDEX ( HASH VARCHAR PRIMARY KEY, PATH VARCHAR, FILENAME VARCHAR, FILEEXT VARCHAR, FILESIZE INTEGER, FILEDATE BIGINT, TAGS VARCHAR, RAWMETA VARCHAR );");
+      st.execute("CREATE TABLE FILE_INDEX ( HASH VARCHAR PRIMARY KEY, PATH VARCHAR, FILENAME VARCHAR, FILEEXT VARCHAR, FILESIZE BIGINT, FILEDATE BIGINT, TAGS VARCHAR, RAWMETA VARCHAR );");
 
       db.commit();
 
       FullText.init(db);
       FullText.setWhitespaceChars(db, " ,:-._" + File.separator);
-      FullText.createIndex(db, "PUBLIC", "FILE_INDEX", "TAGS");
+      FullText.createIndex(db, "PUBLIC", "FILE_INDEX", null);
     }
     catch (SQLException e)
     {
