@@ -28,7 +28,7 @@ public class MetaUtil
       meta.Meta = JsonUtil.createJson(
         "path", file.getCanonicalPath(),
         "filename", fileName,
-        "fileext", extIndex >= 0 ? fileName.substring(extIndex) : null,
+        "fileext", extIndex >= 0 ? fileName.substring(extIndex+1) : null,
         "filesize", file.length(),
         "filedate", file.lastModified(),
         "blocks", meta.BlockHashes

@@ -171,7 +171,7 @@ public class H2IndexStorage implements IndexStorage
       fields.add("HASH");
       fields.add("PATH");
       fields.add("FILENAME");
-      if (meta.Meta.has("fileext"))fields.add("FILEEXT");
+      if (meta.Meta.has("fileext")) fields.add("FILEEXT");
       fields.add("FILESIZE");
       fields.add("FILEDATE");
       fields.add("TAGS");
