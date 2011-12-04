@@ -14,6 +14,7 @@
       ["literalize", "pull_block", "hash", "retrieveSubBlocks"],
       ["literalize", "recover_block", "hash"],
       ["literalize", "add_meta", "meta"],
+      ["literalize", "fetch", "meta"],
       ["p", "scan",
         [
           ["rawFile", "name", "$name", "file", "$file", "tags", "$tags"]
@@ -83,12 +84,21 @@
           ["remove", 0]
         ]
       ],
-      ["p", "add_meta",
+      ["p", "add_meta_to_index",
       	[
           ["add_meta", "meta", "$meta"]
         ],
         [
           ["add_meta", "$meta"]
+        ]
+      ],
+      ["p", "fetch_file_file_from_cloud",
+      	[
+          ["fetch", "meta", "$meta"]
+        ],
+        [
+          ["fetch", "$meta"],
+          ["remove", 0]
         ]
       ],
       ["p", "task_finish",

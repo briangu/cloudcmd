@@ -11,7 +11,7 @@ import java.util.*;
 
 public class LocalBlockCache implements BlockCache
 {
-  private Adapter _adapter = null;
+  private Adapter _cacheAdapter = null;
   private Map<String, List<Adapter>> _hashProviders = null;
 
   public void init()
@@ -20,8 +20,8 @@ public class LocalBlockCache implements BlockCache
     try
     {
       obj.put("rootPath", ConfigStorageService.instance().getConfigRoot() + File.separator + "cache");
-      _adapter = new FileAdapter();
-      _adapter.init(0, FileAdapter.class.getName(), new HashSet<String>(), obj);
+      _cacheAdapter = new FileAdapter();
+      _cacheAdapter.init(0, FileAdapter.class.getName(), new HashSet<String>(), obj);
     }
     catch (JSONException e)
     {
@@ -41,13 +41,16 @@ public class LocalBlockCache implements BlockCache
   @Override
   public Adapter getBlockCache()
   {
-    return _adapter;
+    return _cacheAdapter;
   }
 
   @Override
   public void refreshCache(int maxTier) throws Exception
   {
-    for (final Adapter adapter : ConfigStorageService.instance().getAdapters())
+    List<Adapter> adapters = new ArrayList<Adapter>(ConfigStorageService.instance().getAdapters());
+    adapters.add(_cacheAdapter);
+
+    for (final Adapter adapter : adapters)
     {
       try
       {
@@ -61,7 +64,7 @@ public class LocalBlockCache implements BlockCache
 
     _hashProviders = new HashMap<String, List<Adapter>>();
 
-    for (final Adapter adapter : ConfigStorageService.instance().getAdapters())
+    for (final Adapter adapter : adapters)
     {
       if (adapter.Tier > maxTier) continue;
 

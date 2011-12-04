@@ -20,7 +20,7 @@ public class JsonUtil
     }
   }
 
-  public static JSONObject createJson(Object... args) throws JSONException
+  public static JSONObject createJsonObject(Object... args) throws JSONException
   {
     if (args.length % 2 != 0) throw new IllegalArgumentException("missing last value: args require key/value pairs");
 

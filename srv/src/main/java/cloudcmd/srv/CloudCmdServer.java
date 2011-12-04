@@ -109,7 +109,7 @@ public class CloudCmdServer
     // add log follower in client
     // add reindex command cli/srv
     // add search in cli/srv
-    // add fetch cmd in cli/srv
+    // add basic_fetch cmd in cli/srv
     //
 
     registry.put("index", new ops.Command()

@@ -6,9 +6,9 @@ import cloudcmd.common.config.ConfigStorageService;
 import cloudcmd.common.engine.commands.*;
 import cloudcmd.common.index.IndexStorageService;
 import ops.Command;
-import ops.MemoryElement;
 import ops.OPS;
 import ops.OpsFactory;
+import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -18,6 +18,7 @@ import java.util.*;
 
 public class LocalCacheCloudEngine implements CloudEngine
 {
+  Logger log = Logger.getLogger(LocalCacheCloudEngine.class);
   OPS _ops;
   Thread _opsThread = null;
 
@@ -26,6 +27,7 @@ public class LocalCacheCloudEngine implements CloudEngine
   {
     Map<String, Command> registry = OpsFactory.getDefaultRegistry();
 
+    registry.put("fetch", new basic_fetch());
     registry.put("add_meta", new add_meta());
     registry.put("debug", new debug());
     registry.put("process", new process_raw());
@@ -43,7 +45,7 @@ public class LocalCacheCloudEngine implements CloudEngine
     }
     catch (JSONException e)
     {
-      System.err.println("index.ops is not a valid JSON object.");
+      log.error("index.ops is not a valid JSON object.");
       throw e;
     }
 
@@ -68,7 +70,7 @@ public class LocalCacheCloudEngine implements CloudEngine
       }
       catch (InterruptedException e)
       {
-        e.printStackTrace();
+        log.error(e);
       }
     }
 
@@ -78,7 +80,7 @@ public class LocalCacheCloudEngine implements CloudEngine
   @Override
   public void add(File file, Set<String> tags)
   {
-    _ops.make(new MemoryElement("rawFile", "name", file.getName(), "file", file, "tags", tags));
+    _ops.make("rawFile", "name", file.getName(), "file", file, "tags", tags);
   }
 
   @Override
@@ -125,11 +127,11 @@ public class LocalCacheCloudEngine implements CloudEngine
 
             if (!adapter.acceptsTags(tags)) continue;
 
-            _ops.make(new MemoryElement("push_tags", "adapter", adapter, "hash", hash, "tags", new JSONArray(tags)));
+            _ops.make("push_tags", "adapter", adapter, "hash", hash, "tags", new JSONArray(tags));
 
             if (!adapterDescription.contains(hash))
             {
-              _ops.make(new MemoryElement("push_block", "dest", adapter, "src", localCache, "hash", hash));
+              _ops.make("push_block", "dest", adapter, "src", localCache, "hash", hash);
             }
 
             JSONArray blocks = entry.getJSONArray("blocks");
@@ -143,18 +145,18 @@ public class LocalCacheCloudEngine implements CloudEngine
                 // TODO: message (it's possible that we legitimately don't have the block if we only have the meta data)
                 continue;
               }
-              _ops.make(new MemoryElement("push_block", "dest", adapter, "src", localCache, "hash", blockHash));
+              _ops.make("push_block", "dest", adapter, "src", localCache, "hash", blockHash);
             }
           }
           catch (Exception e)
           {
-            e.printStackTrace();
+            log.error("adapter = " + adapter.Config.getString("name"), e);
           }
         }
       }
       catch (Exception e)
       {
-        e.printStackTrace();
+        log.error(e);
       }
     }
   }
@@ -175,7 +177,7 @@ public class LocalCacheCloudEngine implements CloudEngine
 
       if (!localCache.contains(hash))
       {
-        _ops.make(new MemoryElement("pull_block", "hash", hash, "retrieveSubBlocks", retrieveBlocks));
+        _ops.make("pull_block", "hash", hash, "retrieveSubBlocks", retrieveBlocks);
         continue;
       }
 
@@ -190,7 +192,7 @@ public class LocalCacheCloudEngine implements CloudEngine
         {
           String blockHash = blocks.getString(i);
           if (localCache.contains(blockHash)) continue;
-          _ops.make(new MemoryElement("pull_block", "hash", blockHash));
+          _ops.make("pull_block", "hash", blockHash);
         }
       }
       catch (Exception e)
@@ -223,9 +225,7 @@ public class LocalCacheCloudEngine implements CloudEngine
         fmd.BlockHashes = fmd.Meta.getJSONArray("blocks");
         fmd.Tags = localCache.loadTags(hash);
 
-//        _ops.make(new MemoryElement("msg", "body", String.format("reindexing: %s %s", hash, fmd.Meta.getString("filename"))));
-
-        System.err.println(String.format("reindexing: %s %s", hash, fmd.Meta.getString("filename")));
+        log.info(String.format("reindexing: %s %s", hash, fmd.Meta.getString("filename")));
 
         fmds.add(fmd);
       }
@@ -239,9 +239,22 @@ public class LocalCacheCloudEngine implements CloudEngine
   }
 
   @Override
-  public void fetch(String outdir, JSONArray selections)
+  public void fetch(JSONArray selections) throws Exception
   {
-    // TODO: create a bunch of ops jobs to export the files locally
+    // TODO: temporary until we cache our has provider info persistently
+    BlockCacheService.instance().refreshCache(Integer.MAX_VALUE);
+
+    for (int i = 0; i < selections.length(); i++)
+    {
+      try
+      {
+        _ops.make("fetch", "meta", MetaUtil.createMeta(selections.getJSONObject(i)));
+      }
+      catch (JSONException e)
+      {
+        log.error("index = " + i, e);
+      }
+    }
   }
 
   @Override

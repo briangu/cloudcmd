@@ -2,6 +2,7 @@ package cloudcmd.common;
 
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -25,10 +26,10 @@ public class MetaUtil
 
       meta.Tags = tags;
       meta.BlockHashes = getBlockHashes(file);
-      meta.Meta = JsonUtil.createJson(
+      meta.Meta = JsonUtil.createJsonObject(
         "path", file.getCanonicalPath(),
         "filename", fileName,
-        "fileext", extIndex >= 0 ? fileName.substring(extIndex+1) : null,
+        "fileext", extIndex >= 0 ? fileName.substring(extIndex + 1) : null,
         "filesize", file.length(),
         "filedate", file.lastModified(),
         "blocks", meta.BlockHashes
@@ -64,14 +65,27 @@ public class MetaUtil
     return blockHashes;
   }
 
-
-  private static long getFileSize(File file)
-  {
-    return file.length();
-  }
-
   public static Set<String> createRowTagSet(String rowTags)
   {
     return new HashSet<String>(Arrays.asList(rowTags.split(" ")));
+  }
+
+  public static FileMetaData createMeta(JSONObject jsonObject) throws JSONException
+  {
+    FileMetaData meta = new FileMetaData();
+
+    meta.Tags = createRowTagSet(jsonObject.getString("tags"));
+    meta.BlockHashes = jsonObject.getJSONArray("blocks");
+    meta.Meta = JsonUtil.createJsonObject(
+      "path", jsonObject.getString("path"),
+      "filename", jsonObject.getString("filename"),
+      "fileext", jsonObject.getString("fileext"),
+      "filesize", jsonObject.getLong("filesize"),
+      "filedate", jsonObject.getLong("filedate"),
+      "blocks", meta.BlockHashes
+    );
+    meta.MetaHash = jsonObject.getString("hash");
+
+    return meta;
   }
 }
