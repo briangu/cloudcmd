@@ -3,7 +3,7 @@ cloudcmd
 
 Cloudcmd is a distributed cloud storage engine that enables file indexing, de-duplication, tagging, and replication to arbitrary storage endpoints implemented as adapters.
 
-The cloudcmd engine has a simple command line interface (cli) called cld.  Most cld commands accept JSON emitted by other cld commands (e.g. find) to allow easy piping and usage of archive file sets.
+The cloudcmd engine has a simple command line interface (cli) called cld that is heavily influenced by git.  Most cld commands accept JSON emitted by other cld commands (e.g. find) to allow easy piping and usage of archive file sets.
 
 Example
 -------
