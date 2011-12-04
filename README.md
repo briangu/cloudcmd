@@ -3,7 +3,7 @@ cloudcmd
 
 Cloudcmd is a distributed cloud storage engine that enables file indexing, de-duplication, tagging, and replication to arbitrary storage endpoints implemented as adapters.
 
-The cloudcmd engine has a simple command line interface (cli) called cld.  Most cld commands accept JSON emitted by other comands to allow easy piping and usage of archive file sets.
+The cloudcmd engine has a simple command line interface (cli) called cld.  Most cld commands accept JSON emitted by other cld commands (e.g. find) to allow easy piping and usage of archive file sets.
 
 Example
 -------
@@ -17,14 +17,21 @@ Setup cloudcmd with a local file directory adapter and an s3 adapter:
 
 The following shows how a user might index a set of pictures tagged for s3 and other useful attributes.
 
-    $ cd ~/Pictures/hawaii_2009
-    $ cld index . s3 image vacation hawaii 2009
+    $ cld index ~/Pictures/hawaii_2009 s3 image vacation hawaii 2009
 
 Send the files to all the adapters
 
     $ cld push
 
+Send the files to all the adapters at or below tier 2
+
+    $ cld push -t 2
+
 See what's in the cloud storage
+
+    $ cld find | cld print
+
+See which files are tagged with hawaii
 
     $ cld find hawaii | cld print
 
@@ -45,7 +52,7 @@ Fetch all the hawaii files (dropping the path info with -f)
     $ cld find hawaii | cld get -f
 
 
-Try it out
+Build it
 -----------
 
 At this point cloudcmd is under active development, so setup can be a little tricky but very doable.
