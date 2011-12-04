@@ -309,17 +309,17 @@ public class H2IndexStorage implements IndexStorage
 
         while (iter.hasNext())
         {
-          String key = iter.next().toUpperCase();
+          String key = iter.next();
           Object obj = filter.get(key);
           if (obj instanceof String[] || obj instanceof Long[])
           {
             Collection<Object> foo = Arrays.asList(obj);
-            list.add(String.format("%s In (%s)", key, StringUtil.joinRepeat(foo.size(), "?", ",")));
+            list.add(String.format("%s In (%s)", key.toUpperCase(), StringUtil.joinRepeat(foo.size(), "?", ",")));
             bind.addAll(foo);
           }
           else
           {
-            list.add(String.format("%s IN ?", key));
+            list.add(String.format("%s IN (?)", key));
             bind.add(obj);
           }
         }

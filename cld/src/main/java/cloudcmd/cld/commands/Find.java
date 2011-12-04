@@ -33,9 +33,9 @@ public class Find implements Command
     JSONObject filter = new JSONObject();
 
     if (_tags != null) filter.put("tags", _tags.replace(",", " "));
-    if (_path != null) filter.put("path", _tags.replace(",", " "));
-    if (_filename != null) filter.put("filename", _tags.replace(",", " "));
-    if (_fileext != null) filter.put("fileext", _tags.replace(",", " "));
+    if (_path != null) filter.put("path", _path);
+    if (_filename != null) filter.put("filename", _filename);
+    if (_fileext != null) filter.put("fileext", _fileext);
 
     JSONArray result = IndexStorageService.instance().find(filter);
 
