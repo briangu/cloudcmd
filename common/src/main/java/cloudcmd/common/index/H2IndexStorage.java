@@ -368,47 +368,40 @@ public class H2IndexStorage implements IndexStorage
     return results;
   }
 
-  private ResultSet queryByHash(Connection db, List<String> hash) throws SQLException
-  {
-    PreparedStatement statement = null;
-
-    try
-    {
-      String sql = String.format("SELECT HASH,TAGS,RAWMETA FROM FILE_INDEX WHERE HASH IN (%s);", StringUtil.joinRepeat(hash.size(), "?", ","));
-
-      statement = db.prepareStatement(sql);
-
-      for (int i = 0, paramIdx = 1; i < hash.size(); i++, paramIdx++)
-      {
-        bind(statement, paramIdx, hash.get(i));
-      }
-
-      return statement.executeQuery();
-    }
-    finally
-    {
-      SqlUtil.SafeClose(statement);
-    }
-  }
-
   @Override
   public void addTags(JSONArray array, Set<String> tags)
   {
     Connection db = null;
+    PreparedStatement statement = null;
+
     try
     {
       List<String> hashes = new ArrayList<String>();
 
       for (int i = 0; i < array.length(); i++)
       {
-        hashes.add(array.getJSONObject(i).getString("HASH"));
+        hashes.add(array.getJSONObject(i).getString("hash"));
       }
 
       db = getDbConnection();
 
       db.setAutoCommit(false);
 
-      ResultSet rs = queryByHash(db, hashes);
+      String sql = String.format("SELECT HASH,TAGS,RAWMETA FROM FILE_INDEX WHERE HASH IN (%s);", StringUtil.joinRepeat(hashes.size(), "?", ","));
+
+      statement =
+        db.prepareStatement(
+          sql,
+          ResultSet.TYPE_SCROLL_SENSITIVE,
+          ResultSet.CONCUR_UPDATABLE,
+          ResultSet.HOLD_CURSORS_OVER_COMMIT);
+
+      for (int i = 0, paramIdx = 1; i < hashes.size(); i++, paramIdx++)
+      {
+        bind(statement, paramIdx, hashes.get(i));
+      }
+
+      ResultSet rs = statement.executeQuery();
 
       while (rs.next())
       {
@@ -431,6 +424,7 @@ public class H2IndexStorage implements IndexStorage
     }
     finally
     {
+      SqlUtil.SafeClose(statement);
       SqlUtil.SafeClose(db);
     }
   }
@@ -439,20 +433,35 @@ public class H2IndexStorage implements IndexStorage
   public void removeTags(JSONArray array, Set<String> tags)
   {
     Connection db = null;
+    PreparedStatement statement = null;
     try
     {
       List<String> hashes = new ArrayList<String>();
 
       for (int i = 0; i < array.length(); i++)
       {
-        hashes.add(array.getJSONObject(i).getString("HASH"));
+        hashes.add(array.getJSONObject(i).getString("hash"));
       }
 
       db = getDbConnection();
 
       db.setAutoCommit(false);
 
-      ResultSet rs = queryByHash(db, hashes);
+      String sql = String.format("SELECT HASH,TAGS,RAWMETA FROM FILE_INDEX WHERE HASH IN (%s);", StringUtil.joinRepeat(hashes.size(), "?", ","));
+
+      statement =
+        db.prepareStatement(
+          sql,
+          ResultSet.TYPE_SCROLL_SENSITIVE,
+          ResultSet.CONCUR_UPDATABLE,
+          ResultSet.HOLD_CURSORS_OVER_COMMIT);
+
+      for (int i = 0, paramIdx = 1; i < hashes.size(); i++, paramIdx++)
+      {
+        bind(statement, paramIdx, hashes.get(i));
+      }
+
+      ResultSet rs = statement.executeQuery();
 
       while (rs.next())
       {
@@ -475,6 +484,7 @@ public class H2IndexStorage implements IndexStorage
     }
     finally
     {
+      SqlUtil.SafeClose(statement);
       SqlUtil.SafeClose(db);
     }
   }
