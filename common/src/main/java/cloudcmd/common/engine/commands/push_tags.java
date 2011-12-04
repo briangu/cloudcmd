@@ -1,12 +1,10 @@
 package cloudcmd.common.engine.commands;
 
 
+import cloudcmd.common.MetaUtil;
 import cloudcmd.common.adapters.Adapter;
-import java.io.ByteArrayInputStream;
 import ops.AsyncCommand;
-import ops.Command;
 import ops.CommandContext;
-import ops.MemoryElement;
 import org.json.JSONArray;
 
 
@@ -22,7 +20,7 @@ public class push_tags implements AsyncCommand
 
     try
     {
-      adapter.storeTags(new ByteArrayInputStream(tags.toString().getBytes()), hash);
+      adapter.storeTags(hash, MetaUtil.createTagSet(tags));
     }
     catch (Exception e)
     {

@@ -9,6 +9,8 @@ public interface BlockCache
 {
   Map<String, List<Adapter>> getHashProviders();
 
+  void loadCache(int maxTier) throws Exception;
+
   void refreshCache(int maxTier) throws Exception;
 
   void init() throws Exception;

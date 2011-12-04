@@ -286,7 +286,7 @@ public class H2IndexStorage implements IndexStorage
     JSONArray results = new JSONArray();
 
     Connection db = null;
-    PreparedStatement statement = null;
+    PreparedStatement statement;
 
     try
     {
@@ -413,7 +413,7 @@ public class H2IndexStorage implements IndexStorage
       while (rs.next())
       {
         String rowTags = rs.getString("TAGS");
-        Set<String> rowTagSet = MetaUtil.createRowTagSet(rowTags);
+        Set<String> rowTagSet = MetaUtil.createTagSet(rowTags);
         rowTagSet.addAll(tags);
         rs.updateString("TAGS", StringUtil.join(rowTagSet, " "));
         rs.updateRow();
@@ -473,7 +473,7 @@ public class H2IndexStorage implements IndexStorage
       while (rs.next())
       {
         String rowTags = rs.getString("TAGS");
-        Set<String> rowTagSet = MetaUtil.createRowTagSet(rowTags);
+        Set<String> rowTagSet = MetaUtil.createTagSet(rowTags);
         rowTagSet.removeAll(tags);
         rs.updateString("TAGS", StringUtil.join(rowTagSet, " "));
         rs.updateRow();

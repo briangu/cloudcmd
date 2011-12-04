@@ -88,7 +88,7 @@ public class FileAdapter extends Adapter
   }
 
   @Override
-  public void storeTags(ByteArrayInputStream byteArrayInputStream, String hash)
+  public void storeTags(String hash, Set<String> tags)
   {
   }
 

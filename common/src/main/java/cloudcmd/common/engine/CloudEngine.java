@@ -27,9 +27,9 @@ public interface CloudEngine
   void reindex()
       throws Exception;
 
-  void fetch(JSONArray selections) throws Exception;
+  void fetch(int maxTier, JSONArray selections) throws Exception;
 
-  void push(int i, JSONArray selections);
+  void push(int maxTier, JSONArray selections);
 
-  void pull(int i, boolean retrieveBlocks, JSONArray selections);
+  void pull(int maxTier, boolean retrieveBlocks, JSONArray selections);
 }

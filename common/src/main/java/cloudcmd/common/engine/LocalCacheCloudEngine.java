@@ -87,7 +87,7 @@ public class LocalCacheCloudEngine implements CloudEngine
   public void push(int maxTier)
       throws Exception
   {
-    BlockCacheService.instance().refreshCache(maxTier);
+    BlockCacheService.instance().loadCache(maxTier);
 
     JSONArray allEntries = IndexStorageService.instance().find(new JSONObject());
 
@@ -123,7 +123,7 @@ public class LocalCacheCloudEngine implements CloudEngine
 
           try
           {
-            Set<String> tags = MetaUtil.createRowTagSet(entry.getString("tags"));
+            Set<String> tags = MetaUtil.createTagSet(entry.getString("tags"));
 
             if (!adapter.acceptsTags(tags)) continue;
 
@@ -165,7 +165,7 @@ public class LocalCacheCloudEngine implements CloudEngine
   public void pull(int maxTier, boolean retrieveBlocks)
       throws Exception
   {
-    BlockCacheService.instance().refreshCache(maxTier);
+    BlockCacheService.instance().loadCache(maxTier);
 
     Adapter localCache = BlockCacheService.instance().getBlockCache();
 
@@ -239,10 +239,9 @@ public class LocalCacheCloudEngine implements CloudEngine
   }
 
   @Override
-  public void fetch(JSONArray selections) throws Exception
+  public void fetch(int maxTier, JSONArray selections) throws Exception
   {
-    // TODO: temporary until we cache our has provider info persistently
-    BlockCacheService.instance().refreshCache(Integer.MAX_VALUE);
+    BlockCacheService.instance().loadCache(maxTier);
 
     for (int i = 0; i < selections.length(); i++)
     {

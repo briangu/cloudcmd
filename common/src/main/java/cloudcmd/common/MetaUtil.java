@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class MetaUtil
@@ -65,16 +66,28 @@ public class MetaUtil
     return blockHashes;
   }
 
-  public static Set<String> createRowTagSet(String rowTags)
+  public static Set<String> createTagSet(String rowTags)
   {
     return new HashSet<String>(Arrays.asList(rowTags.split(" ")));
+  }
+
+  public static Set<String> createTagSet(JSONArray tags) throws JSONException
+  {
+    Set<String> set = new HashSet<String>();
+
+    for (int i = 0; i < set.size(); i++)
+    {
+      set.add(tags.getString(i));
+    }
+
+    return set;
   }
 
   public static FileMetaData createMeta(JSONObject jsonObject) throws JSONException
   {
     FileMetaData meta = new FileMetaData();
 
-    meta.Tags = createRowTagSet(jsonObject.getString("tags"));
+    meta.Tags = createTagSet(jsonObject.getString("tags"));
     meta.BlockHashes = jsonObject.getJSONArray("blocks");
     meta.Meta = JsonUtil.createJsonObject(
       "path", jsonObject.getString("path"),
@@ -87,5 +100,25 @@ public class MetaUtil
     meta.MetaHash = jsonObject.getString("hash");
 
     return meta;
+  }
+
+  public static Set<String> prepareTags(List<String> incomingTags)
+  {
+    Set<String> tags = new HashSet<String>();
+
+    for (String tag : incomingTags)
+    {
+      tag = tag.trim();
+      if (tag.length() == 0) continue;
+      String[] parts = tag.split(",");
+      for (String part : parts)
+      {
+        part = part.trim();
+        if (part.length() == 0) continue;
+        tags.add(part);
+      }
+    }
+
+    return tags;
   }
 }

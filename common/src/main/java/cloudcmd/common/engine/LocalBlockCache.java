@@ -22,6 +22,7 @@ public class LocalBlockCache implements BlockCache
       obj.put("rootPath", ConfigStorageService.instance().getConfigRoot() + File.separator + "cache");
       _cacheAdapter = new FileAdapter();
       _cacheAdapter.init(0, FileAdapter.class.getName(), new HashSet<String>(), obj);
+      loadCache(Integer.MAX_VALUE);
     }
     catch (JSONException e)
     {
@@ -61,6 +62,15 @@ public class LocalBlockCache implements BlockCache
         e.printStackTrace();
       }
     }
+
+    loadCache(maxTier);
+  }
+
+  @Override
+  public void loadCache(int maxTier) throws Exception
+  {
+    List<Adapter> adapters = new ArrayList<Adapter>(ConfigStorageService.instance().getAdapters());
+    adapters.add(_cacheAdapter);
 
     _hashProviders = new HashMap<String, List<Adapter>>();
 

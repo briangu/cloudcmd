@@ -2,10 +2,14 @@ package cloudcmd.cld.commands;
 
 
 import cloudcmd.common.JsonUtil;
+import cloudcmd.common.MetaUtil;
 import cloudcmd.common.index.IndexStorageService;
 import jpbetz.cli.*;
 import org.json.JSONArray;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -19,39 +23,31 @@ public class Tag implements Command
   @Opt(opt = "r", longOpt = "remove", description = "remove tags", required = false)
   public boolean _remove;
 
+  @Opt(opt = "i", longOpt = "input", description = "input file", required = false)
+  String _inputFilePath = null;
+
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
-    Set<String> preparedTags = prepareTags(_tags);
+    InputStream is = (_inputFilePath != null) ? new FileInputStream(new File(_inputFilePath)) : System.in;
 
-    JSONArray selections = JsonUtil.loadJsonArray(System.in);
-
-    if (_remove)
+    try
     {
-      IndexStorageService.instance().removeTags(selections, preparedTags);
-    } else
-    {
-      IndexStorageService.instance().addTags(selections, preparedTags);
-    }
-  }
+      Set<String> preparedTags = MetaUtil.prepareTags(_tags);
 
-  private Set<String> prepareTags(List<String> incomingTags)
-  {
-    Set<String> tags = new HashSet<String>();
+      JSONArray selections = JsonUtil.loadJsonArray(System.in);
 
-    for (String tag : incomingTags)
-    {
-      tag = tag.trim();
-      if (tag.length() == 0) continue;
-      String[] parts = tag.split(",");
-      for (String part : parts)
+      if (_remove)
       {
-        part = part.trim();
-        if (part.length() == 0) continue;
-        tags.add(part);
+        IndexStorageService.instance().removeTags(selections, preparedTags);
+      } else
+      {
+        IndexStorageService.instance().addTags(selections, preparedTags);
       }
     }
-
-    return tags;
+    finally
+    {
+      if (is != System.in) is.close();
+    }
   }
 }

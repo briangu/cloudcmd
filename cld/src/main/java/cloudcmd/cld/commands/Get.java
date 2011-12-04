@@ -34,6 +34,9 @@ public class Get implements Command
   @Opt(opt = "i", longOpt = "input", description = "input file", required = false)
   String _inputFilePath = null;
 
+  @Opt(opt = "t", longOpt = "tier", description = "max tier to get from", required = false)
+  Number _maxTier = Integer.MAX_VALUE;
+
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
@@ -52,7 +55,7 @@ public class Get implements Command
 
       if (!_dryrun)
       {
-        CloudEngineService.instance().fetch(selections);
+        CloudEngineService.instance().fetch(_maxTier.intValue(), selections);
       }
       else
       {
