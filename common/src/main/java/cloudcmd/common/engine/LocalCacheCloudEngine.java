@@ -212,11 +212,7 @@ public class LocalCacheCloudEngine implements CloudEngine
       
     for (String hash : localDescription)
     {
-      if (!hash.endsWith(".meta"))
-      {
-        // TODO: message (this shouldn't happen)
-        continue;
-      }
+      if (!hash.endsWith(".meta")) continue;
 
       try
       {
