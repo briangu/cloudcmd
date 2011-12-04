@@ -4,7 +4,7 @@ hash check on block fetch
 adapter status
   adapter full status 
   online/offline
-tag update flow
+tag update flow for adapters
 
 s3 adapter
 
