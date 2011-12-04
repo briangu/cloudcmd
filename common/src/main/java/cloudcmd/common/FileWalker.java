@@ -24,6 +24,8 @@ public class FileWalker
 
       File[] subFiles = curFile.listFiles();
 
+      if (subFiles == null || subFiles.length == 0) continue;
+
       for (File file : subFiles)
       {
         if (file.isDirectory())
