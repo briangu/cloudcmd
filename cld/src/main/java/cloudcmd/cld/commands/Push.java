@@ -13,7 +13,7 @@ public class Push implements Command
   Number _maxTier = Integer.MAX_VALUE;
 
   @Opt(opt = "a", longOpt = "all", description = "push all", required = false)
-  Boolean _pushAll = true;
+  boolean _pushAll = true;
 
   @Override
   public void exec(CommandContext commandLine) throws Exception

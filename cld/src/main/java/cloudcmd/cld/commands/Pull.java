@@ -19,7 +19,7 @@ public class Pull implements Command
   boolean _retrieveBlocks = true;
 
   @Opt(opt = "a", longOpt = "all", description = "push all", required = false)
-  Boolean _pullAll = true;
+  boolean _pullAll = true;
 
   @Override
   public void exec(CommandContext commandLine) throws Exception

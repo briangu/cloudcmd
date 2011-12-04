@@ -24,4 +24,6 @@ public interface IndexStorage
   void addTags(JSONArray array, Set<String> tags);
 
   void removeTags(JSONArray array, Set<String> tags);
+
+  void addAll(List<FileMetaData> fmds);
 }

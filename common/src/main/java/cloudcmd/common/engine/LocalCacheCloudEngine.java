@@ -206,6 +206,8 @@ public class LocalCacheCloudEngine implements CloudEngine
 
     final Set<String> localDescription = localCache.describe();
 
+    List<FileMetaData> fmds = new ArrayList<FileMetaData>();
+      
     for (String hash : localDescription)
     {
       if (!hash.endsWith(".meta"))
@@ -223,15 +225,19 @@ public class LocalCacheCloudEngine implements CloudEngine
         fmd.BlockHashes = fmd.Meta.getJSONArray("blocks");
         fmd.Tags = localCache.loadTags(hash);
 
-        _ops.make(new MemoryElement("msg", "body", String.format("reindexing: %s %s", hash, fmd.Meta.getString("filename"))));
+//        _ops.make(new MemoryElement("msg", "body", String.format("reindexing: %s %s", hash, fmd.Meta.getString("filename"))));
 
-        _ops.make(new MemoryElement("add_meta", "meta", fmd));
+        System.err.println(String.format("reindexing: %s %s", hash, fmd.Meta.getString("filename")));
+
+        fmds.add(fmd);
       }
       catch (Exception e)
       {
         e.printStackTrace();
       }
     }
+
+    IndexStorageService.instance().addAll(fmds);
   }
 
   @Override

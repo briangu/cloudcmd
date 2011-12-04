@@ -228,18 +228,41 @@ public class H2IndexStorage implements IndexStorage
   {
     if (meta == null) return;
 
-/*
-    _queue.add(meta);
-    if (_queue.size() > MAX_QUEUE_SIZE)
-    {
-      flush();
-    }
-*/
     Connection db = null;
     try
     {
       db = getDbConnection();
       addMeta(db, meta);
+    }
+    catch (JSONException e)
+    {
+      e.printStackTrace();
+    }
+    catch (SQLException e)
+    {
+      e.printStackTrace();
+    }
+    finally
+    {
+      SqlUtil.SafeClose(db);
+    }
+  }
+
+  @Override
+  public void addAll(List<FileMetaData> meta)
+  {
+    if (meta == null) return;
+
+    Connection db = null;
+    try
+    {
+      db = getDbConnection();
+      db.setAutoCommit(false);
+
+      for (FileMetaData fmd : meta)
+      {
+        addMeta(db, fmd);
+      }
     }
     catch (JSONException e)
     {
