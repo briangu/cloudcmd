@@ -79,7 +79,7 @@ public class MetaUtil
     meta.Meta = JsonUtil.createJsonObject(
       "path", jsonObject.getString("path"),
       "filename", jsonObject.getString("filename"),
-      "fileext", jsonObject.getString("fileext"),
+      "fileext", jsonObject.has("fileext") ? jsonObject.getString("fileext") : null,
       "filesize", jsonObject.getLong("filesize"),
       "filedate", jsonObject.getLong("filedate"),
       "blocks", meta.BlockHashes
