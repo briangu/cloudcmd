@@ -80,7 +80,7 @@ public class H2IndexStorage implements IndexStorage
       st = db.createStatement();
 
       st.execute("DROP TABLE if exists FILE_INDEX;");
-      st.execute("CREATE TABLE FILE_INDEX ( HASH VARCHAR PRIMARY KEY, PATH VARCHAR, FILENAME VARCHAR, FILEEXT VARCHAR, FILESIZE BIGINT, FILEDATE BIGINT, TAGS VARCHAR, RAWMETA VARCHAR );");
+      st.execute("CREATE TABLE FILE_INDEX ( HASH VARCHAR PRIMARY KEY, PATH TEXT, FILENAME VARCHAR, FILEEXT VARCHAR, FILESIZE BIGINT, FILEDATE BIGINT, TAGS VARCHAR, RAWMETA VARCHAR );");
 
       db.commit();
 
@@ -319,7 +319,14 @@ public class H2IndexStorage implements IndexStorage
           }
           else
           {
-            list.add(String.format("%s IN (?)", key));
+            if (obj.toString().contains("%"))
+            {
+              list.add(String.format("%s LIKE ?", key));
+            }
+            else
+            {
+              list.add(String.format("%s IN (?)", key));
+            }
             bind.add(obj);
           }
         }
