@@ -27,7 +27,7 @@ public interface CloudEngine
   void reindex()
       throws Exception;
 
-  void fetch(JSONArray selections);
+  void fetch(String outdir, JSONArray selections);
 
   void push(int i, JSONArray selections);
 

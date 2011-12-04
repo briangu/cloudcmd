@@ -239,8 +239,9 @@ public class LocalCacheCloudEngine implements CloudEngine
   }
 
   @Override
-  public void fetch(JSONArray selections)
+  public void fetch(String outdir, JSONArray selections)
   {
+    // TODO: create a bunch of ops jobs to export the files locally
   }
 
   @Override
