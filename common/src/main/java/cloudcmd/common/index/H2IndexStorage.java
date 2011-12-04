@@ -263,6 +263,8 @@ public class H2IndexStorage implements IndexStorage
       {
         addMeta(db, fmd);
       }
+
+      db.commit();
     }
     catch (JSONException e)
     {

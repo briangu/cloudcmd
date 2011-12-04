@@ -31,14 +31,15 @@ public class Main
       CloudEngineService.instance().init();
 
       CommandSet app = new CommandSet("cld");
-      app.addSubCommands(Listing.class);
-      app.addSubCommands(Index.class);
-      app.addSubCommands(Reindex.class);
       app.addSubCommands(Find.class);
       app.addSubCommands(Get.class);
+      app.addSubCommands(Index.class);
       app.addSubCommands(Init.class);
+      app.addSubCommands(Listing.class);
+      app.addSubCommands(Print.class);
       app.addSubCommands(Pull.class);
       app.addSubCommands(Push.class);
+      app.addSubCommands(Reindex.class);
       app.addSubCommands(Tag.class);
       app.invoke(args);
 
