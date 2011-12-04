@@ -8,6 +8,7 @@ import org.json.JSONArray;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @SubCommand(name = "tag", description = "Add or remove tags to/from archived files.")
 public class Tag implements Command
@@ -21,14 +22,36 @@ public class Tag implements Command
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
+    Set<String> preparedTags = prepareTags(_tags);
+
     JSONArray selections = JsonUtil.loadJsonArray(System.in);
 
     if (_remove)
     {
-      IndexStorageService.instance().removeTags(selections, new HashSet<String>(_tags));
+      IndexStorageService.instance().removeTags(selections, preparedTags);
     } else
     {
-      IndexStorageService.instance().addTags(selections, new HashSet<String>(_tags));
+      IndexStorageService.instance().addTags(selections, preparedTags);
     }
+  }
+
+  private Set<String> prepareTags(List<String> incomingTags)
+  {
+    Set<String> tags = new HashSet<String>();
+
+    for (String tag : incomingTags)
+    {
+      tag = tag.trim();
+      if (tag.length() == 0) continue;
+      String[] parts = tag.split(",");
+      for (String part : parts)
+      {
+        part = part.trim();
+        if (part.length() == 0) continue;
+        tags.add(part);
+      }
+    }
+
+    return tags;
   }
 }

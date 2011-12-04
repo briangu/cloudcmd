@@ -37,7 +37,6 @@ public class ResourceUtil
     URL resourceUrl = ResourceUtil.class.getResource(resource);
     try
     {
-      System.out.println(resourceUrl);
       return FileUtil.readFile(new File(resourceUrl.toURI()));
     }
     catch (URISyntaxException e)
