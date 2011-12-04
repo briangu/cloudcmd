@@ -171,6 +171,8 @@ public class LocalCacheCloudEngine implements CloudEngine
 
     for (String hash : hashProviders.keySet())
     {
+      if (!hash.endsWith(".meta")) continue;
+
       if (!localCache.contains(hash))
       {
         _ops.make(new MemoryElement("pull_block", "hash", hash, "retrieveSubBlocks", retrieveBlocks));

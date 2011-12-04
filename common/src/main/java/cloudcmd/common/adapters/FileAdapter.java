@@ -38,7 +38,7 @@ public class FileAdapter extends Adapter
   @Override
   public boolean contains(String hash) throws Exception
   {
-    return false;
+    return new File(getDataFileFromHash(hash)).exists();
   }
 
   @Override
