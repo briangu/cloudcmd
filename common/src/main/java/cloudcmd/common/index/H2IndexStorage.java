@@ -22,12 +22,15 @@ public class H2IndexStorage implements IndexStorage
 
   private static String _configRoot;
 
+  JdbcConnectionPool _cp;
+
+  // THIS IS NOT USED
+  ConcurrentLinkedQueue<FileMetaData> _queue = new ConcurrentLinkedQueue<FileMetaData>();
+
   private String getDbFile()
   {
     return String.format("%s%sindex", _configRoot, File.separator);
   }
-
-  JdbcConnectionPool _cp;
 
   private String createConnectionString()
   {
@@ -121,8 +124,6 @@ public class H2IndexStorage implements IndexStorage
       SqlUtil.SafeClose(db);
     }
   }
-
-  private ConcurrentLinkedQueue<FileMetaData> _queue = new ConcurrentLinkedQueue<FileMetaData>();
 
   @Override
   public void flush()
