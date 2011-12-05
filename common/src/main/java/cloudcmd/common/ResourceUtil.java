@@ -18,6 +18,7 @@ public class ResourceUtil
   public static JSONObject loadJson(String resource) throws IOException, JSONException
   {
     String rawJson = load(resource);
+    if (rawJson == null) return null;
     JSONObject obj = new JSONObject(rawJson);
     return obj;
   }
@@ -35,14 +36,18 @@ public class ResourceUtil
     }
 
     URL resourceUrl = ResourceUtil.class.getResource(resource);
-    try
+    if (resourceUrl != null)
     {
-      return FileUtil.readFile(new File(resourceUrl.toURI()));
+      try
+      {
+        return FileUtil.readFile(new File(resourceUrl.toURI()));
+      }
+      catch (URISyntaxException e)
+      {
+        e.printStackTrace();
+      }
     }
-    catch (URISyntaxException e)
-    {
-      e.printStackTrace();
-    }
+
     return null;
   }
 }

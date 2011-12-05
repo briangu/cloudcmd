@@ -34,6 +34,10 @@ public class JsonConfigStorage implements ConfigStorage
     try
     {
       config = ResourceUtil.loadJson(CONFIG_FILE);
+      if (config == null)
+      {
+        config = new JSONObject();
+      }
 
       File file = new File(getConfigFile(configRoot));
       if (file.exists())

@@ -1,6 +1,10 @@
 package cloudcmd.srv;
 
 
+import cloudcmd.common.MetaUtil;
+import cloudcmd.common.StringUtil;
+import cloudcmd.common.engine.CloudEngineService;
+import cloudcmd.common.index.IndexStorageService;
 import io.viper.core.server.Util;
 import io.viper.core.server.file.FileContentInfoProvider;
 import io.viper.core.server.file.StaticFileContentInfoProvider;
@@ -14,6 +18,7 @@ import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.handler.codec.http.HttpRequestDecoder;
 import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.HttpResponseEncoder;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -22,6 +27,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 
 
@@ -46,10 +52,7 @@ public class CloudCmdServer
           Executors.newCachedThreadPool()));
 
     ChannelPipelineFactory channelPipelineFactory =
-      new CloudCmdServerChannelPipelineFactory(
-        MAX_FILE_SIZE,
-        staticFileRoot,
-        localhostName);
+      new CloudCmdServerChannelPipelineFactory(MAX_FILE_SIZE, staticFileRoot, localhostName);
 
     cloudCmdServer._bootstrap.setPipelineFactory(channelPipelineFactory);
     cloudCmdServer._bootstrap.bind(new InetSocketAddress(port));
@@ -97,8 +100,6 @@ public class CloudCmdServer
             return Util.createJsonResponse("status", "false", "error", "missing rawFile argument");
           }
 
-          // TODO: post into cloudstorageengine
-
           return Util.createJsonResponse("status", "true", "rawFile", args.get("rawFile"));
         }
       }));
@@ -112,6 +113,36 @@ public class CloudCmdServer
           obj.put("status", "woot!");
           obj.put("var", args.get("var"));
           HttpResponse response = Util.createJsonResponse(obj);
+          return response;
+        }
+      }));
+
+      routes.add(new GetRoute("/cld/ls", new RouteHandler()
+      {
+        @Override
+        public HttpResponse exec(Map<String, String> args) throws Exception
+        {
+          JSONObject filter = new JSONObject();
+
+/*
+          if (_tags != null)
+          {
+            Set<String> tags = MetaUtil.prepareTags(_tags);
+            if (tags.size() > 0) filter.put("tags", StringUtil.join(tags, " "));
+          }
+
+          if (_path != null) filter.put("path", _path);
+          if (_filename != null) filter.put("filename", _filename);
+          if (_fileext != null) filter.put("fileext", _fileext);
+*/
+
+          JSONArray result = IndexStorageService.instance().find(filter);
+
+          JSONObject jsonResponse = new JSONObject();
+          jsonResponse.put("status", "true");
+          jsonResponse.put("array", result);
+
+          HttpResponse response = Util.createJsonResponse(jsonResponse);
           return response;
         }
       }));

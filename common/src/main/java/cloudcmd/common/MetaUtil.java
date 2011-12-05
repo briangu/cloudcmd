@@ -35,7 +35,7 @@ public class MetaUtil
         "filedate", file.lastModified(),
         "blocks", meta.BlockHashes
       );
-      meta.MetaHash = CryptoUtil.computeHashAsString(new ByteArrayInputStream(meta.Meta.toString().getBytes())) + ".meta";
+      meta.MetaHash = "meta." + CryptoUtil.computeHashAsString(new ByteArrayInputStream(meta.Meta.toString().getBytes()));
     }
     catch (JSONException e)
     {

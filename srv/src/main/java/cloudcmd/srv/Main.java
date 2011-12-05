@@ -1,8 +1,14 @@
 package cloudcmd.srv;
 
 
+import java.io.File;
 import java.io.IOException;
 
+import cloudcmd.common.FileUtil;
+import cloudcmd.common.config.ConfigStorageService;
+import cloudcmd.common.engine.BlockCacheService;
+import cloudcmd.common.engine.CloudEngineService;
+import cloudcmd.common.index.IndexStorageService;
 import io.viper.core.server.Util;
 import org.json.JSONException;
 
@@ -15,24 +21,25 @@ public class Main
 
     try
     {
-      String staticFileRoot = String.format("%s/src/main/resources/public", Util.getCurrentWorkingDirectory());
-      String fileStorageRoot = String.format("%s/src/main/resources/public/storage/", Util.getCurrentWorkingDirectory());
+      String configRoot = FileUtil.findConfigDir(FileUtil.getCurrentWorkingDirectory(), ".cld");
 
-      if (args.length == 3)
+      String staticFileRoot = String.format("%s/src/main/resources/public", Util.getCurrentWorkingDirectory());
+
+      if (args.length >= 1) configRoot = args[0];
+      if (args.length >= 2) staticFileRoot = args[1];
+
+      if (configRoot == null)
       {
-        staticFileRoot = args[0];
-        fileStorageRoot = args[1];
+        throw new RuntimeException("cloudcmd config root directory not found or specified.");
       }
 
-      cloudCmdServer = CloudCmdServer.create("localhost", 3000, staticFileRoot, fileStorageRoot);
-    }
-    catch (IOException e)
-    {
-      e.printStackTrace();
-    }
-    catch (JSONException e)
-    {
-      e.printStackTrace();
+      ConfigStorageService.instance().init(configRoot);
+      IndexStorageService.instance().init();
+      BlockCacheService.instance().init();
+      CloudEngineService.instance().init();
+
+      cloudCmdServer = CloudCmdServer.create("localhost", 3000, staticFileRoot);
+      System.in.read();
     }
     catch (Exception e)
     {
@@ -40,6 +47,11 @@ public class Main
     }
     finally
     {
+      CloudEngineService.instance().shutdown();
+      BlockCacheService.instance().shutdown();
+      IndexStorageService.instance().shutdown();
+      ConfigStorageService.instance().shutdown();
+
       if (cloudCmdServer != null)
       {
         cloudCmdServer.shutdown();

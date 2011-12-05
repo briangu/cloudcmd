@@ -54,7 +54,6 @@ public class S3Adapter extends Adapter
   @Override
   public void storeTags(String hash, Set<String> tags)
   {
-    //To change body of implemented methods use File | Settings | File Templates.
   }
 
   @Override

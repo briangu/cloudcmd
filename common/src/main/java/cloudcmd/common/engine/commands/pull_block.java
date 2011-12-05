@@ -48,7 +48,7 @@ public class pull_block implements AsyncCommand
 
     boolean success;
 
-    if (hash.endsWith(".meta"))
+    if (hash.startsWith(".meta"))
     {
       Boolean retrieveBlocks = (Boolean)args[1];
       success = pullMetaBlock(context, blockProviders, retrieveBlocks, hash);

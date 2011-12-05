@@ -109,7 +109,7 @@ public class LocalCacheCloudEngine implements CloudEngine
 
           String hash = entry.getString("hash");
 
-          if (!hash.endsWith(".meta"))
+          if (!hash.startsWith(".meta"))
           {
             // TODO: message (this shouldn't happen)
             continue;
@@ -125,7 +125,9 @@ public class LocalCacheCloudEngine implements CloudEngine
           {
             Set<String> tags = MetaUtil.createTagSet(entry.getString("tags"));
 
-            if (!adapter.acceptsTags(tags)) continue;
+            // TODO: accepts should take the file size as well
+
+            if (!adapter.accepts(tags)) continue;
 
             _ops.make("push_tags", "adapter", adapter, "hash", hash, "tags", new JSONArray(tags));
 
@@ -173,7 +175,7 @@ public class LocalCacheCloudEngine implements CloudEngine
 
     for (String hash : hashProviders.keySet())
     {
-      if (!hash.endsWith(".meta")) continue;
+      if (!hash.startsWith(".meta")) continue;
 
       if (!localCache.contains(hash))
       {
@@ -214,7 +216,7 @@ public class LocalCacheCloudEngine implements CloudEngine
       
     for (String hash : localDescription)
     {
-      if (!hash.endsWith(".meta")) continue;
+      if (!hash.startsWith(".meta")) continue;
 
       try
       {

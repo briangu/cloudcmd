@@ -27,7 +27,7 @@ public abstract class Adapter
     Config = config;
   }
 
-  public boolean acceptsTags(Set<String> tags)
+  public boolean accepts(Set<String> tags)
   {
     if (Tags == null || Tags.size() == 0) return true;
 
