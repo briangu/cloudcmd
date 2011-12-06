@@ -71,15 +71,15 @@ The init command creates a .cld directory that holds all the config.
 
 Add a file system adapter using URI notation (file system adapter pointing to /media/big_disk/cld_storage)
 
-    $ cld adapter --add file:////media/big_disk/cld_storage
+    $ cld adapter file:////media/big_disk/cld_storage
 
 Or add an adapter that only accepts files with image,vacation,movie tags and at tier 1
 
-    $ cld adapter --add file:////media/big_disk/cld_storage?tier=1&tags=movie,vacation,image
+    $ cld adapter file:////media/big_disk/cld_storage?tier=1&tags=movie,vacation,image
 
 TBD: s3 adapter support
 
-    $ cld adapter --add s3:///<aws id>:<aws secret>@<s3 bucket>
+    $ cld adapter s3:///<aws id>:<aws secret>@<s3 bucket>
 
 Afterwards, the config file can be like:
 
