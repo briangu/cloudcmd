@@ -31,6 +31,7 @@ public class Main
       CloudEngineService.instance().init();
 
       CommandSet app = new CommandSet("cld");
+      app.addSubCommands(Adapter.class);
       app.addSubCommands(Find.class);
       app.addSubCommands(Get.class);
       app.addSubCommands(Index.class);

@@ -1,9 +1,10 @@
 package cloudcmd.common.adapters;
 
-import org.json.JSONObject;
-
 import java.io.InputStream;
+import java.net.URI;
 import java.util.Set;
+
+//     "s3://<aws id>:<aws secret>@<bucket>?tier=2&tags=s3"
 
 public class S3Adapter extends Adapter
 {
@@ -12,9 +13,9 @@ public class S3Adapter extends Adapter
   }
 
   @Override
-  public void init(Integer tier, String type, Set<String> tags, JSONObject config) throws Exception
+  public void init(Integer tier, String type, Set<String> tags, URI uri) throws Exception
   {
-    super.init(tier, type, tags, config);
+    super.init(tier, type, tags, uri);
   }
 
   @Override

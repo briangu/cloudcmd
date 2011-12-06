@@ -1,30 +1,26 @@
 package cloudcmd.common.adapters;
 
-import org.json.JSONObject;
-
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.util.List;
-import java.util.Map;
+import java.net.URI;
 import java.util.Set;
 
 public abstract class Adapter
 {
   public String Type;
   public Set<String> Tags;
-  public JSONObject Config;
+  public URI URI;
   public Integer Tier;
 
   public Adapter()
   {
   }
 
-  public void init(Integer tier, String type, Set<String> tags, JSONObject config) throws Exception
+  public void init(Integer tier, String type, Set<String> tags, URI uri) throws Exception
   {
     Tier = tier;
     Type = type;
     Tags = tags;
-    Config = config;
+    URI = uri;
   }
 
   public boolean accepts(Set<String> tags)

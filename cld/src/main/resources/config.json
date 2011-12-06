@@ -1,13 +1,8 @@
 {
   "defaultTier": 1,
-  "adapters": [
-    {
-      "tier": 1,
-      "type": "cloudcmd.common.adapters.FileAdapter",
-      "tags": [],
-      "config": {
-        "rootPath": "/var/cldstorage"
-      }
-    }
-  ]
+  "adapters": [],
+  "adapterHandlers": {
+    "file": "cloudcmd.common.adapters.FileAdapter",
+    "s3" : "cloudcmd.common.adapters.S3Adapter"
+  }
 }

@@ -10,17 +10,23 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
 
 public class JsonConfigStorage implements ConfigStorage
 {
   private static final String CONFIG_FILE = "config.json";
-
-  private String _configRoot;
-  private JSONObject _config = null;
-  private List<Adapter> _adapters;
   private static final Integer DEFAULT_TIER = 1;
+
+  private JSONObject _config;
+  private String _configRoot;
+
   private boolean _isDebug = false;
+  private int _defaultTier;
+
+  private List<Adapter> _adapters;
+  private Map<String, String> _adapterHandlers;
 
   private static String getConfigFile(String path)
   {
@@ -74,45 +80,136 @@ public class JsonConfigStorage implements ConfigStorage
     return tags;
   }
 
-  private static List<Adapter> loadAdapters(JSONObject config) throws JSONException, ClassNotFoundException
+  private List<Adapter> loadAdapters(JSONObject config)
+    throws JSONException, ClassNotFoundException, URISyntaxException
   {
     if (!config.has("adapters")) throw new IllegalArgumentException("config is missing the adapters field");
 
     JSONArray adapterConfigs = config.getJSONArray("adapters");
 
+    _defaultTier = config.has("defaultTier") ? config.getInt("defaultTier") : DEFAULT_TIER;
+
+    return loadAdapters(adapterConfigs);
+  }
+
+  private List<Adapter> loadAdapters(JSONArray adapterUris)
+    throws JSONException, ClassNotFoundException, URISyntaxException
+  {
     List<Adapter> adapters = new ArrayList<Adapter>();
 
-    Integer defaultTier = config.has("defaultTier") ? config.getInt("defaultTier") : DEFAULT_TIER;
-
-    for (int i = 0; i < adapterConfigs.length(); i++)
+    for (int i = 0; i < adapterUris.length(); i++)
     {
-      JSONObject adapterConfig = adapterConfigs.getJSONObject(i);
-
-      Integer tier = adapterConfig.has("tier") ? adapterConfig.getInt("tier") : defaultTier;
-      Set<String> tags = getTags(adapterConfig);
-      String type = adapterConfig.getString("type");
-      JSONObject adapterSubConfig = adapterConfig.getJSONObject("config");
-
-      Class<?> clazz = JsonConfigStorage.class.getClassLoader().loadClass(type);
-      try
-      {
-        Adapter adapter = (Adapter) clazz.newInstance();
-        adapter.init(tier, type, tags, adapterSubConfig);
-        adapters.add(adapter);
-      }
-      catch (Exception e)
-      {
-        throw new IllegalArgumentException("unsupported adapter type found: " + type);
-      }
+      URI adapterUri = new URI(adapterUris.getString(i));
+      Adapter adapter = loadAdapter(adapterUri);
+      adapters.add(adapter);
     }
 
     return adapters;
   }
+
+  static Map<String, String> parseQueryString(URI uri)
+  {
+    Map<String, String> queryParams = new HashMap<String, String>();
+
+    String query = uri.getQuery();
+
+    if (query == null || query.isEmpty()) return queryParams;
+
+    String[] parts = query.split("&");
+
+    for (String part : parts)
+    {
+      String[] subParts = part.split("=");
+      if (subParts.length == 1)
+      {
+        queryParams.put(subParts[0], "");
+      }
+      else if (subParts.length == 2)
+      {
+        queryParams.put(subParts[0], subParts[1]);
+      }
+    }
+
+    return queryParams;
+  }
+
+  private Integer getTierFromUri(URI adapterUri)
+  {
+    Map<String, String> queryParams = parseQueryString(adapterUri);
+    Integer tier = (queryParams.containsKey("tier")) ? Integer.parseInt(queryParams.get("tier")) : _defaultTier;
+    return tier;
+  }
+
+  private Set<String> getTagsFromUri(URI adapterUri)
+  {
+    Set<String> tags = new HashSet<String>();
+    Map<String, String> queryParams = parseQueryString(adapterUri);
+
+    if (queryParams.containsKey("tags"))
+    {
+      String[] parts = queryParams.get("tags").split(",");
+      for (String tag : parts)
+      {
+        tags.add(tag);
+      }
+    }
+
+    return tags;
+  }
+
+  private Adapter loadAdapter(URI adapterUri) throws ClassNotFoundException
+  {
+    Adapter adapter;
+
+    String scheme = adapterUri.getScheme();
+
+    if (!_adapterHandlers.containsKey(scheme))
+    {
+      throw new IllegalArgumentException(String.format("scheme %s in adapter URI %s is not supported!", scheme, adapterUri));
+    }
+
+    String handlerType = _adapterHandlers.get(scheme);
+    Integer tier = getTierFromUri(adapterUri);
+    Set<String> tags = getTagsFromUri(adapterUri);
+
+    Class<?> clazz = JsonConfigStorage.class.getClassLoader().loadClass(handlerType);
+    try
+    {
+      adapter = (Adapter) clazz.newInstance();
+      adapter.init(tier, handlerType, tags, adapterUri);
+    }
+    catch (Exception e)
+    {
+      throw new RuntimeException(String.format("failed to initialize adapter %s for adapter %s", handlerType, adapterUri));
+    }
+
+    return adapter;
+  }
+
   private static boolean loadDebug(JSONObject config) throws JSONException
   {
     if (!config.has("debug")) return false;
 
     return config.getBoolean("debug");
+  }
+
+  private static Map<String, String> loadAdapterHandlers(JSONObject config) throws JSONException
+  {
+    if (!config.has("adapterHandlers")) throw new IllegalArgumentException("config is missing the adapters field");
+
+    JSONObject handlers = config.getJSONObject("adapterHandlers");
+
+    Map<String, String> adapterHandlers = new HashMap<String, String>();
+
+    Iterator<String> keys = handlers.keys();
+
+    while(keys.hasNext())
+    {
+      String key = keys.next();
+      adapterHandlers.put(key, handlers.getString(key));
+    }
+
+    return adapterHandlers;
   }
 
 
@@ -121,6 +218,7 @@ public class JsonConfigStorage implements ConfigStorage
   {
     _configRoot = configRoot;
     _config = loadConfig(configRoot);
+    _adapterHandlers = loadAdapterHandlers(_config);
     _adapters = loadAdapters(_config);
     _isDebug = loadDebug(_config);
   }
@@ -128,6 +226,8 @@ public class JsonConfigStorage implements ConfigStorage
   @Override
   public void shutdown()
   {
+    if (_adapters == null) return;
+
     for (Adapter adapter : _adapters)
     {
       try
@@ -137,7 +237,7 @@ public class JsonConfigStorage implements ConfigStorage
       catch (Exception e)
       {
         System.err.println("failed to shutdown adapter: " + adapter.Type);
-        System.err.println("adapter config: " + adapter.Config);
+        System.err.println("adapter config: " + adapter.URI);
         e.printStackTrace();
       }
     }
@@ -178,12 +278,6 @@ public class JsonConfigStorage implements ConfigStorage
   }
 
   @Override
-  public List<Adapter> getAdapters()
-  {
-    return Collections.unmodifiableList(_adapters);
-  }
-
-  @Override
   public boolean isDebugEnabled()
   {
     return _isDebug;
@@ -195,6 +289,58 @@ public class JsonConfigStorage implements ConfigStorage
     try {
       FileUtil.writeFile(configFile, _config.toString(2));
     } catch (JSONException e) {
+      e.printStackTrace();
+    }
+  }
+
+  private void rebuildConfig() throws JSONException
+  {
+    _config.put("defaultTier", _defaultTier);
+
+    JSONArray adapters = new JSONArray();
+
+    for (Adapter adapter : _adapters)
+    {
+      adapters.put(adapter.URI.toString());
+    }
+
+    _config.put("adapters", adapters);
+  }
+
+  @Override
+  public void writeConfig() throws IOException, JSONException
+  {
+    rebuildConfig();
+
+    String configFile = getConfigFile(_configRoot);
+    try {
+      FileUtil.writeFile(configFile, _config.toString(2));
+    } catch (JSONException e) {
+      e.printStackTrace();
+    }
+  }
+
+  @Override
+  public boolean removeAdapter(URI uri)
+  {
+    return false;
+  }
+
+  @Override
+  public List<Adapter> getAdapters()
+  {
+    return Collections.unmodifiableList(_adapters);
+  }
+
+  @Override
+  public void addAdapter(URI adapterUri)
+  {
+    try {
+      Adapter adapter = loadAdapter(adapterUri);
+      _adapters.add(adapter);
+    }
+    catch (ClassNotFoundException e)
+    {
       e.printStackTrace();
     }
   }

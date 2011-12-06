@@ -16,7 +16,6 @@ import org.json.JSONObject;
 @SubCommand(name = "find", description = "Query the index of archived files.")
 public class Find implements Command
 {
-//  @Opt(opt = "t", longOpt = "tag", description = "tags to find by", required = false)
   @Arg(name = "tags", optional = true, isVararg = true)
   List<String> _tags;
 

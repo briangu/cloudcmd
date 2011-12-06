@@ -74,7 +74,10 @@ public class LocalCacheCloudEngine implements CloudEngine
       }
     }
 
-    _ops.shutdown();
+    if (_ops != null)
+    {
+      _ops.shutdown();
+    }
   }
 
   @Override
@@ -152,7 +155,7 @@ public class LocalCacheCloudEngine implements CloudEngine
           }
           catch (Exception e)
           {
-            log.error("adapter = " + adapter.Config.getString("name"), e);
+            log.error("adapter = " + adapter.URI, e);
           }
         }
       }

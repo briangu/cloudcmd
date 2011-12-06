@@ -70,7 +70,10 @@ public class H2IndexStorage implements IndexStorage
   {
     flush();
 
-    _cp.dispose();
+    if (_cp != null)
+    {
+      _cp.dispose();
+    }
   }
 
   private void bootstrap()

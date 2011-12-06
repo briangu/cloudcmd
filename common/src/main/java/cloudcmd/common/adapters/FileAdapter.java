@@ -4,11 +4,13 @@ import cloudcmd.common.FileHandler;
 import cloudcmd.common.FileUtil;
 import cloudcmd.common.FileWalker;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.*;
+import java.net.URI;
 import java.util.HashSet;
 import java.util.Set;
+
+//     "file:///tmp/storage?tier=1&tags=image,movie,vacation"
 
 public class FileAdapter extends Adapter
 {
@@ -19,13 +21,11 @@ public class FileAdapter extends Adapter
   }
 
   @Override
-  public void init(Integer tier, String type, Set<String> tags, JSONObject config) throws Exception
+  public void init(Integer tier, String type, Set<String> tags, URI config) throws Exception
   {
     super.init(tier, type, tags, config);
 
-    if (!Config.has("rootPath")) throw new IllegalArgumentException("config missing rootPath");
-
-    _rootPath = Config.getString("rootPath");
+    _rootPath = URI.getPath();
 
     new File(_rootPath).mkdirs();
   }

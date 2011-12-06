@@ -61,19 +61,36 @@ The init command creates a .cld directory that holds all the config.
     $ cat ~/.cld/config.json
 
     {
-      "adapters": [{
-        "config": {"rootPath": "/home/brian/.cld/storage"},
-        "tags": [],
-        "tier": 1,
-        "type": "cloudcmd.common.adapters.FileAdapter"
-      }],
-      "defaultTier": 1
+      "defaultTier": 1,
+      "adapters": [],
+      "adapterHandlers": {
+        "file": "cloudcmd.common.adapters.FileAdapter",
+        "s3" : "cloudcmd.common.adapters.S3Adapter"
+      }
     }
 
-TBD: add adapters using URI notation
+Add a file system adapter using URI notation (file system adapter pointing to /media/big_disk/cld_storage)
 
-    $ cld adapter --add file:///~/.cld_storage
-    $ cld adapter --add s3:///<s3 bucket>/<aws id>/<aws secret>
+    $ cld adapter --add file:////media/big_disk/cld_storage
+
+Or add an adapter that only accepts files with image,vacation,movie tags and at tier 1
+
+    $ cld adapter --add file:////media/big_disk/cld_storage?tier=1&tags=movie,vacation,image
+
+TBD: s3 adapter support
+
+    $ cld adapter --add s3:///<aws id>:<aws secret>@<s3 bucket>
+
+Afterwards, the config file can be like:
+
+    {
+      "adapterHandlers": {
+        "file": "cloudcmd.common.adapters.FileAdapter",
+        "s3": "cloudcmd.common.adapters.S3Adapter"
+      },
+      "adapters": ["file:///media/big_disk/cld_storage"],
+      "defaultTier": 1
+    }
 
 Cloudcmd enables users to create additonal configurations to all for different storage solutions:
 
