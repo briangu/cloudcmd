@@ -100,8 +100,8 @@ For example, say a user wanted to store huge files reliably, but didn't want to 
     $ mkdir huge_files
     $ cd huge_files
     $ cld init
-    $ cld adapter --add file:///media/huge_disk_a
-    $ cld adapter --add file:///media/huge_disk_b
+    $ cld adapter file:///media/huge_disk_a
+    $ cld adapter file:///media/huge_disk_b
     $ cld index ~/Videos hawaii videos
 
 TODO: should we just use storage profiles?
