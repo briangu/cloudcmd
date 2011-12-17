@@ -23,7 +23,7 @@ public class index_default implements AsyncCommand
     final File file = (File) args[0];
     String type = (String) args[1];
 
-    final Set<String> tags = new HashSet<String>();
+    Set<String> tags = new HashSet<String>();
     if (type != null) tags.add(type);
     tags.addAll((Set<String>) args[2]);
 

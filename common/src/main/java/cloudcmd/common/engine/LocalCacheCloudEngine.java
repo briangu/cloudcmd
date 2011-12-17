@@ -113,7 +113,7 @@ public class LocalCacheCloudEngine implements CloudEngine
 
           String hash = entry.getString("hash");
 
-          if (!hash.startsWith("meta."))
+          if (!hash.endsWith(".meta"))
           {
             // TODO: message (this shouldn't happen)
             continue;
@@ -127,7 +127,7 @@ public class LocalCacheCloudEngine implements CloudEngine
 
           try
           {
-            Set<String> tags = MetaUtil.createTagSet(entry.getString("tags"));
+            Set<String> tags = MetaUtil.createTagSet(entry.getJSONArray("tags"));
 
             // TODO: accepts should take the file size as well
 
@@ -177,7 +177,7 @@ public class LocalCacheCloudEngine implements CloudEngine
 
     for (String hash : hashProviders.keySet())
     {
-      if (!hash.startsWith("meta.")) continue;
+      if (!hash.endsWith(".meta")) continue;
 
       if (!localCache.contains(hash))
       {
@@ -218,7 +218,7 @@ public class LocalCacheCloudEngine implements CloudEngine
       
     for (String hash : localDescription)
     {
-      if (!hash.startsWith("meta.")) continue;
+      if (!hash.endsWith(".meta")) continue;
 
       try
       {
@@ -227,7 +227,7 @@ public class LocalCacheCloudEngine implements CloudEngine
         fmd.Meta = JsonUtil.loadJson(localCache.load(hash));
         fmd.MetaHash = hash;
         fmd.BlockHashes = fmd.Meta.getJSONArray("blocks");
-        fmd.Tags = MetaUtil.createTagSet(fmd.Meta.getString("tags"));
+        fmd.Tags = MetaUtil.createTagSet(fmd.Meta.getJSONArray("tags"));
 
         log.info(String.format("reindexing: %s %s", hash, fmd.Meta.getString("filename")));
 

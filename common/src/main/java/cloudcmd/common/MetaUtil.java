@@ -33,9 +33,10 @@ public class MetaUtil
         "fileext", extIndex >= 0 ? fileName.substring(extIndex + 1) : null,
         "filesize", file.length(),
         "filedate", file.lastModified(),
-        "blocks", meta.BlockHashes
+        "blocks", meta.BlockHashes,
+        "tags", tags
       );
-      meta.MetaHash = "meta." + CryptoUtil.computeHashAsString(new ByteArrayInputStream(meta.Meta.toString().getBytes()));
+      meta.MetaHash = CryptoUtil.computeHashAsString(new ByteArrayInputStream(meta.Meta.toString().getBytes())) + ".meta";
     }
     catch (JSONException e)
     {
@@ -71,7 +72,6 @@ public class MetaUtil
     return new HashSet<String>(Arrays.asList(rowTags.split(" ")));
   }
 
-/*
   public static Set<String> createTagSet(JSONArray tags) throws JSONException
   {
     Set<String> set = new HashSet<String>();
@@ -83,13 +83,12 @@ public class MetaUtil
 
     return set;
   }
-*/
 
   public static FileMetaData createMeta(JSONObject jsonObject) throws JSONException
   {
     FileMetaData meta = new FileMetaData();
 
-    meta.Tags = createTagSet(jsonObject.getString("tags"));
+    meta.Tags = createTagSet(jsonObject.getJSONArray("tags"));
     meta.BlockHashes = jsonObject.getJSONArray("blocks");
     meta.Meta = JsonUtil.createJsonObject(
       "path", jsonObject.getString("path"),
@@ -97,7 +96,8 @@ public class MetaUtil
       "fileext", jsonObject.has("fileext") ? jsonObject.getString("fileext") : null,
       "filesize", jsonObject.getLong("filesize"),
       "filedate", jsonObject.getLong("filedate"),
-      "blocks", meta.BlockHashes
+      "blocks", meta.BlockHashes,
+      "tags", meta.Tags
     );
     meta.MetaHash = jsonObject.getString("hash");
 

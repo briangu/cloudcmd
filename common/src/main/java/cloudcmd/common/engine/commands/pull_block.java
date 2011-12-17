@@ -8,10 +8,7 @@ import cloudcmd.common.adapters.Adapter;
 import cloudcmd.common.engine.BlockCacheService;
 import cloudcmd.common.index.IndexStorageService;
 import java.io.InputStream;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import ops.AsyncCommand;
 import ops.CommandContext;
@@ -48,7 +45,7 @@ public class pull_block implements AsyncCommand
 
     boolean success;
 
-    if (hash.startsWith("meta."))
+    if (hash.endsWith(".meta"))
     {
       Boolean retrieveBlocks = (Boolean)args[1];
       success = pullMetaBlock(context, blockProviders, retrieveBlocks, hash);
@@ -90,7 +87,7 @@ public class pull_block implements AsyncCommand
         fmd.Meta = JsonUtil.loadJson(BlockCacheService.instance().getBlockCache().load(hash));
         fmd.MetaHash = hash;
         fmd.BlockHashes = fmd.Meta.getJSONArray("blocks");
-        fmd.Tags = MetaUtil.createTagSet(fmd.Meta.getString("tags"));
+        fmd.Tags = MetaUtil.createTagSet(fmd.Meta.getJSONArray("tags"));
 
         // if localcache has block continue
         IndexStorageService.instance().add(fmd);

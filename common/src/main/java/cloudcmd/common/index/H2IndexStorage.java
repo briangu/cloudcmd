@@ -359,7 +359,7 @@ public class H2IndexStorage implements IndexStorage
         String rawJson = resultSet.getString("RAWMETA");
         JSONObject obj = new JSONObject(rawJson);
         obj.put("hash", resultSet.getString("HASH"));
-        obj.put("tags", resultSet.getString("TAGS"));
+        obj.put("tags", MetaUtil.createTagSet(resultSet.getString("TAGS")));
         results.put(obj);
       }
     }
