@@ -71,6 +71,7 @@ public class MetaUtil
     return new HashSet<String>(Arrays.asList(rowTags.split(" ")));
   }
 
+/*
   public static Set<String> createTagSet(JSONArray tags) throws JSONException
   {
     Set<String> set = new HashSet<String>();
@@ -82,6 +83,7 @@ public class MetaUtil
 
     return set;
   }
+*/
 
   public static FileMetaData createMeta(JSONObject jsonObject) throws JSONException
   {

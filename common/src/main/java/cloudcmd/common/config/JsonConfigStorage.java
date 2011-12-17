@@ -64,22 +64,6 @@ public class JsonConfigStorage implements ConfigStorage
     return config;
   }
 
-  private static Set<String> getTags(JSONObject config) throws JSONException
-  {
-    Set<String> tags = new HashSet<String>();
-
-    if (!config.has("tags")) return tags;
-
-    JSONArray tagConfig = config.getJSONArray("tags");
-
-    for (int i = 0; i < tagConfig.length(); i++)
-    {
-      tags.add(tagConfig.getString(i));
-    }
-
-    return tags;
-  }
-
   private List<Adapter> loadAdapters(JSONObject config)
     throws JSONException, ClassNotFoundException, URISyntaxException
   {

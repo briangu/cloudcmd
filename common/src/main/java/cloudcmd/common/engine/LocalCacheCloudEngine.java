@@ -35,7 +35,6 @@ public class LocalCacheCloudEngine implements CloudEngine
     registry.put("sleep", new sleep());
     registry.put("pull_block", new pull_block());
     registry.put("push_block", new push_block());
-    registry.put("push_tags", new push_tags());
 
     JSONObject indexOps;
 
@@ -55,6 +54,8 @@ public class LocalCacheCloudEngine implements CloudEngine
   @Override
   public void run()
   {
+    if (_ops == null) return;
+
     _ops.run();
   }
 
@@ -112,7 +113,7 @@ public class LocalCacheCloudEngine implements CloudEngine
 
           String hash = entry.getString("hash");
 
-          if (!hash.startsWith(".meta"))
+          if (!hash.startsWith("meta."))
           {
             // TODO: message (this shouldn't happen)
             continue;
@@ -131,8 +132,6 @@ public class LocalCacheCloudEngine implements CloudEngine
             // TODO: accepts should take the file size as well
 
             if (!adapter.accepts(tags)) continue;
-
-            _ops.make("push_tags", "adapter", adapter, "hash", hash, "tags", new JSONArray(tags));
 
             if (!adapterDescription.contains(hash))
             {
@@ -178,7 +177,7 @@ public class LocalCacheCloudEngine implements CloudEngine
 
     for (String hash : hashProviders.keySet())
     {
-      if (!hash.startsWith(".meta")) continue;
+      if (!hash.startsWith("meta.")) continue;
 
       if (!localCache.contains(hash))
       {
@@ -219,7 +218,7 @@ public class LocalCacheCloudEngine implements CloudEngine
       
     for (String hash : localDescription)
     {
-      if (!hash.startsWith(".meta")) continue;
+      if (!hash.startsWith("meta.")) continue;
 
       try
       {
@@ -228,7 +227,7 @@ public class LocalCacheCloudEngine implements CloudEngine
         fmd.Meta = JsonUtil.loadJson(localCache.load(hash));
         fmd.MetaHash = hash;
         fmd.BlockHashes = fmd.Meta.getJSONArray("blocks");
-        fmd.Tags = localCache.loadTags(hash);
+        fmd.Tags = MetaUtil.createTagSet(fmd.Meta.getString("tags"));
 
         log.info(String.format("reindexing: %s %s", hash, fmd.Meta.getString("filename")));
 

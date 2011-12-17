@@ -10,7 +10,6 @@
       ["literalize", "msg", "body"],
       ["literalize", "async_task", "phase", "id", "name"],
       ["literalize", "push_block", "dest", "src", "hash"],
-      ["literalize", "push_tags", "adapter", "hash", "tags"],
       ["literalize", "pull_block", "hash", "retrieveSubBlocks"],
       ["literalize", "recover_block", "hash"],
       ["literalize", "add_meta", "meta"],
@@ -62,16 +61,6 @@
         [
           ["write", "pushing {0}", "$hash"],
           ["push_block", "$dest", "$src", "$hash"],
-          ["remove", 0]
-        ]
-      ],
-      ["p", "push_tags",
-        [
-          ["push_tags", "adapter", "$adapter", "hash", "$hash", "tags", "$tags"]
-        ],
-        [
-          ["write", "pushing tags {0} for {1}", "$tags", "$hash"],
-          ["push_tags", "$adapter", "$hash", "$tags"],
           ["remove", 0]
         ]
       ],
