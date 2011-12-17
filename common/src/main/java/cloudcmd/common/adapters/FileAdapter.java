@@ -46,6 +46,12 @@ public class FileAdapter extends Adapter
   {
   }
 
+  @Override
+  public AdapterStatus getStatus() throws Exception
+  {
+    return new AdapterStatus(true, false);
+  }
+
   private String getPathFromHash(String hash) throws JSONException
   {
     return _rootPath + File.separator + hash.substring(0, 2);
@@ -85,17 +91,6 @@ public class FileAdapter extends Adapter
     });
 
     return hashes;
-  }
-
-  @Override
-  public void storeTags(String hash, Set<String> tags)
-  {
-  }
-
-  @Override
-  public Set<String> loadTags(String hash)
-  {
-    return new HashSet<String>();
   }
 }
 

@@ -36,6 +36,12 @@ public class S3Adapter extends Adapter
   }
 
   @Override
+  public AdapterStatus getStatus() throws Exception
+  {
+    return new AdapterStatus(true, false);
+  }
+
+  @Override
   public void store(InputStream data, String hash)
   {
   }
@@ -50,16 +56,5 @@ public class S3Adapter extends Adapter
   public Set<String> describe()
   {
     return null;
-  }
-
-  @Override
-  public void storeTags(String hash, Set<String> tags)
-  {
-  }
-
-  @Override
-  public Set<String> loadTags(String hash)
-  {
-    return null;  //To change body of implemented methods use File | Settings | File Templates.
   }
 }

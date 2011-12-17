@@ -23,6 +23,8 @@ public abstract class Adapter
     URI = uri;
   }
 
+  public abstract void shutdown() throws Exception;
+
   public boolean accepts(Set<String> tags)
   {
     if (Tags == null || Tags.size() == 0) return true;
@@ -35,19 +37,18 @@ public abstract class Adapter
     return false;
   }
 
+  public AdapterStatus getStatus() throws Exception
+  {
+    return new AdapterStatus(true, false);
+  }
+
   public abstract void refreshCache() throws Exception;
 
   public abstract boolean contains(String hash) throws Exception;
-
-  public abstract void shutdown() throws Exception;
 
   public abstract void store(InputStream data, String hash) throws Exception;
 
   public abstract InputStream load(String hash) throws Exception;
 
   public abstract Set<String> describe() throws Exception;
-
-  public abstract void storeTags(String hash, Set<String> tags) throws Exception;
-
-  public abstract Set<String> loadTags(String hash) throws Exception;
 }

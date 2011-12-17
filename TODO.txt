@@ -7,6 +7,7 @@ tag update flow for adapters
 
 s3 adapter
 
+add ability to only index certain file types (white list) - e.g. index *.jpg
 add ignore filters for indexing
 
 srv presentation layer
