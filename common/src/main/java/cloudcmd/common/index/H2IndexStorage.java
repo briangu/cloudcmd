@@ -128,10 +128,14 @@ public class H2IndexStorage implements IndexStorage
     }
   }
 
+  volatile boolean _flushing = false;
+
   @Override
-  public void flush()
+  public synchronized void flush()
   {
     if (_queue.size() == 0) return;
+
+    _flushing = true;
 
     Connection db = null;
     try
@@ -140,7 +144,7 @@ public class H2IndexStorage implements IndexStorage
 
       db.setAutoCommit(false);
 
-      for (int i = 0; i < _queue.size(); i++)
+      while (!_queue.isEmpty())
       {
         addMeta(db, _queue.remove());
       }
@@ -158,6 +162,7 @@ public class H2IndexStorage implements IndexStorage
     finally
     {
       SqlUtil.SafeClose(db);
+      _flushing = false;
     }
   }
 
@@ -233,7 +238,7 @@ public class H2IndexStorage implements IndexStorage
     if (meta == null) return;
 
     _queue.add(meta);
-    if (_queue.size() > MAX_QUEUE_SIZE)
+    if (_queue.size() > MAX_QUEUE_SIZE && !_flushing)
     {
       flush();
     }
