@@ -2,6 +2,7 @@ package cloudcmd.common.engine.commands;
 
 
 import cloudcmd.common.FileMetaData;
+import cloudcmd.common.FileUtil;
 import cloudcmd.common.MetaUtil;
 import cloudcmd.common.adapters.Adapter;
 import cloudcmd.common.engine.BlockCacheService;
@@ -17,6 +18,8 @@ import ops.CommandContext;
 
 public class index_default implements AsyncCommand
 {
+  // TODO: we will need to break this commadn apart to allow for index_jpg, etc.
+
   @Override
   public void exec(final CommandContext context, Object[] args)
       throws Exception
@@ -28,16 +31,29 @@ public class index_default implements AsyncCommand
     if (type != null) tags.add(type);
     tags.addAll((Set<String>) args[2]);
 
-    Adapter localCache = BlockCacheService.instance().getBlockCache();
+    String blockHash = null;
+    FileInputStream fis = null;
+    ByteArrayInputStream bais = null;
 
-    String blockHash = localCache.store(new FileInputStream(file));
+    try
+    {
+      Adapter localCache = BlockCacheService.instance().getBlockCache();
+      fis = new FileInputStream(file);
+      blockHash = localCache.store(fis);
+      FileMetaData meta = MetaUtil.createMeta(file, Arrays.asList(blockHash), tags);
+      bais = new ByteArrayInputStream(meta.Meta.toString().getBytes());
+      localCache.store(bais, meta.MetaHash);
+      IndexStorageService.instance().add(meta);
+    }
+    finally
+    {
+      FileUtil.SafeClose(fis);
+      FileUtil.SafeClose(bais);
+    }
 
-    FileMetaData meta = MetaUtil.createMeta(file, Arrays.asList(blockHash), tags);
-
-    // TODO: we will need to break this commadn apart to allow for index_jpg, etc.
-
-    localCache.store(new ByteArrayInputStream(meta.Meta.toString().getBytes()), meta.MetaHash);
-
-    IndexStorageService.instance().add(meta);
+    if (blockHash == null)
+    {
+      throw new RuntimeException("failed to index file: " + file.getAbsolutePath());
+    }
   }
 }

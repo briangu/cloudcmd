@@ -139,14 +139,6 @@ public class CryptoUtil
           e.printStackTrace();
         }
       }
-      try
-      {
-        srcData.close();
-      }
-      catch (IOException e)
-      {
-        e.printStackTrace();
-      }
     }
 
     return digest;

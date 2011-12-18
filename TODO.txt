@@ -1,7 +1,6 @@
 hash check on block fetch
 
 add addeddate to meta data
-remove empty tag strings
 on tag add, create new meta data for pushing
 
 standardize stream closing for adapters

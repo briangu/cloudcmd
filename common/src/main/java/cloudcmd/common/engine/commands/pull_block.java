@@ -2,6 +2,7 @@ package cloudcmd.common.engine.commands;
 
 
 import cloudcmd.common.FileMetaData;
+import cloudcmd.common.FileUtil;
 import cloudcmd.common.JsonUtil;
 import cloudcmd.common.MetaUtil;
 import cloudcmd.common.adapters.Adapter;
@@ -13,11 +14,14 @@ import java.util.*;
 import ops.AsyncCommand;
 import ops.CommandContext;
 import ops.MemoryElement;
+import org.apache.log4j.Logger;
 import org.json.JSONArray;
 
 
 public class pull_block implements AsyncCommand
 {
+  static Logger log = Logger.getLogger(pull_block.class);
+
   @Override
   public void exec(CommandContext context, Object[] args)
       throws Exception
@@ -76,14 +80,14 @@ public class pull_block implements AsyncCommand
 
     for (Adapter adapter : blockProviders)
     {
+      InputStream remoteData = null;
       try
       {
-        FileMetaData fmd = new FileMetaData();
-
-        InputStream remoteData = adapter.load(hash);
+        remoteData = adapter.load(hash);
 
         BlockCacheService.instance().getBlockCache().store(remoteData, hash);
 
+        FileMetaData fmd = new FileMetaData();
         fmd.Meta = JsonUtil.loadJson(BlockCacheService.instance().getBlockCache().load(hash));
         fmd.MetaHash = hash;
         fmd.BlockHashes = fmd.Meta.getJSONArray("blocks");
@@ -108,7 +112,12 @@ public class pull_block implements AsyncCommand
       }
       catch (Exception e)
       {
-        e.printStackTrace();
+        context.make("error_pull_block", "hash", hash);
+        log.error(hash, e);
+      }
+      finally
+      {
+        FileUtil.SafeClose(remoteData);
       }
     }
 
@@ -124,16 +133,22 @@ public class pull_block implements AsyncCommand
 
     for (Adapter adapter : blockProviders)
     {
+      InputStream remoteData = null;
       try
       {
-        InputStream remoteData = adapter.load(hash);
+        remoteData = adapter.load(hash);
         BlockCacheService.instance().getBlockCache().store(remoteData, hash);
         success = true;
         break;
       }
       catch (Exception e)
       {
-        e.printStackTrace();
+        context.make("error_pull_block", "hash", hash);
+        log.error(hash, e);
+      }
+      finally
+      {
+        FileUtil.SafeClose(remoteData);
       }
     }
 

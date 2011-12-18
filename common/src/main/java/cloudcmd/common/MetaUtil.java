@@ -54,7 +54,13 @@ public class MetaUtil
 
   public static Set<String> createTagSet(String rowTags)
   {
-    return new HashSet<String>(Arrays.asList(rowTags.split(" ")));
+    String[] parts = rowTags.split(" ");
+    Set<String> tags = new HashSet<String>();
+    for (String part : parts)
+    {
+      if (part.length() == 0) continue;
+    }
+    return tags;
   }
 
   public static Set<String> createTagSet(JSONArray tags) throws JSONException
@@ -63,6 +69,8 @@ public class MetaUtil
 
     for (int i = 0; i < set.size(); i++)
     {
+      String tag = tags.getString(i);
+      if (tag.length() == 0) continue;
       set.add(tags.getString(i));
     }
 

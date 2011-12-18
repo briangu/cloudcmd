@@ -11,6 +11,8 @@
       ["literalize", "async_task", "phase", "id", "name"],
       ["literalize", "push_block", "dest", "src", "hash"],
       ["literalize", "pull_block", "hash", "retrieveSubBlocks"],
+      ["literalize", "error_push_block", "hash"],
+      ["literalize", "error_pull_block", "hash"],
       ["literalize", "recover_block", "hash"],
       ["literalize", "add_meta", "meta"],
       ["literalize", "fetch", "meta"],

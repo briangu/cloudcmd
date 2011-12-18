@@ -35,23 +35,30 @@ public class FileUtil
   public static String readFile(File file)
     throws IOException
   {
-    FileInputStream stream = new FileInputStream(file);
+    FileInputStream fis = new FileInputStream(file);
     try
     {
-      FileChannel fc = stream.getChannel();
+      FileChannel fc = fis.getChannel();
       MappedByteBuffer bb = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
-      /* Instead of using default, pass in a decoder. */
       return Charset.defaultCharset().decode(bb).toString();
     }
     finally
     {
-      stream.close();
+      SafeClose(fis);
     }
   }
 
   public static void writeFile(String outfile, String object) throws IOException
   {
-    writeFile(new ByteArrayInputStream(object.getBytes("UTF-8")), outfile);
+    InputStream is = new ByteArrayInputStream(object.getBytes("UTF-8"));
+    try
+    {
+      writeFile(is, outfile);
+    }
+    finally
+    {
+      SafeClose(is);
+    }
   }
 
   public static void writeFile(String outfile, JSONObject object) throws IOException
@@ -68,28 +75,34 @@ public class FileUtil
       bais = new ByteArrayInputStream(object.toString().getBytes());
     }
 
-    writeFile(bais, outfile);
+    try
+    {
+      writeFile(bais, outfile);
+    }
+    finally
+    {
+      SafeClose(bais);
+    }
   }
 
-  public static void writeFile(InputStream data, String dataFile) throws IOException
+  public static void writeFile(InputStream srcData, String dataFile) throws IOException
   {
     File file = new File(dataFile);
     file.getParentFile().mkdirs();
     FileOutputStream fos = new FileOutputStream(file);
     try
     {
-      IOUtils.copy(data, fos);
+      IOUtils.copy(srcData, fos);
     }
     finally
     {
       fos.close();
-      data.close();
     }
   }
 
-  public static String writeFileAndComputeHash(InputStream data, File destFile) throws IOException
+  public static String writeFileAndComputeHash(InputStream srcData, File destFile) throws IOException
   {
-    return CryptoUtil.digestToString(CryptoUtil.copyAndComputeHash(data, destFile));
+    return CryptoUtil.digestToString(CryptoUtil.copyAndComputeHash(srcData, destFile));
   }
 
   public static String findConfigDir(String curPath, String targetDir) throws IOException
@@ -108,5 +121,19 @@ public class FileUtil
   public static String getCurrentWorkingDirectory() throws IOException
   {
     return new File(".").getCanonicalPath();
+  }
+
+  public static void SafeClose(InputStream is)
+  {
+    if (is == null) return;
+
+    try
+    {
+      is.close();
+    }
+    catch (IOException e)
+    {
+      e.printStackTrace();
+    }
   }
 }
