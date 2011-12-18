@@ -9,6 +9,7 @@ import java.io.*;
 import java.net.URI;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 //     "file:///tmp/storage?tier=1&tags=image,movie,vacation"
 
@@ -65,7 +66,35 @@ public class FileAdapter extends Adapter
   @Override
   public void store(InputStream is, String hash) throws Exception
   {
-    FileUtil.writeFile(getDataFileFromHash(hash), is);
+    FileUtil.writeFile(is, getDataFileFromHash(hash));
+  }
+
+  @Override
+  public String store(InputStream is) throws Exception
+  {
+    File tmpFile = new File(getDataFileFromHash(UUID.randomUUID().toString() + ".tmp"));
+    tmpFile.getParentFile().mkdirs();
+    tmpFile.createNewFile();
+    String hash = FileUtil.writeFileAndComputeHash(is, tmpFile);
+    File newFile = new File(getDataFileFromHash(hash));
+    newFile.getParentFile().mkdirs();
+    if (newFile.exists())
+    {
+      tmpFile.delete();
+    }
+    else
+    {
+      Boolean success = tmpFile.renameTo(newFile);
+      if (!success)
+      {
+        if (!tmpFile.renameTo(newFile))
+        {
+          tmpFile.delete();
+          throw new IOException("failed to move file: " + tmpFile.getAbsolutePath());
+        }
+      }
+    }
+    return hash;
   }
 
   @Override

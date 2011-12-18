@@ -1,5 +1,7 @@
 hash check on block fetch
 
+standardize stream closing for adapters
+
 adapter status
   adapter full status 
   online/offline

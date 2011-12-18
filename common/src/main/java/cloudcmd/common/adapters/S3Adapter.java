@@ -47,6 +47,12 @@ public class S3Adapter extends Adapter
   }
 
   @Override
+  public String store(InputStream data) throws Exception
+  {
+    return null;  //To change body of implemented methods use File | Settings | File Templates.
+  }
+
+  @Override
   public InputStream load(String hash)
   {
     return null;

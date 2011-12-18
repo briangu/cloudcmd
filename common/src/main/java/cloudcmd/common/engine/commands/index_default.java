@@ -9,6 +9,7 @@ import cloudcmd.common.index.IndexStorageService;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import ops.AsyncCommand;
@@ -27,16 +28,13 @@ public class index_default implements AsyncCommand
     if (type != null) tags.add(type);
     tags.addAll((Set<String>) args[2]);
 
-    FileMetaData meta = MetaUtil.createMeta(file, tags);
-
-    // TODO: we will need to break this commadn apart to allow for index_jpg, etc.
-
     Adapter localCache = BlockCacheService.instance().getBlockCache();
 
-    for (int i = 0; i < meta.BlockHashes.length(); i++)
-    {
-      localCache.store(new FileInputStream(file), meta.BlockHashes.getString(i));
-    }
+    String blockHash = localCache.store(new FileInputStream(file));
+
+    FileMetaData meta = MetaUtil.createMeta(file, Arrays.asList(blockHash), tags);
+
+    // TODO: we will need to break this commadn apart to allow for index_jpg, etc.
 
     localCache.store(new ByteArrayInputStream(meta.Meta.toString().getBytes()), meta.MetaHash);
 

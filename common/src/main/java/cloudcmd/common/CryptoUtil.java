@@ -2,23 +2,25 @@ package cloudcmd.common;
 
 import java.io.*;
 import java.math.BigInteger;
+import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.UUID;
 
 public class CryptoUtil
 {
   public static String computeHashAsString(File targetFile)
   {
-    byte[] digest = computeHash(targetFile);
-    if (digest == null) return null;
-    BigInteger bigInt = new BigInteger(1, digest);
-    String hash = bigInt.toString(16);
-    return hash;
+    return digestToString(computeHash(targetFile));
   }
 
   public static String computeHashAsString(InputStream is)
   {
-    byte[] digest = computeHash(is);
+    return digestToString(computeHash(is));
+  }
+
+  public static String digestToString(byte[] digest)
+  {
     if (digest == null) return null;
     BigInteger bigInt = new BigInteger(1, digest);
     String hash = bigInt.toString(16);
@@ -29,27 +31,16 @@ public class CryptoUtil
   {
     byte[] digest = null;
 
-    RandomAccessFile file = null;
-    int buff = 16384;
+    FileInputStream fis = null;
+    DigestInputStream dis = null;
+    final int buff = 1024 * 1024;
     try
     {
-      file = new RandomAccessFile(targetFile, "r");
-
+      fis = new FileInputStream(targetFile);
       MessageDigest hash = MessageDigest.getInstance("SHA-256");
-
+      dis = new DigestInputStream(fis, hash);
       byte[] buffer = new byte[buff];
-      long read = 0;
-      long offset = file.length();
-      int unitsize;
-
-      while (read < offset)
-      {
-        unitsize = (int) (((offset - read) >= buff) ? buff : (offset - read));
-        file.read(buffer, 0, unitsize);
-        hash.update(buffer, 0, unitsize);
-        read += unitsize;
-      }
-
+      while (dis.read(buffer) != -1) {}
       digest = hash.digest();
     }
     catch (FileNotFoundException e)
@@ -66,9 +57,91 @@ public class CryptoUtil
     }
     finally
     {
-      if (file != null) try
+      if (dis != null)
       {
-        file.close();
+        try
+        {
+          dis.close();
+        }
+        catch (IOException e)
+        {
+          e.printStackTrace();
+        }
+      }
+      if (fis != null)
+      {
+        try
+        {
+          fis.close();
+        }
+        catch (IOException e)
+        {
+          e.printStackTrace();
+        }
+      }
+    }
+
+    return digest;
+  }
+
+  public static byte[] copyAndComputeHash(InputStream srcData, File destFile)
+  {
+    byte[] digest = null;
+
+    DigestInputStream dis = null;
+    FileOutputStream fos = null;
+
+    final int buff = 1024 * 1024;
+    try
+    {
+      MessageDigest hash = MessageDigest.getInstance("SHA-256");
+      dis = new DigestInputStream(srcData, hash);
+      fos = new FileOutputStream(destFile);
+      byte[] buffer = new byte[buff];
+      while (dis.read(buffer) != -1) {
+        fos.write(buffer);
+      }
+      digest = hash.digest();
+    }
+    catch (FileNotFoundException e)
+    {
+      e.printStackTrace();
+    }
+    catch (NoSuchAlgorithmException e)
+    {
+      e.printStackTrace();
+    }
+    catch (IOException e)
+    {
+      e.printStackTrace();
+    }
+    finally
+    {
+      if (dis != null)
+      {
+        try
+        {
+          dis.close();
+        }
+        catch (IOException e)
+        {
+          e.printStackTrace();
+        }
+      }
+      if (fos != null)
+      {
+        try
+        {
+          fos.close();
+        }
+        catch (IOException e)
+        {
+          e.printStackTrace();
+        }
+      }
+      try
+      {
+        srcData.close();
       }
       catch (IOException e)
       {

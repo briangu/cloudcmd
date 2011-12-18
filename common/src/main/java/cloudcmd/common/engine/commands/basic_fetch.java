@@ -90,7 +90,7 @@ public class basic_fetch implements AsyncCommand
       try
       {
         InputStream remoteData = adapter.load(hash);
-        FileUtil.writeFile(path, remoteData);
+        FileUtil.writeFile(remoteData, path);
         success = true;
         break;
       }

@@ -51,7 +51,7 @@ public class FileUtil
 
   public static void writeFile(String outfile, String object) throws IOException
   {
-    writeFile(outfile, new ByteArrayInputStream(object.getBytes("UTF-8")));
+    writeFile(new ByteArrayInputStream(object.getBytes("UTF-8")), outfile);
   }
 
   public static void writeFile(String outfile, JSONObject object) throws IOException
@@ -68,10 +68,10 @@ public class FileUtil
       bais = new ByteArrayInputStream(object.toString().getBytes());
     }
 
-    writeFile(outfile, bais);
+    writeFile(bais, outfile);
   }
 
-  public static void writeFile(String dataFile, InputStream data) throws IOException
+  public static void writeFile(InputStream data, String dataFile) throws IOException
   {
     File file = new File(dataFile);
     file.getParentFile().mkdirs();
@@ -84,6 +84,11 @@ public class FileUtil
     {
       fos.close();
     }
+  }
+
+  public static String writeFileAndComputeHash(InputStream data, File destFile) throws IOException
+  {
+    return CryptoUtil.digestToString(CryptoUtil.copyAndComputeHash(data, destFile));
   }
 
   public static String findConfigDir(String curPath, String targetDir) throws IOException

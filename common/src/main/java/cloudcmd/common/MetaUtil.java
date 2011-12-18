@@ -15,7 +15,7 @@ import java.util.Set;
 public class MetaUtil
 {
   // TODO: support file subblocks
-  public static FileMetaData createMeta(File file, Set<String> tags)
+  public static FileMetaData createMeta(File file, List<String> blockHashes, Set<String> tags)
   {
     FileMetaData meta = new FileMetaData();
 
@@ -26,7 +26,7 @@ public class MetaUtil
       int extIndex = fileName.lastIndexOf(".");
 
       meta.Tags = tags;
-      meta.BlockHashes = getBlockHashes(file);
+      meta.BlockHashes = new JSONArray(blockHashes);
       meta.Meta = JsonUtil.createJsonObject(
         "path", file.getCanonicalPath(),
         "filename", fileName,
@@ -50,21 +50,6 @@ public class MetaUtil
     }
 
     return meta;
-  }
-
-  static JSONArray getBlockHashes(File file)
-  {
-    String hash = CryptoUtil.computeHashAsString(file);
-    if (hash == null)
-    {
-      System.err.println("failed to compute hash of " + file.getAbsolutePath());
-      return null;
-    }
-
-    JSONArray blockHashes = new JSONArray();
-    blockHashes.put(hash);
-
-    return blockHashes;
   }
 
   public static Set<String> createTagSet(String rowTags)

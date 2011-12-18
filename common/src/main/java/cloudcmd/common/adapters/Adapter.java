@@ -48,6 +48,9 @@ public abstract class Adapter
 
   public abstract void store(InputStream data, String hash) throws Exception;
 
+  // store the file and compute the hash at runtime
+  public abstract String store(InputStream data) throws Exception;
+
   public abstract InputStream load(String hash) throws Exception;
 
   public abstract Set<String> describe() throws Exception;
