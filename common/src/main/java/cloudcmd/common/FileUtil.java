@@ -83,6 +83,7 @@ public class FileUtil
     finally
     {
       fos.close();
+      data.close();
     }
   }
 
