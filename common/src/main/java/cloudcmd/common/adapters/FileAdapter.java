@@ -72,8 +72,7 @@ public class FileAdapter extends Adapter
   @Override
   public String store(InputStream is) throws Exception
   {
-    File tmpFile = new File(getDataFileFromHash(UUID.randomUUID().toString() + ".tmp"));
-    tmpFile.getParentFile().mkdirs();
+    File tmpFile = new File(_rootPath + File.separator + UUID.randomUUID().toString() + ".tmp");
     tmpFile.createNewFile();
     String hash = FileUtil.writeFileAndComputeHash(is, tmpFile);
     File newFile = new File(getDataFileFromHash(hash));
