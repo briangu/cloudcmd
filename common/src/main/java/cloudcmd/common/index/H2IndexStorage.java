@@ -237,13 +237,14 @@ public class H2IndexStorage implements IndexStorage
   {
     if (meta == null) return;
 
+/*
     _queue.add(meta);
     if (_queue.size() > MAX_QUEUE_SIZE && !_flushing)
     {
       flush();
     }
+*/
 
-/*
     Connection db = null;
     try
     {
@@ -262,7 +263,6 @@ public class H2IndexStorage implements IndexStorage
     {
       SqlUtil.SafeClose(db);
     }
-*/
   }
 
   @Override
