@@ -20,7 +20,7 @@ public class LocalBlockCache implements BlockCache
     URI adapterUri = new URI("file:///" + ConfigStorageService.instance().getConfigRoot() + File.separator + "cache");
     _cacheAdapter = new FileAdapter();
     _cacheAdapter.init(0, FileAdapter.class.getName(), new HashSet<String>(), adapterUri);
-    loadCache(Integer.MAX_VALUE);
+//    loadCache(Integer.MAX_VALUE);
   }
 
   @Override
@@ -81,8 +81,12 @@ public class LocalBlockCache implements BlockCache
   }
 
   @Override
-  public Map<String, List<Adapter>> getHashProviders()
+  public synchronized Map<String, List<Adapter>> getHashProviders()
   {
+    if (_hashProviders == null)
+    {
+      throw new RuntimeException("call loadCache first");
+    }
     return Collections.unmodifiableMap(_hashProviders);
   }
 }

@@ -86,11 +86,8 @@ public class FileAdapter extends Adapter
       Boolean success = tmpFile.renameTo(newFile);
       if (!success)
       {
-        if (!tmpFile.renameTo(newFile))
-        {
-          tmpFile.delete();
-          throw new IOException("failed to move file: " + tmpFile.getAbsolutePath());
-        }
+        tmpFile.delete();
+        throw new IOException("failed to move file: " + tmpFile.getAbsolutePath());
       }
     }
     return hash;

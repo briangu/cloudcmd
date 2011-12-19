@@ -84,7 +84,7 @@ public class CryptoUtil
     return digest;
   }
 
-  public static byte[] copyAndComputeHash(InputStream srcData, File destFile)
+  public static byte[] writeAndComputeHash(InputStream srcData, File destFile)
   {
     byte[] digest = null;
 
@@ -98,8 +98,9 @@ public class CryptoUtil
       dis = new DigestInputStream(srcData, hash);
       fos = new FileOutputStream(destFile);
       byte[] buffer = new byte[buff];
-      while (dis.read(buffer) != -1) {
-        fos.write(buffer);
+      int read;
+      while ((read = dis.read(buffer)) != -1) {
+        fos.write(buffer, 0, read);
       }
       digest = hash.digest();
     }
@@ -117,28 +118,8 @@ public class CryptoUtil
     }
     finally
     {
-      if (dis != null)
-      {
-        try
-        {
-          dis.close();
-        }
-        catch (IOException e)
-        {
-          e.printStackTrace();
-        }
-      }
-      if (fos != null)
-      {
-        try
-        {
-          fos.close();
-        }
-        catch (IOException e)
-        {
-          e.printStackTrace();
-        }
-      }
+      FileUtil.SafeClose(dis);
+      FileUtil.SafeClose(fos);
     }
 
     return digest;

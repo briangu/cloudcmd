@@ -1,6 +1,7 @@
 package cloudcmd.common.engine.commands;
 
 
+import cloudcmd.common.CryptoUtil;
 import cloudcmd.common.FileMetaData;
 import cloudcmd.common.FileUtil;
 import cloudcmd.common.adapters.Adapter;
@@ -11,6 +12,7 @@ import ops.MemoryElement;
 import org.apache.log4j.Logger;
 import org.json.JSONArray;
 
+import java.io.File;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.Comparator;
@@ -62,7 +64,7 @@ public class basic_fetch implements AsyncCommand
         }
       });
 
-      boolean success = pullSubBlock(meta.Meta.getString("path"), blockProviders, hash);
+      boolean success = pullSubBlock(context, meta.Meta.getString("path"), blockProviders, hash);
       if (success)
       {
         context.make(new MemoryElement("msg", "body", String.format("%s pulled block %s", meta.Meta.getString("filename"), hash)));
@@ -79,6 +81,7 @@ public class basic_fetch implements AsyncCommand
   }
 
   private boolean pullSubBlock(
+    CommandContext context,
     String path,
     List<Adapter> blockProviders,
     String hash)
@@ -87,16 +90,36 @@ public class basic_fetch implements AsyncCommand
 
     for (Adapter adapter : blockProviders)
     {
+      InputStream remoteData = null;
       try
       {
-        InputStream remoteData = adapter.load(hash);
-        FileUtil.writeFile(remoteData, path);
-        success = true;
-        break;
+        // TODO: only read the file size bytes back (if the file is one block)
+        // TODO: support writing to an offset of the existing file to allow for sub-blocks
+        remoteData = adapter.load(hash);
+        File destFile = new File(path);
+        destFile.getParentFile().mkdirs();
+        String remoteDataHash = CryptoUtil.digestToString(CryptoUtil.writeAndComputeHash(remoteData, destFile));
+        if (remoteDataHash.equals(hash))
+        {
+          success = true;
+          break;
+        }
+        else
+        {
+          destFile.delete();
+        }
       }
       catch (Exception e)
       {
-        e.printStackTrace();
+        context.make(new MemoryElement("msg", "body", String.format("failed to pull block %s", hash)));
+
+        // TODO: We should delete/recover the block from the adapter
+//        context.make(new MemoryElement("recover_block", "hash", hash));
+        log.error(hash, e);
+      }
+      finally
+      {
+        FileUtil.SafeClose(remoteData);
       }
     }
 

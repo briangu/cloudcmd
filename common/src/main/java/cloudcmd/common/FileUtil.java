@@ -102,7 +102,7 @@ public class FileUtil
 
   public static String writeFileAndComputeHash(InputStream srcData, File destFile) throws IOException
   {
-    return CryptoUtil.digestToString(CryptoUtil.copyAndComputeHash(srcData, destFile));
+    return CryptoUtil.digestToString(CryptoUtil.writeAndComputeHash(srcData, destFile));
   }
 
   public static String findConfigDir(String curPath, String targetDir) throws IOException
@@ -123,7 +123,7 @@ public class FileUtil
     return new File(".").getCanonicalPath();
   }
 
-  public static void SafeClose(InputStream is)
+  public static void SafeClose(Closeable is)
   {
     if (is == null) return;
 
