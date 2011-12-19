@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class H2IndexStorage implements IndexStorage
 {
-  private static final int MAX_QUEUE_SIZE = 1000;
+  private static final int MAX_QUEUE_SIZE = 1024 * 8;
 
   private static String _configRoot;
 
