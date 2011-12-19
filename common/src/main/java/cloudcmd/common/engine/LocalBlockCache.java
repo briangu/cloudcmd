@@ -81,7 +81,7 @@ public class LocalBlockCache implements BlockCache
   }
 
   @Override
-  public synchronized Map<String, List<Adapter>> getHashProviders()
+  public Map<String, List<Adapter>> getHashProviders()
   {
     if (_hashProviders == null)
     {
