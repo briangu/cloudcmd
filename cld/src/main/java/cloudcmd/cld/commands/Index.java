@@ -38,6 +38,17 @@ public class Index implements Command
     FileWalker.enumerateFolders(_path, new FileHandler()
     {
       @Override
+      public boolean skipDir(File file)
+      {
+        boolean skip = FileTypeUtil.instance().skipDir(file.getName());
+        if (skip)
+        {
+          System.err.println(String.format("Skipping dir: " + file.getAbsolutePath()));
+        }
+        return skip;
+      }
+
+      @Override
       public void process(File file)
       {
         CloudEngineService.instance().add(file, new HashSet<String>(_tags));

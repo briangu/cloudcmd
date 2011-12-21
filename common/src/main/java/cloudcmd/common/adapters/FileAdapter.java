@@ -120,6 +120,12 @@ public class FileAdapter extends Adapter
     FileWalker.enumerateFolders(_rootPath, new FileHandler()
     {
       @Override
+      public boolean skipDir(File file)
+      {
+        return false;
+      }
+
+      @Override
       public void process(File file)
       {
         hashes.add(file.getName());

@@ -1,5 +1,3 @@
-hash check on block fetch
-
 add addeddate to meta data
 on tag add, create new meta data for pushing
 
@@ -11,7 +9,6 @@ tag update flow for adapters
 s3 adapter
 
 add ability to only index certain file types (white list) - e.g. index *.jpg
-add ignore filters for indexing
 
 srv presentation layer
 srv based adapter

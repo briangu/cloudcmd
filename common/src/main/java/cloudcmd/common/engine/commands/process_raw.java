@@ -16,9 +16,19 @@ public class process_raw implements AsyncCommand
       throws Exception
   {
     File file = (File) args[0];
+
+    if (file.isDirectory())
+    {
+
+    }
+
     String fileName = file.getName();
     int extIndex = fileName.lastIndexOf(".");
     String ext = extIndex > 0 ? fileName.substring(extIndex + 1) : null;
+    if (FileTypeUtil.instance().skipExt(ext))
+    {
+      context.make(new MemoryElement("msg", "body", String.format("skipping %s", fileName)));
+    }
     String type = ext != null ? FileTypeUtil.instance().getTypeFromExtension(ext) : null;
     context.make(new MemoryElement("index", "name", fileName, "type", type, "ext", ext, "file", file, "tags", args[1]));
   }

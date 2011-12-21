@@ -1,6 +1,9 @@
 package cloudcmd.common;
 
+import java.util.HashSet;
+import java.util.Set;
 import org.apache.commons.io.IOUtils;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -21,6 +24,21 @@ public class ResourceUtil
     if (rawJson == null) return null;
     JSONObject obj = new JSONObject(rawJson);
     return obj;
+  }
+
+  public static Set<String> loadJsonArrayAsSet(String resource) throws IOException, JSONException
+  {
+    String rawJson = load(resource);
+    if (rawJson == null) return null;
+    JSONArray obj = new JSONArray(rawJson);
+    Set<String> set = new HashSet<String>();
+
+    for (int i = 0; i < obj.length(); i++)
+    {
+      set.add(obj.getString(i));
+    }
+
+    return set;
   }
 
   public static String load(String resource) throws IOException

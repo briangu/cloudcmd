@@ -1,5 +1,7 @@
 package cloudcmd.common;
 
+import java.util.HashSet;
+import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -65,5 +67,18 @@ public class JsonUtil
     {
       load.close();
     }
+  }
+
+  public static Set<String> createSet(JSONArray array)
+      throws JSONException
+  {
+    Set<String> set = new HashSet<String>();
+
+    for (int i = 0; i < array.length(); i++)
+    {
+      set.add(array.getString(i));
+    }
+
+    return set;
   }
 }

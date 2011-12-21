@@ -1,0 +1,10 @@
+{
+  "dirs": [
+    ".svn",
+    ".git"
+  ],
+  "exts": [
+    ".obj",
+    ".class"
+  ]
+}

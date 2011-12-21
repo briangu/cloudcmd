@@ -30,6 +30,7 @@ public class FileWalker
       {
         if (file.isDirectory())
         {
+          if (handler.skipDir(file)) continue;
           stack.push(file);
           continue;
         }
