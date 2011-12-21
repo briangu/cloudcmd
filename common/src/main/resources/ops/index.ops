@@ -21,6 +21,7 @@
           ["rawFile", "name", "$name", "file", "$file", "tags", "$tags"]
         ],
         [
+          ["promote"],
           ["write", "processing {0}", "$name"],
           ["process", "$file", "$tags"],
           ["remove", 0]
@@ -31,8 +32,29 @@
           ["index", "name", "$name", "type", "$type", "ext", "$ext", "file", "$file", "tags", "$tags"]
         ],
         [
+          ["promote"],
           ["write", "indexing (default) {0}", "$name"],
           ["index_default", "$file", "$type", "$tags"],
+          ["remove", 0]
+        ]
+      ],
+      ["p", "task_finish",
+        [
+          ["async_task", "phase", "start", "id", "$id", "name", "$name"],
+          ["async_task", "phase", "stop", "id", "$id", "name", "$name"]
+        ],
+        [
+          ["debug", "finished task: {0} {1}", "$name", "$id"],
+          ["remove", 0],
+          ["remove", 1]
+        ]
+      ],
+      ["p", "msg",
+        [
+          ["msg", "body", "$body" ]
+        ],
+        [
+          ["write", "$body"],
           ["remove", 0]
         ]
       ],
@@ -66,15 +88,6 @@
           ["remove", 0]
         ]
       ],
-      ["p", "msg",
-        [
-          ["msg", "body", "$body" ]
-        ],
-        [
-          ["write", "$body"],
-          ["remove", 0]
-        ]
-      ],
       ["p", "add_meta_to_index",
       	[
           ["add_meta", "meta", "$meta"]
@@ -90,17 +103,6 @@
         [
           ["fetch", "$meta"],
           ["remove", 0]
-        ]
-      ],
-      ["p", "task_finish",
-        [
-          ["async_task", "phase", "start", "id", "$id", "name", "$name"],
-          ["async_task", "phase", "stop", "id", "$id", "name", "$name"]
-        ],
-        [
-          ["debug", "finished task: {0} {1}", "$name", "$id"],
-          ["remove", 0],
-          ["remove", 1]
         ]
       ],
       ["p", "task_wait",

@@ -28,7 +28,18 @@ public class FileAdapter extends Adapter
 
     _rootPath = URI.getPath();
 
+    initSubDirs(_rootPath);
+
     new File(_rootPath).mkdirs();
+  }
+
+  private static void initSubDirs(String rootPath)
+  {
+    for (int i = 0; i < 0x100; i++)
+    {
+      File tmpFile = new File(rootPath + File.separator + String.format("%02x", i));
+      tmpFile.mkdirs();
+    }
   }
 
   @Override
@@ -76,7 +87,7 @@ public class FileAdapter extends Adapter
     tmpFile.createNewFile();
     String hash = FileUtil.writeFileAndComputeHash(is, tmpFile);
     File newFile = new File(getDataFileFromHash(hash));
-    newFile.getParentFile().mkdirs();
+//    newFile.getParentFile().mkdirs();
     if (newFile.exists())
     {
       tmpFile.delete();
