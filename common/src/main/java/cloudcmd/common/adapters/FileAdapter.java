@@ -84,7 +84,6 @@ public class FileAdapter extends Adapter
     tmpFile.createNewFile();
     String hash = FileUtil.writeFileAndComputeHash(is, tmpFile);
     File newFile = new File(getDataFileFromHash(hash));
-//    newFile.getParentFile().mkdirs();
     if (newFile.exists())
     {
       tmpFile.delete();

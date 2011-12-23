@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.Set;
 import ops.AsyncCommand;
 import ops.CommandContext;
+import ops.MemoryElement;
 
 public class index_default implements AsyncCommand
 {
@@ -38,12 +39,25 @@ public class index_default implements AsyncCommand
     try
     {
       Adapter localCache = BlockCacheService.instance().getBlockCache();
-      fis = new FileInputStream(file);
-      blockHash = localCache.store(fis);
-      FileMetaData meta = MetaUtil.createMeta(file, Arrays.asList(blockHash), tags);
-      bais = new ByteArrayInputStream(meta.Meta.toString().getBytes());
-      localCache.store(bais, meta.MetaHash);
-      IndexStorageService.instance().add(meta);
+
+      long startTime = System.currentTimeMillis();
+      try
+      {
+        fis = new FileInputStream(file);
+        blockHash = localCache.store(fis);
+
+        FileMetaData meta = MetaUtil.createMeta(file, Arrays.asList(blockHash), tags);
+        if (!localCache.contains(meta.MetaHash))
+        {
+          bais = new ByteArrayInputStream(meta.Meta.toString().getBytes());
+          localCache.store(bais, meta.MetaHash);
+          IndexStorageService.instance().add(meta);
+        }
+      }
+      finally
+      {
+        context.make(new MemoryElement("msg", "body", String.format("took %6d ms to index %s", (System.currentTimeMillis() - startTime), file.getName())));
+      }
     }
     finally
     {
