@@ -30,7 +30,10 @@ public class FileAdapter extends Adapter
 
     initSubDirs(_rootPath);
 
-    new File(_rootPath).mkdirs();
+    File rootPathDir = new File(_rootPath);
+    rootPathDir.mkdirs();
+
+    IsOnLine = rootPathDir.exists();
   }
 
   private static void initSubDirs(String rootPath)
@@ -56,12 +59,6 @@ public class FileAdapter extends Adapter
   @Override
   public void shutdown()
   {
-  }
-
-  @Override
-  public AdapterStatus getStatus() throws Exception
-  {
-    return new AdapterStatus(true, false);
   }
 
   private String getPathFromHash(String hash) throws JSONException

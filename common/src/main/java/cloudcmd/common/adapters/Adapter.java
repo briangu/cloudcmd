@@ -10,6 +10,8 @@ public abstract class Adapter
   public Set<String> Tags;
   public URI URI;
   public Integer Tier;
+  public boolean IsOnLine;
+  public boolean IsFull;
 
   public Adapter()
   {
@@ -35,11 +37,6 @@ public abstract class Adapter
     }
 
     return false;
-  }
-
-  public AdapterStatus getStatus() throws Exception
-  {
-    return new AdapterStatus(true, false);
   }
 
   public abstract void refreshCache() throws Exception;

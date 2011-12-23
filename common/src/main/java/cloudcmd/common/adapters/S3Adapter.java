@@ -36,12 +36,6 @@ public class S3Adapter extends Adapter
   }
 
   @Override
-  public AdapterStatus getStatus() throws Exception
-  {
-    return new AdapterStatus(true, false);
-  }
-
-  @Override
   public void store(InputStream data, String hash)
   {
   }
