@@ -127,7 +127,7 @@ public class LocalCacheCloudEngine implements CloudEngine
 
           try
           {
-            Set<String> tags = MetaUtil.createTagSet(entry.getJSONArray("tags"));
+            Set<String> tags = JsonUtil.createSet(entry.getJSONArray("tags"));
 
             // TODO: accepts should take the file size as well
 
@@ -227,7 +227,7 @@ public class LocalCacheCloudEngine implements CloudEngine
         fmd.Meta = JsonUtil.loadJson(localCache.load(hash));
         fmd.MetaHash = hash;
         fmd.BlockHashes = fmd.Meta.getJSONArray("blocks");
-        fmd.Tags = MetaUtil.createTagSet(fmd.Meta.getJSONArray("tags"));
+        fmd.Tags = JsonUtil.createSet(fmd.Meta.getJSONArray("tags"));
 
         log.info(String.format("reindexing: %s %s", hash, fmd.Meta.getString("filename")));
 

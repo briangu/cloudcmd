@@ -4,7 +4,6 @@ package cloudcmd.common.engine.commands;
 import cloudcmd.common.FileMetaData;
 import cloudcmd.common.FileUtil;
 import cloudcmd.common.JsonUtil;
-import cloudcmd.common.MetaUtil;
 import cloudcmd.common.adapters.Adapter;
 import cloudcmd.common.engine.BlockCacheService;
 import cloudcmd.common.index.IndexStorageService;
@@ -91,7 +90,7 @@ public class pull_block implements AsyncCommand
         fmd.Meta = JsonUtil.loadJson(BlockCacheService.instance().getBlockCache().load(hash));
         fmd.MetaHash = hash;
         fmd.BlockHashes = fmd.Meta.getJSONArray("blocks");
-        fmd.Tags = MetaUtil.createTagSet(fmd.Meta.getJSONArray("tags"));
+        fmd.Tags = JsonUtil.createSet(fmd.Meta.getJSONArray("tags"));
 
         // if localcache has block continue
         IndexStorageService.instance().add(fmd);

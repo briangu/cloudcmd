@@ -7,7 +7,6 @@ import org.json.JSONObject;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -52,36 +51,11 @@ public class MetaUtil
     return meta;
   }
 
-  public static Set<String> createTagSet(String rowTags)
-  {
-    String[] parts = rowTags.split(" ");
-    Set<String> tags = new HashSet<String>();
-    for (String part : parts)
-    {
-      if (part.length() == 0) continue;
-    }
-    return tags;
-  }
-
-  public static Set<String> createTagSet(JSONArray tags) throws JSONException
-  {
-    Set<String> set = new HashSet<String>();
-
-    for (int i = 0; i < set.size(); i++)
-    {
-      String tag = tags.getString(i);
-      if (tag.length() == 0) continue;
-      set.add(tags.getString(i));
-    }
-
-    return set;
-  }
-
   public static FileMetaData createMeta(JSONObject jsonObject) throws JSONException
   {
     FileMetaData meta = new FileMetaData();
 
-    meta.Tags = createTagSet(jsonObject.getJSONArray("tags"));
+    meta.Tags = JsonUtil.createSet(jsonObject.getJSONArray("tags"));
     meta.BlockHashes = jsonObject.getJSONArray("blocks");
     meta.Meta = JsonUtil.createJsonObject(
       "path", jsonObject.getString("path"),
