@@ -1,20 +1,29 @@
 package cloudcmd.common.index;
 
+
 import cloudcmd.common.FileMetaData;
-import cloudcmd.common.MetaUtil;
+import cloudcmd.common.JsonUtil;
 import cloudcmd.common.SqlUtil;
 import cloudcmd.common.StringUtil;
 import cloudcmd.common.config.ConfigStorageService;
+import java.io.File;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import org.h2.fulltext.FullText;
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import java.io.File;
-import java.sql.*;
-import java.util.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class H2IndexStorage implements IndexStorage
 {
@@ -371,7 +380,7 @@ public class H2IndexStorage implements IndexStorage
         String rawJson = resultSet.getString("RAWMETA");
         JSONObject obj = new JSONObject(rawJson);
         obj.put("hash", resultSet.getString("HASH"));
-        obj.put("tags", MetaUtil.createTagSet(resultSet.getString("TAGS")));
+        obj.put("tags", JsonUtil.createSet(resultSet.getString("TAGS"), " "));
         results.put(obj);
       }
     }
@@ -429,7 +438,7 @@ public class H2IndexStorage implements IndexStorage
       while (rs.next())
       {
         String rowTags = rs.getString("TAGS");
-        Set<String> rowTagSet = MetaUtil.createTagSet(rowTags);
+        Set<String> rowTagSet = JsonUtil.createSet(rowTags, " ");
         rowTagSet.addAll(tags);
         rs.updateString("TAGS", StringUtil.join(rowTagSet, " "));
         rs.updateRow();
@@ -489,7 +498,7 @@ public class H2IndexStorage implements IndexStorage
       while (rs.next())
       {
         String rowTags = rs.getString("TAGS");
-        Set<String> rowTagSet = MetaUtil.createTagSet(rowTags);
+        Set<String> rowTagSet = JsonUtil.createSet(rowTags, " ");
         rowTagSet.removeAll(tags);
         rs.updateString("TAGS", StringUtil.join(rowTagSet, " "));
         rs.updateRow();
