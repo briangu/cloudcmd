@@ -3,11 +3,9 @@ package cloudcmd.common.engine;
 import cloudcmd.common.adapters.Adapter;
 import cloudcmd.common.adapters.FileAdapter;
 import cloudcmd.common.config.ConfigStorageService;
-import org.json.JSONException;
 
 import java.io.File;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.*;
 
 public class LocalBlockCache implements BlockCache
@@ -20,7 +18,6 @@ public class LocalBlockCache implements BlockCache
     URI adapterUri = new URI("file:///" + ConfigStorageService.instance().getConfigRoot() + File.separator + "cache");
     _cacheAdapter = new FileAdapter();
     _cacheAdapter.init(0, FileAdapter.class.getName(), new HashSet<String>(), adapterUri);
-//    loadCache(Integer.MAX_VALUE);
   }
 
   @Override
