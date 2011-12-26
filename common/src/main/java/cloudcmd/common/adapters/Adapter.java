@@ -6,6 +6,7 @@ import java.util.Set;
 
 public abstract class Adapter
 {
+  public String ConfigDir;
   public String Type;
   public Set<String> Tags;
   public URI URI;
@@ -17,8 +18,9 @@ public abstract class Adapter
   {
   }
 
-  public void init(Integer tier, String type, Set<String> tags, URI uri) throws Exception
+  public void init(String configDir, Integer tier, String type, Set<String> tags, URI uri) throws Exception
   {
+    ConfigDir = configDir;
     Tier = tier;
     Type = type;
     Tags = tags;

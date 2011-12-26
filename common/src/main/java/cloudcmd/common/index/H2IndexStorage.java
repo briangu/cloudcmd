@@ -70,7 +70,7 @@ public class H2IndexStorage implements IndexStorage
     File file = new File(getDbFile() + ".h2.db");
     if (!file.exists())
     {
-      bootstrap();
+      bootstrapDb();
     }
   }
 
@@ -85,7 +85,7 @@ public class H2IndexStorage implements IndexStorage
     }
   }
 
-  private void bootstrap()
+  private void bootstrapDb()
   {
     Connection db = null;
     Statement st = null;
@@ -311,7 +311,7 @@ public class H2IndexStorage implements IndexStorage
     JSONArray results = new JSONArray();
 
     Connection db = null;
-    PreparedStatement statement;
+    PreparedStatement statement = null;
 
     try
     {
@@ -394,6 +394,7 @@ public class H2IndexStorage implements IndexStorage
     }
     finally
     {
+      SqlUtil.SafeClose(statement);
       SqlUtil.SafeClose(db);
     }
 

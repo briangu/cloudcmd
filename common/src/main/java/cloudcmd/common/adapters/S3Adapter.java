@@ -1,15 +1,24 @@
 package cloudcmd.common.adapters;
 
 
+import cloudcmd.common.SqlUtil;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.InputStream;
 import java.net.URI;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.apache.commons.io.IOUtils;
-import org.jets3t.service.S3ServiceException;
+import org.h2.jdbcx.JdbcConnectionPool;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.AWSCredentials;
@@ -23,20 +32,106 @@ public class S3Adapter extends Adapter
 {
   String _bucketName;
   RestS3Service _s3Service;
+  JdbcConnectionPool _cp = null;
+  Set<String> _description = null;
 
   public S3Adapter()
   {
   }
 
   @Override
-  public void init(Integer tier, String type, Set<String> tags, URI uri) throws Exception
+  public void init(String configDir, Integer tier, String type, Set<String> tags, URI uri) throws Exception
   {
-    super.init(tier, type, tags, uri);
+    super.init(configDir, tier, type, tags, uri);
 
     List<String> awsInfo = parseAuthority(uri.getAuthority());
     AWSCredentials creds = new AWSCredentials(awsInfo.get(0), awsInfo.get(1));
     _s3Service = new RestS3Service(creds);
     _bucketName = awsInfo.get(2);
+
+    initCacheDb();
+  }
+
+  private String getDbFile()
+  {
+    return String.format("%s%s%s", ConfigDir, File.separator, _bucketName);
+  }
+
+  private String createConnectionString()
+  {
+    return String.format("jdbc:h2:%s", getDbFile());
+  }
+
+  private Connection getDbConnection() throws SQLException
+  {
+    return _cp.getConnection();
+  }
+
+  private Connection getReadOnlyDbConnection() throws SQLException
+  {
+    Connection conn = getDbConnection();
+    conn.setReadOnly(true);
+    return conn;
+  }
+
+  private void initCacheDb()
+      throws ClassNotFoundException
+  {
+    Class.forName("org.h2.Driver");
+    _cp = JdbcConnectionPool.create(createConnectionString(), "sa", "sa");
+    File file = new File(getDbFile() + ".h2.db");
+    if (!file.exists())
+    {
+      bootstrapDb();
+    }
+  }
+
+  private void bootstrapDb()
+  {
+    Connection db = null;
+    Statement st = null;
+    try
+    {
+      db = getDbConnection();
+      st = db.createStatement();
+
+      st.execute("DROP TABLE if exists BLOCK_INDEX;");
+      st.execute("CREATE TABLE BLOCK_INDEX ( HASH VARCHAR PRIMARY KEY );");
+
+      db.commit();
+    }
+    catch (SQLException e)
+    {
+      e.printStackTrace();
+    }
+    finally
+    {
+      SqlUtil.SafeClose(st);
+      SqlUtil.SafeClose(db);
+    }
+  }
+
+  public void purge()
+  {
+    Connection db = null;
+    Statement st = null;
+    try
+    {
+      db = getDbConnection();
+      st = db.createStatement();
+      st.execute("delete from BLOCK_INDEX;");
+
+      _description = null;
+    }
+    catch (SQLException e)
+    {
+      e.printStackTrace();
+    }
+    finally
+    {
+      SqlUtil.SafeClose(st);
+      SqlUtil.SafeClose(db);
+    }
   }
 
   private static List<String> parseAuthority(String authority)
@@ -55,20 +150,51 @@ public class S3Adapter extends Adapter
   {
     S3Object[] s3Objects = _s3Service.listObjects(_bucketName);
 
-    // TODO: use h2 db to hold list of bucket objects
+    purge();
+
+    Connection db = null;
+    PreparedStatement statement = null;
+    try
+    {
+      db = getDbConnection();
+
+      db.setAutoCommit(false);
+
+      statement = db.prepareStatement("INSERT INTO BLOCK_INDEX VALUES (?)");
+
+      for (S3Object s3Object : s3Objects)
+      {
+        statement.setString(0, s3Object.getName());
+        statement.execute();
+        statement.clearParameters();
+      }
+
+      db.commit();
+    }
+    catch (SQLException e)
+    {
+      e.printStackTrace();
+    }
+    finally
+    {
+      SqlUtil.SafeClose(statement);
+      SqlUtil.SafeClose(db);
+    }
   }
 
   @Override
   public boolean contains(String hash) throws Exception
   {
-    // TODO: query h2 db
-    return false;  //To change body of implemented methods use File | Settings | File Templates.
+    return describe().contains(hash);
   }
 
   @Override
   public void shutdown()
   {
-    // TODO: shutdown connection pool
+    if (_cp != null)
+    {
+      _cp.dispose();
+    }
   }
 
   @Override
@@ -104,16 +230,53 @@ public class S3Adapter extends Adapter
   public InputStream load(String hash)
       throws Exception
   {
-    // TODO: if present in cache, fetch and update cache
-    S3Object s3Object = _s3Service.getObject(_bucketName, hash);
-    return s3Object.getDataInputStream();
+    if (!contains(hash)) throw new DataNotFoundException(hash);
+    return _s3Service.getObject(_bucketName, hash).getDataInputStream();
   }
 
   @Override
   public Set<String> describe()
       throws Exception
   {
-    // TODO: scan db
-    return null;
+    if (_description == null)
+    {
+      _description = _describe();
+    }
+
+    return _description;
+  }
+
+  private Set<String> _describe()
+      throws Exception
+  {
+    Set<String> description = new HashSet<String>();
+
+    Connection db = null;
+    PreparedStatement statement = null;
+
+    try
+    {
+      db = getReadOnlyDbConnection();
+
+      statement = db.prepareStatement("SELECT * FROM BLOCK_INDEX");
+
+      ResultSet resultSet = statement.executeQuery();
+
+      while (resultSet.next())
+      {
+        description.add(resultSet.getString("HASH"));
+      }
+    }
+    catch (SQLException e)
+    {
+      e.printStackTrace();
+    }
+    finally
+    {
+      SqlUtil.SafeClose(statement);
+      SqlUtil.SafeClose(db);
+    }
+
+    return Collections.unmodifiableSet(description);
   }
 }

@@ -160,7 +160,7 @@ public class JsonConfigStorage implements ConfigStorage
     try
     {
       adapter = (Adapter) clazz.newInstance();
-      adapter.init(tier, handlerType, tags, adapterUri);
+      adapter.init(_configRoot + File.separator + handlerType, tier, handlerType, tags, adapterUri);
     }
     catch (Exception e)
     {

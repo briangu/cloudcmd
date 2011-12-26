@@ -22,9 +22,9 @@ public class FileAdapter extends Adapter
   }
 
   @Override
-  public void init(Integer tier, String type, Set<String> tags, URI config) throws Exception
+  public void init(String configDir, Integer tier, String type, Set<String> tags, URI config) throws Exception
   {
-    super.init(tier, type, tags, config);
+    super.init(configDir, tier, type, tags, config);
 
     _rootPath = URI.getPath();
 
