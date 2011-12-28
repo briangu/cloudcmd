@@ -3,10 +3,9 @@ on tag add, create new meta data for pushing
 
 adapter status
   adapter full status 
-  online/offline
-tag update flow for adapters
+[x]  online/offline
 
-s3 adapter
+[x] s3 adapter
 
 add ability to only index certain file types (white list) - e.g. index *.jpg
 

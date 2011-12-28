@@ -35,7 +35,7 @@ public class Tag implements Command
     {
       Set<String> preparedTags = MetaUtil.prepareTags(_tags);
 
-      JSONArray selections = JsonUtil.loadJsonArray(System.in);
+      JSONArray selections = JsonUtil.loadJsonArray(is);
 
       if (_remove)
       {

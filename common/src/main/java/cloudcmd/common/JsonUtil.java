@@ -91,6 +91,7 @@ public class JsonUtil
     for (String part : parts)
     {
       if (part.length() == 0) continue;
+      tags.add(part);
     }
     return tags;
   }

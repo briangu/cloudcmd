@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Set;
 import org.apache.commons.io.IOUtils;
 import org.h2.jdbcx.JdbcConnectionPool;
+import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.AWSCredentials;
@@ -49,7 +50,7 @@ public class S3Adapter extends Adapter
     _s3Service = new RestS3Service(creds);
     _bucketName = awsInfo.get(2);
 
-    initCacheDb();
+    bootstrap();
   }
 
   private String getDbFile()
@@ -74,8 +75,8 @@ public class S3Adapter extends Adapter
     return conn;
   }
 
-  private void initCacheDb()
-      throws ClassNotFoundException
+  private void bootstrap()
+      throws Exception
   {
     Class.forName("org.h2.Driver");
     _cp = JdbcConnectionPool.create(createConnectionString(), "sa", "sa");
@@ -83,7 +84,14 @@ public class S3Adapter extends Adapter
     if (!file.exists())
     {
       bootstrapDb();
+      bootstrapS3();
     }
+  }
+
+  private void bootstrapS3()
+      throws S3ServiceException
+  {
+    _s3Service.getOrCreateBucket(_bucketName);
   }
 
   private void bootstrapDb()
