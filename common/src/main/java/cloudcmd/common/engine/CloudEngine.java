@@ -32,4 +32,6 @@ public interface CloudEngine
   void push(int maxTier, JSONArray selections);
 
   void pull(int maxTier, boolean retrieveBlocks, JSONArray selections);
+
+  void commit(JSONArray selections) throws Exception;
 }

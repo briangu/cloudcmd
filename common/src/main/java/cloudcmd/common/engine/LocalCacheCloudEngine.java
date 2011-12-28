@@ -5,6 +5,7 @@ import cloudcmd.common.adapters.Adapter;
 import cloudcmd.common.config.ConfigStorageService;
 import cloudcmd.common.engine.commands.*;
 import cloudcmd.common.index.IndexStorageService;
+import java.io.ByteArrayInputStream;
 import ops.Command;
 import ops.OPS;
 import ops.OpsFactory;
@@ -240,6 +241,26 @@ public class LocalCacheCloudEngine implements CloudEngine
     }
 
     IndexStorageService.instance().addAll(fmds);
+  }
+
+  @Override
+  public void commit(JSONArray selections)
+      throws Exception
+  {
+    Adapter localCache = BlockCacheService.instance().getBlockCache();
+
+    final Set<String> localDescription = localCache.describe();
+
+    for (int i = 0; i < selections.length(); i++)
+    {
+      JSONObject entry = selections.getJSONObject(i);
+
+      String hash = entry.getString("hash");
+
+      if (localDescription.contains(hash)) continue;
+
+      localCache.store(new ByteArrayInputStream(entry.toString().getBytes("UTF-8")), hash);
+    }
   }
 
   @Override

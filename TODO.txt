@@ -1,6 +1,9 @@
 add addeddate to meta data
 on tag add, create new meta data for pushing
 
+add tag - set operation
+add meta parent chaining
+
 adapter status
   adapter full status 
 [x]  online/offline

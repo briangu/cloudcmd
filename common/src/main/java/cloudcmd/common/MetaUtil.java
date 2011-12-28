@@ -1,5 +1,6 @@
 package cloudcmd.common;
 
+import java.io.UnsupportedEncodingException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -13,45 +14,49 @@ import java.util.Set;
 
 public class MetaUtil
 {
+  public static JSONArray createJson(List<FileMetaData> meta)
+      throws JSONException
+  {
+    JSONArray result = new JSONArray();
+
+    for (FileMetaData metaData : meta)
+    {
+      JSONObject obj = new JSONObject(metaData.Meta);
+      obj.put("hash", metaData.MetaHash);
+      result.put(obj);
+    }
+
+    return result;
+  }
+
   // TODO: support file subblocks
   public static FileMetaData createMeta(File file, List<String> blockHashes, Set<String> tags)
+      throws IOException, JSONException
   {
     FileMetaData meta = new FileMetaData();
 
-    try
-    {
-      String fileName = file.getName();
+    String fileName = file.getName();
 
-      int extIndex = fileName.lastIndexOf(".");
+    int extIndex = fileName.lastIndexOf(".");
 
-      meta.Tags = tags;
-      meta.BlockHashes = new JSONArray(blockHashes);
-      meta.Meta = JsonUtil.createJsonObject(
-        "path", file.getCanonicalPath(),
-        "filename", fileName,
-        "fileext", extIndex >= 0 ? fileName.substring(extIndex + 1) : null,
-        "filesize", file.length(),
-        "filedate", file.lastModified(),
-        "blocks", meta.BlockHashes,
-        "tags", tags
-      );
-      meta.MetaHash = CryptoUtil.computeHashAsString(new ByteArrayInputStream(meta.Meta.toString().getBytes())) + ".meta";
-    }
-    catch (JSONException e)
-    {
-      e.printStackTrace();
-      meta = null;
-    }
-    catch (IOException e)
-    {
-      e.printStackTrace();
-      meta = null;
-    }
+    meta.Tags = tags;
+    meta.BlockHashes = new JSONArray(blockHashes);
+    meta.Meta = JsonUtil.createJsonObject(
+      "path", file.getCanonicalPath(),
+      "filename", fileName,
+      "fileext", extIndex >= 0 ? fileName.substring(extIndex + 1) : null,
+      "filesize", file.length(),
+      "filedate", file.lastModified(),
+      "blocks", meta.BlockHashes,
+      "tags", tags
+    );
+    meta.MetaHash = CryptoUtil.computeHashAsString(new ByteArrayInputStream(meta.Meta.toString().getBytes("UTF-8"))) + ".meta";
 
     return meta;
   }
 
-  public static FileMetaData createMeta(JSONObject jsonObject) throws JSONException
+  public static FileMetaData createMeta(JSONObject jsonObject)
+      throws JSONException, IOException
   {
     FileMetaData meta = new FileMetaData();
 
@@ -66,7 +71,7 @@ public class MetaUtil
       "blocks", meta.BlockHashes,
       "tags", meta.Tags
     );
-    meta.MetaHash = jsonObject.getString("hash");
+    meta.MetaHash = CryptoUtil.computeHashAsString(new ByteArrayInputStream(meta.Meta.toString().getBytes("UTF-8"))) + ".meta";
 
     return meta;
   }

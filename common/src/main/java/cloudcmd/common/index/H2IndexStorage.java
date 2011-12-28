@@ -3,10 +3,12 @@ package cloudcmd.common.index;
 
 import cloudcmd.common.FileMetaData;
 import cloudcmd.common.JsonUtil;
+import cloudcmd.common.MetaUtil;
 import cloudcmd.common.SqlUtil;
 import cloudcmd.common.StringUtil;
 import cloudcmd.common.config.ConfigStorageService;
 import java.io.File;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -402,10 +404,12 @@ public class H2IndexStorage implements IndexStorage
   }
 
   @Override
-  public void addTags(JSONArray array, Set<String> tags)
+  public JSONArray addTags(JSONArray array, Set<String> tags) throws Exception
   {
     Connection db = null;
     PreparedStatement statement = null;
+
+    List<FileMetaData> newMeta = new ArrayList<FileMetaData>();
 
     try
     {
@@ -416,9 +420,7 @@ public class H2IndexStorage implements IndexStorage
         hashes.add(array.getJSONObject(i).getString("hash"));
       }
 
-      db = getDbConnection();
-
-      db.setAutoCommit(false);
+      db = getReadOnlyDbConnection();
 
       String sql = String.format("SELECT HASH,TAGS,RAWMETA FROM FILE_INDEX WHERE HASH IN (%s);", StringUtil.joinRepeat(hashes.size(), "?", ","));
 
@@ -438,14 +440,16 @@ public class H2IndexStorage implements IndexStorage
 
       while (rs.next())
       {
-        String rowTags = rs.getString("TAGS");
-        Set<String> rowTagSet = JsonUtil.createSet(rowTags, " ");
+        String rawJson = rs.getString("RAWMETA");
+        JSONObject obj = new JSONObject(rawJson);
+        Set<String> rowTagSet = JsonUtil.createSet(obj.getJSONArray("tags"));
+
+        // TODO: apply - tags
         rowTagSet.addAll(tags);
-        rs.updateString("TAGS", StringUtil.join(rowTagSet, " "));
-        rs.updateRow();
-      }
+        obj.put("tags", rowTagSet);
 
-      db.commit();
+        newMeta.add(MetaUtil.createMeta(obj));
+      }
     }
     catch (JSONException e)
     {
@@ -455,63 +459,7 @@ public class H2IndexStorage implements IndexStorage
     {
       e.printStackTrace();
     }
-    finally
-    {
-      SqlUtil.SafeClose(statement);
-      SqlUtil.SafeClose(db);
-    }
-  }
-
-  @Override
-  public void removeTags(JSONArray array, Set<String> tags)
-  {
-    Connection db = null;
-    PreparedStatement statement = null;
-    try
-    {
-      List<String> hashes = new ArrayList<String>();
-
-      for (int i = 0; i < array.length(); i++)
-      {
-        hashes.add(array.getJSONObject(i).getString("hash"));
-      }
-
-      db = getDbConnection();
-
-      db.setAutoCommit(false);
-
-      String sql = String.format("SELECT HASH,TAGS,RAWMETA FROM FILE_INDEX WHERE HASH IN (%s);", StringUtil.joinRepeat(hashes.size(), "?", ","));
-
-      statement =
-        db.prepareStatement(
-          sql,
-          ResultSet.TYPE_SCROLL_SENSITIVE,
-          ResultSet.CONCUR_UPDATABLE,
-          ResultSet.HOLD_CURSORS_OVER_COMMIT);
-
-      for (int i = 0, paramIdx = 1; i < hashes.size(); i++, paramIdx++)
-      {
-        bind(statement, paramIdx, hashes.get(i));
-      }
-
-      ResultSet rs = statement.executeQuery();
-
-      while (rs.next())
-      {
-        String rowTags = rs.getString("TAGS");
-        Set<String> rowTagSet = JsonUtil.createSet(rowTags, " ");
-        rowTagSet.removeAll(tags);
-        rs.updateString("TAGS", StringUtil.join(rowTagSet, " "));
-        rs.updateRow();
-      }
-
-      db.commit();
-    }
-    catch (JSONException e)
-    {
-      e.printStackTrace();
-    }
-    catch (SQLException e)
+    catch (IOException e)
     {
       e.printStackTrace();
     }
@@ -520,5 +468,9 @@ public class H2IndexStorage implements IndexStorage
       SqlUtil.SafeClose(statement);
       SqlUtil.SafeClose(db);
     }
+
+    addAll(newMeta);
+
+    return MetaUtil.createJson(newMeta);
   }
 }

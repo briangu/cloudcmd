@@ -3,6 +3,7 @@ package cloudcmd.cld.commands;
 
 import cloudcmd.common.JsonUtil;
 import cloudcmd.common.MetaUtil;
+import cloudcmd.common.engine.CloudEngineService;
 import cloudcmd.common.index.IndexStorageService;
 import jpbetz.cli.*;
 import org.json.JSONArray;
@@ -39,11 +40,12 @@ public class Tag implements Command
 
       if (_remove)
       {
-        IndexStorageService.instance().removeTags(selections, preparedTags);
-      } else
-      {
-        IndexStorageService.instance().addTags(selections, preparedTags);
+//        IndexStorageService.instance().removeTags(selections, preparedTags);
+        // TODO: apply - tags
       }
+
+      JSONArray newMeta = IndexStorageService.instance().addTags(selections, preparedTags);
+      CloudEngineService.instance().commit(newMeta);
     }
     finally
     {
