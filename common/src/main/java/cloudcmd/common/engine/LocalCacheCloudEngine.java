@@ -236,7 +236,7 @@ public class LocalCacheCloudEngine implements CloudEngine
       }
       catch (Exception e)
       {
-        e.printStackTrace();
+        log.error(hash, e);
       }
     }
 

@@ -1,6 +1,7 @@
 package cloudcmd.common;
 
 import java.io.UnsupportedEncodingException;
+import java.util.Iterator;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -21,7 +22,13 @@ public class MetaUtil
 
     for (FileMetaData metaData : meta)
     {
-      JSONObject obj = new JSONObject(metaData.Meta);
+      JSONObject obj = new JSONObject();
+      Iterator<String> iter = metaData.Meta.keys();
+      while (iter.hasNext())
+      {
+        String key = iter.next();
+        obj.put(key, metaData.Meta.get(key));
+      }
       obj.put("hash", metaData.MetaHash);
       result.put(obj);
     }
