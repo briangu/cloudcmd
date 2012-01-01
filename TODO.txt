@@ -1,10 +1,10 @@
-add addeddate to meta data
-add tag - set operation
-add meta parent chaining
-add group by result format for parent chaining
+[WF] add addeddate to meta data
+[x] add tag - set operation
+[x] add meta parent chaining
+[WF] add group by result format for parent chaining
 
 adapter status
-  adapter full status 
+[x]  adapter full status
 [x]  online/offline
 
 [x]on tag add, create new meta data for pushing

@@ -11,11 +11,20 @@ public abstract class Adapter
   public Set<String> Tags;
   public URI URI;
   public Integer Tier;
-  public boolean IsOnLine;
-  public boolean IsFull;
+  protected boolean _isOnline;
 
   public Adapter()
   {
+  }
+
+  public boolean IsOnLine()
+  {
+    return true;
+  }
+
+  public boolean IsFull()
+  {
+    return false;
   }
 
   public void init(String configDir, Integer tier, String type, Set<String> tags, URI uri) throws Exception

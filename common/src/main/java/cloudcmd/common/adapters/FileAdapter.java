@@ -15,6 +15,8 @@ import java.util.UUID;
 
 public class FileAdapter extends Adapter
 {
+  private final static int MIN_FREE_STORAGE_SIZE = 1024 * 1024;
+
   String _rootPath;
 
   public FileAdapter()
@@ -33,7 +35,19 @@ public class FileAdapter extends Adapter
     File rootPathDir = new File(_rootPath);
     rootPathDir.mkdirs();
 
-    IsOnLine = rootPathDir.exists();
+    _isOnline = rootPathDir.exists();
+  }
+
+  @Override
+  public boolean IsOnLine()
+  {
+    return _isOnline;
+  }
+
+  @Override
+  public boolean IsFull()
+  {
+    return new File(_rootPath).getUsableSpace() < MIN_FREE_STORAGE_SIZE;
   }
 
   private static void initSubDirs(String rootPath)

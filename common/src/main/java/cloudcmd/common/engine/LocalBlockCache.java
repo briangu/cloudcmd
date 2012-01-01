@@ -39,7 +39,7 @@ public class LocalBlockCache implements BlockCache
 
     for (final Adapter adapter : adapters)
     {
-      if (!adapter.IsOnLine) continue;
+      if (!adapter.IsOnLine()) continue;
 
       try
       {
@@ -65,7 +65,7 @@ public class LocalBlockCache implements BlockCache
     for (final Adapter adapter : adapters)
     {
       if (adapter.Tier > maxTier) continue;
-      if (!adapter.IsOnLine) continue;
+      if (!adapter.IsOnLine()) continue;
 
       Set<String> adapterDescription = adapter.describe();
 

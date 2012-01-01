@@ -92,9 +92,19 @@ public class LocalCacheCloudEngine implements CloudEngine
   public void push(int maxTier)
       throws Exception
   {
-    BlockCacheService.instance().loadCache(maxTier);
+    JSONArray selections = IndexStorageService.instance().find(new JSONObject());
+    push(maxTier, selections);
+  }
 
-    JSONArray allEntries = IndexStorageService.instance().find(new JSONObject());
+  // **
+  // TODO: pluggable replication strategies
+  //       The current strategy is mirroring with tolerance for offline and full
+  // **
+  @Override
+  public void push(int maxTier, JSONArray selections)
+      throws Exception
+  {
+    BlockCacheService.instance().loadCache(maxTier);
 
     Adapter localCache = BlockCacheService.instance().getBlockCache();
 
@@ -103,28 +113,39 @@ public class LocalCacheCloudEngine implements CloudEngine
     for (final Adapter adapter : ConfigStorageService.instance().getAdapters())
     {
       if (adapter.Tier > maxTier) continue;
+      if (!adapter.IsOnLine())
+      {
+        log.warn(String.format("skipping adapter because it's not online: %s", adapter.URI.toASCIIString()));
+        continue;
+      }
+      if (adapter.IsFull())
+      {
+        log.warn(String.format("skipping adapter because it's full: %s", adapter.URI.toASCIIString()));
+        continue;
+      }
 
       try
       {
         Set<String> adapterDescription = adapter.describe();
 
-        for (int i = 0; i < allEntries.length(); i++)
+        for (int i = 0; i < selections.length(); i++)
         {
-          String hash = allEntries.getJSONObject(i).getString("hash");
+          String hash = selections.getJSONObject(i).getString("hash");
 
           if (!hash.endsWith(".meta"))
           {
-            // TODO: message (this shouldn't happen)
+            log.error("unexpected hash type: " + hash);
             continue;
           }
 
           if (!localDescription.contains(hash))
           {
-            // TODO: message (the index should always by in sync with the local cache)
+            // the index should always by in sync with the local cache
+            log.error("hash not found in local cache: " + hash);
             continue;
           }
 
-          JSONObject entry = allEntries.getJSONObject(i).getJSONObject("data");
+          JSONObject entry = selections.getJSONObject(i).getJSONObject("data");
 
           try
           {
@@ -132,7 +153,17 @@ public class LocalCacheCloudEngine implements CloudEngine
 
             // TODO: accepts should take the file size as well
 
-            if (!adapter.accepts(tags)) continue;
+            if (!adapter.accepts(tags))
+            {
+              if (log.isDebugEnabled())
+              {
+                log.debug(String.format("skipping adapter %s because it doesn't accept tags (%s) for hash %s",
+                                        adapter.URI.toASCIIString(),
+                                        StringUtil.join(tags, ","),
+                                        hash));
+              }
+              continue;
+            }
 
             if (!adapterDescription.contains(hash))
             {
@@ -171,12 +202,32 @@ public class LocalCacheCloudEngine implements CloudEngine
       throws Exception
   {
     BlockCacheService.instance().loadCache(maxTier);
+    Map<String, List<Adapter>> hashProviders = BlockCacheService.instance().getHashProviders();
+    pull(retrieveBlocks, hashProviders.keySet());
+  }
 
+  @Override
+  public void pull(int maxTier, boolean retrieveBlocks, JSONArray selections)
+      throws Exception
+  {
+    BlockCacheService.instance().loadCache(maxTier);
+
+    Set<String> hashes = new HashSet<String>(selections.length());
+
+    for (int i = 0; i < selections.length(); i++)
+    {
+      hashes.add(selections.getJSONObject(i).getString("hash"));
+    }
+
+    pull(retrieveBlocks, hashes);
+  }
+
+  private void pull(boolean retrieveBlocks, Set<String> hashes)
+      throws Exception
+  {
     Adapter localCache = BlockCacheService.instance().getBlockCache();
 
-    Map<String, List<Adapter>> hashProviders = BlockCacheService.instance().getHashProviders();
-
-    for (String hash : hashProviders.keySet())
+    for (String hash : hashes)
     {
       if (!hash.endsWith(".meta")) continue;
 
@@ -243,13 +294,10 @@ public class LocalCacheCloudEngine implements CloudEngine
   public JSONArray addTags(JSONArray selections, Set<String> tags)
       throws Exception
   {
-    // TODO: this sequence is a bit strange, as what we really want is:
-    //        derive the new meta data, store it in the local cache, and then (re)index the new data
-
     Adapter localCache = BlockCacheService.instance().getBlockCache();
     final Set<String> localDescription = localCache.describe();
 
-    List<FileMetaData> fmds = new ArrayList<FileMetaData>();
+    List<FileMetaData> fmds = new ArrayList<FileMetaData>(selections.length());
 
     for (int i = 0; i < selections.length(); i++)
     {
@@ -271,22 +319,6 @@ public class LocalCacheCloudEngine implements CloudEngine
     return newSelections;
   }
 
-  private void commit(JSONArray selections)
-      throws Exception
-  {
-    Adapter localCache = BlockCacheService.instance().getBlockCache();
-
-    final Set<String> localDescription = localCache.describe();
-
-    for (int i = 0; i < selections.length(); i++)
-    {
-      String hash = selections.getJSONObject(i).getString("hash");
-      JSONObject entry = selections.getJSONObject(i).getJSONObject("data");
-      if (localDescription.contains(hash)) continue;
-      localCache.store(new ByteArrayInputStream(entry.toString().getBytes("UTF-8")), hash);
-    }
-  }
-
   @Override
   public void fetch(int maxTier, JSONArray selections) throws Exception
   {
@@ -303,15 +335,5 @@ public class LocalCacheCloudEngine implements CloudEngine
         log.error("index = " + i, e);
       }
     }
-  }
-
-  @Override
-  public void push(int i, JSONArray selections)
-  {
-  }
-
-  @Override
-  public void pull(int i, boolean retrieveBlocks, JSONArray selections)
-  {
   }
 }
