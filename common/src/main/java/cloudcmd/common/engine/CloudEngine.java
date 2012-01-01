@@ -35,5 +35,6 @@ public interface CloudEngine
 
   void pull(int maxTier, boolean retrieveBlocks, JSONArray selections);
 
-  void commit(JSONArray selections) throws Exception;
+  JSONArray addTags(JSONArray selections, Set<String> tags)
+      throws Exception;
 }

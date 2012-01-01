@@ -211,6 +211,8 @@ public class LocalCacheCloudEngine implements CloudEngine
   public void reindex()
       throws Exception
   {
+    IndexStorageService.instance().purge();
+
     Adapter localCache = BlockCacheService.instance().getBlockCache();
 
     final Set<String> localDescription = localCache.describe();
@@ -234,11 +236,42 @@ public class LocalCacheCloudEngine implements CloudEngine
     }
 
     IndexStorageService.instance().addAll(fmds);
-    IndexStorageService.instance().pruneHistory();
+    IndexStorageService.instance().pruneHistory(MetaUtil.toJsonArray(fmds));
   }
 
   @Override
-  public void commit(JSONArray selections)
+  public JSONArray addTags(JSONArray selections, Set<String> tags)
+      throws Exception
+  {
+    // TODO: this sequence is a bit strange, as what we really want is:
+    //        derive the new meta data, store it in the local cache, and then (re)index the new data
+
+    Adapter localCache = BlockCacheService.instance().getBlockCache();
+    final Set<String> localDescription = localCache.describe();
+
+    List<FileMetaData> fmds = new ArrayList<FileMetaData>();
+
+    for (int i = 0; i < selections.length(); i++)
+    {
+      String hash = selections.getJSONObject(i).getString("hash");
+      JSONObject data = selections.getJSONObject(i).getJSONObject("data");
+      FileMetaData oldMeta = FileMetaData.create(hash, data);
+      data.put("tags", MetaUtil.applyTags(oldMeta.getTags(), tags));
+      FileMetaData derivedMeta = MetaUtil.deriveMeta(hash, data);
+      fmds.add(derivedMeta);
+      if (localDescription.contains(derivedMeta.getHash())) continue;
+      localCache.store(new ByteArrayInputStream(derivedMeta.getDataAsString().getBytes("UTF-8")), derivedMeta.getHash());
+    }
+
+    JSONArray newSelections = MetaUtil.toJsonArray(fmds);
+
+    IndexStorageService.instance().addAll(fmds);
+    IndexStorageService.instance().pruneHistory(newSelections);
+
+    return newSelections;
+  }
+
+  private void commit(JSONArray selections)
       throws Exception
   {
     Adapter localCache = BlockCacheService.instance().getBlockCache();

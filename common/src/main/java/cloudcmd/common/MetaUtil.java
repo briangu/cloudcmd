@@ -90,4 +90,29 @@ public class MetaUtil
 
     return tags;
   }
+
+  public static Set<String> applyTags(Set<String> tags, Set<String> newTags)
+  {
+    Set<String> addTags = new HashSet<String>();
+    Set<String> removeTags = new HashSet<String>();
+
+    for (String tag : newTags)
+    {
+      if (tag.startsWith("-"))
+      {
+        removeTags.add(tag.substring(1));
+      }
+      else
+      {
+        addTags.add(tag);
+      }
+    }
+
+    Set<String> appliedTags = new HashSet<String>(tags);
+
+    appliedTags.addAll(addTags);
+    appliedTags.removeAll(removeTags);
+
+    return appliedTags;
+  }
 }

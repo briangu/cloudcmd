@@ -427,10 +427,8 @@ public class H2IndexStorage implements IndexStorage
   }
 
   @Override
-  public void pruneHistory()
+  public void pruneHistory(JSONArray selections)
   {
-    JSONArray selections = find(new JSONObject());
-
     Connection db = null;
     try
     {
@@ -460,68 +458,5 @@ public class H2IndexStorage implements IndexStorage
     {
       SqlUtil.SafeClose(db);
     }
-  }
-
-  @Override
-  public JSONArray addTags(JSONArray selections, Set<String> tags) throws Exception
-  {
-    Connection db = null;
-    PreparedStatement statement = null;
-
-    List<FileMetaData> newMeta = new ArrayList<FileMetaData>();
-
-    try
-    {
-      db = getReadOnlyDbConnection();
-
-      String sql = String.format("SELECT HASH,TAGS,RAWMETA FROM FILE_INDEX WHERE HASH IN (%s);", StringUtil.joinRepeat(selections.length(), "?", ","));
-
-      statement = db.prepareStatement(sql);
-
-      for (int i = 0, paramIdx = 1; i < selections.length(); i++, paramIdx++)
-      {
-        bind(statement, paramIdx, selections.getJSONObject(i).getString("hash"));
-      }
-
-      ResultSet rs = statement.executeQuery();
-
-      while (rs.next())
-      {
-        String rawJson = rs.getString("RAWMETA");
-        JSONObject obj = new JSONObject(rawJson);
-        Set<String> rowTagSet = JsonUtil.createSet(obj.getJSONArray("tags"));
-
-        // TODO: apply - tags
-        rowTagSet.addAll(tags);
-        obj.put("tags", rowTagSet);
-
-        FileMetaData meta = MetaUtil.deriveMeta(rs.getString("HASH"), obj);
-
-        newMeta.add(meta);
-      }
-    }
-    catch (JSONException e)
-    {
-      log.error(e);
-    }
-    catch (SQLException e)
-    {
-      log.error(e);
-    }
-    catch (IOException e)
-    {
-      log.error(e);
-    }
-    finally
-    {
-      SqlUtil.SafeClose(statement);
-      SqlUtil.SafeClose(db);
-    }
-
-
-    // TODO: should go into try block?
-    addAll(newMeta);
-
-    return MetaUtil.toJsonArray(newMeta);
   }
 }

@@ -46,8 +46,8 @@ public class Tag implements Command
         // TODO: apply - tags
       }
 
-      JSONArray newMeta = IndexStorageService.instance().addTags(selections, preparedTags);
-      CloudEngineService.instance().commit(newMeta);
+      JSONArray newMeta = CloudEngineService.instance().addTags(selections, preparedTags);
+      System.out.println(newMeta.toString());
     }
     finally
     {
