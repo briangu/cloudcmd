@@ -180,6 +180,26 @@ public class H2IndexStorage implements IndexStorage
     }
   }
 
+  private void removeMeta(Connection db, String hash) throws JSONException, SQLException
+  {
+    PreparedStatement statement = null;
+
+    try
+    {
+      statement = db.prepareStatement("DELETE FROM FILE_INDEX WHERE HASH = ?;");
+      bind(statement, 1, hash);
+      statement.execute();
+    }
+    catch (Exception e)
+    {
+      log.error(e);
+    }
+    finally
+    {
+      SqlUtil.SafeClose(statement);
+    }
+  }
+
   private void addMeta(Connection db, FileMetaData meta) throws JSONException, SQLException
   {
     String sql;
@@ -263,6 +283,10 @@ public class H2IndexStorage implements IndexStorage
     {
       db = getDbConnection();
       addMeta(db, meta);
+      if (meta.getParent() != null)
+      {
+        removeMeta(db, meta.getParent());
+      }
     }
     catch (JSONException e)
     {
@@ -400,6 +424,42 @@ public class H2IndexStorage implements IndexStorage
     }
 
     return results;
+  }
+
+  @Override
+  public void pruneHistory()
+  {
+    JSONArray selections = find(new JSONObject());
+
+    Connection db = null;
+    try
+    {
+      db = getDbConnection();
+      db.setAutoCommit(false);
+
+      for (int i = 0; i < selections.length(); i++)
+      {
+        JSONObject meta = selections.getJSONObject(i).getJSONObject("data");
+        if (meta.has("parent"))
+        {
+          removeMeta(db, meta.getString("parent"));
+        }
+      }
+
+      db.commit();
+    }
+    catch (JSONException e)
+    {
+      log.error(e);
+    }
+    catch (SQLException e)
+    {
+      log.error(e);
+    }
+    finally
+    {
+      SqlUtil.SafeClose(db);
+    }
   }
 
   @Override

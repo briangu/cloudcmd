@@ -25,4 +25,6 @@ public interface IndexStorage
       throws Exception;
 
   void addAll(List<FileMetaData> fmds);
+
+  void pruneHistory();
 }

@@ -234,6 +234,7 @@ public class LocalCacheCloudEngine implements CloudEngine
     }
 
     IndexStorageService.instance().addAll(fmds);
+    IndexStorageService.instance().pruneHistory();
   }
 
   @Override
