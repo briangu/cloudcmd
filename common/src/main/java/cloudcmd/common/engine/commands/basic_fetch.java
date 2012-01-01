@@ -38,7 +38,7 @@ public class basic_fetch implements AsyncCommand
 
     Map<String, List<Adapter>> hashProviders = BlockCacheService.instance().getHashProviders();
 
-    JSONArray blockHashes = meta.BlockHashes;
+    JSONArray blockHashes = meta.getBlockHashes();
 
     for (int i = 0; i < blockHashes.length(); i++)
     {
@@ -64,14 +64,14 @@ public class basic_fetch implements AsyncCommand
         }
       });
 
-      boolean success = pullSubBlock(context, meta.Meta.getString("path"), blockProviders, hash);
+      boolean success = pullSubBlock(context, meta.getPath(), blockProviders, hash);
       if (success)
       {
-        context.make(new MemoryElement("msg", "body", String.format("%s pulled block %s", meta.Meta.getString("filename"), hash)));
+        context.make(new MemoryElement("msg", "body", String.format("%s pulled block %s", meta.getFilename(), hash)));
       }
       else
       {
-        context.make(new MemoryElement("msg", "body", String.format("%s failed to pull block %s", meta.Meta.getString("filename"), hash)));
+        context.make(new MemoryElement("msg", "body", String.format("%s failed to pull block %s", meta.getFilename(), hash)));
 
         // attempt to rever the block and write it in the correct target file region
         // TODO: this is currently a NOP

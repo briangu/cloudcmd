@@ -1,10 +1,5 @@
 package cloudcmd.common;
 
-import java.io.UnsupportedEncodingException;
-import java.util.Iterator;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -12,25 +7,20 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class MetaUtil
 {
-  public static JSONArray createJson(List<FileMetaData> meta)
+  public static JSONArray toJsonArray(List<FileMetaData> meta)
       throws JSONException
   {
     JSONArray result = new JSONArray();
 
     for (FileMetaData metaData : meta)
     {
-      JSONObject obj = new JSONObject();
-      Iterator<String> iter = metaData.Meta.keys();
-      while (iter.hasNext())
-      {
-        String key = iter.next();
-        obj.put(key, metaData.Meta.get(key));
-      }
-      obj.put("hash", metaData.MetaHash);
-      result.put(obj);
+      result.put(metaData.toJson());
     }
 
     return result;
@@ -40,46 +30,44 @@ public class MetaUtil
   public static FileMetaData createMeta(File file, List<String> blockHashes, Set<String> tags)
       throws IOException, JSONException
   {
-    FileMetaData meta = new FileMetaData();
 
     String fileName = file.getName();
 
     int extIndex = fileName.lastIndexOf(".");
 
-    meta.Tags = tags;
-    meta.BlockHashes = new JSONArray(blockHashes);
-    meta.Meta = JsonUtil.createJsonObject(
-      "path", file.getCanonicalPath(),
-      "filename", fileName,
-      "fileext", extIndex >= 0 ? fileName.substring(extIndex + 1) : null,
-      "filesize", file.length(),
-      "filedate", file.lastModified(),
-      "blocks", meta.BlockHashes,
-      "tags", tags
-    );
-    meta.MetaHash = CryptoUtil.computeHashAsString(new ByteArrayInputStream(meta.Meta.toString().getBytes("UTF-8"))) + ".meta";
+    FileMetaData meta = FileMetaData.create(
+      JsonUtil.createJsonObject(
+        "path", file.getCanonicalPath(),
+        "filename", fileName,
+        "fileext", extIndex >= 0 ? fileName.substring(extIndex + 1) : null,
+        "filesize", file.length(),
+        "filedate", file.lastModified(),
+        "blocks", new JSONArray(blockHashes),
+        "tags", tags
+      ));
 
     return meta;
   }
 
-  public static FileMetaData createMeta(JSONObject jsonObject)
+  public static FileMetaData loadMeta(JSONObject jsonObject)
       throws JSONException, IOException
   {
-    FileMetaData meta = new FileMetaData();
+    return loadMeta(jsonObject.getString("hash"), jsonObject.getJSONObject("data"));
+  }
 
-    meta.Tags = JsonUtil.createSet(jsonObject.getJSONArray("tags"));
-    meta.BlockHashes = jsonObject.getJSONArray("blocks");
-    meta.Meta = JsonUtil.createJsonObject(
-      "path", jsonObject.getString("path"),
-      "filename", jsonObject.getString("filename"),
-      "fileext", jsonObject.has("fileext") ? jsonObject.getString("fileext") : null,
-      "filesize", jsonObject.getLong("filesize"),
-      "filedate", jsonObject.getLong("filedate"),
-      "blocks", meta.BlockHashes,
-      "tags", meta.Tags
-    );
-    meta.MetaHash = CryptoUtil.computeHashAsString(new ByteArrayInputStream(meta.Meta.toString().getBytes("UTF-8"))) + ".meta";
+  public static FileMetaData loadMeta(String hash, JSONObject data)
+      throws JSONException
+  {
+    return FileMetaData.create(hash, data);
+  }
 
+  public static FileMetaData deriveMeta(String hash, JSONObject data)
+      throws JSONException, IOException
+  {
+    JSONObject derivedObj = new JSONObject(data.toString()); // TODO: there has to be a better way to clone!
+    derivedObj.put("parent", hash);
+    String derivedHash = CryptoUtil.computeHashAsString(new ByteArrayInputStream(derivedObj.toString().getBytes("UTF-8"))) + ".meta";
+    FileMetaData meta = FileMetaData.create(derivedHash, data);
     return meta;
   }
 

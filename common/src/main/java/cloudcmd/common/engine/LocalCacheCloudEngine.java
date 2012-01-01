@@ -110,9 +110,7 @@ public class LocalCacheCloudEngine implements CloudEngine
 
         for (int i = 0; i < allEntries.length(); i++)
         {
-          JSONObject entry = allEntries.getJSONObject(i);
-
-          String hash = entry.getString("hash");
+          String hash = allEntries.getJSONObject(i).getString("hash");
 
           if (!hash.endsWith(".meta"))
           {
@@ -125,6 +123,8 @@ public class LocalCacheCloudEngine implements CloudEngine
             // TODO: message (the index should always by in sync with the local cache)
             continue;
           }
+
+          JSONObject entry = allEntries.getJSONObject(i).getJSONObject("data");
 
           try
           {
@@ -223,15 +223,8 @@ public class LocalCacheCloudEngine implements CloudEngine
 
       try
       {
-        FileMetaData fmd = new FileMetaData();
-
-        fmd.Meta = JsonUtil.loadJson(localCache.load(hash));
-        fmd.MetaHash = hash;
-        fmd.BlockHashes = fmd.Meta.getJSONArray("blocks");
-        fmd.Tags = JsonUtil.createSet(fmd.Meta.getJSONArray("tags"));
-
-        log.info(String.format("reindexing: %s %s", hash, fmd.Meta.getString("filename")));
-
+        FileMetaData fmd = MetaUtil.loadMeta(hash, JsonUtil.loadJson(localCache.load(hash)));
+        log.info(String.format("reindexing: %s %s", hash, fmd.getFilename()));
         fmds.add(fmd);
       }
       catch (Exception e)
@@ -253,12 +246,9 @@ public class LocalCacheCloudEngine implements CloudEngine
 
     for (int i = 0; i < selections.length(); i++)
     {
-      JSONObject entry = selections.getJSONObject(i);
-
-      String hash = entry.getString("hash");
-
+      String hash = selections.getJSONObject(i).getString("hash");
+      JSONObject entry = selections.getJSONObject(i).getJSONObject("data");
       if (localDescription.contains(hash)) continue;
-
       localCache.store(new ByteArrayInputStream(entry.toString().getBytes("UTF-8")), hash);
     }
   }
@@ -272,7 +262,7 @@ public class LocalCacheCloudEngine implements CloudEngine
     {
       try
       {
-        _ops.make("fetch", "meta", MetaUtil.createMeta(selections.getJSONObject(i)));
+        _ops.make("fetch", "meta", MetaUtil.loadMeta(selections.getJSONObject(i)));
       }
       catch (JSONException e)
       {

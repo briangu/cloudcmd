@@ -21,7 +21,7 @@ public interface IndexStorage
 
   JSONArray find(JSONObject filter);
 
-  JSONArray addTags(JSONArray array, Set<String> tags)
+  JSONArray addTags(JSONArray selections, Set<String> tags)
       throws Exception;
 
   void addAll(List<FileMetaData> fmds);

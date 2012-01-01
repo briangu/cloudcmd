@@ -47,10 +47,10 @@ public class index_default implements AsyncCommand
         blockHash = localCache.store(fis);
 
         FileMetaData meta = MetaUtil.createMeta(file, Arrays.asList(blockHash), tags);
-        if (!localCache.contains(meta.MetaHash))
+        if (!localCache.contains(meta.getHash()))
         {
-          bais = new ByteArrayInputStream(meta.Meta.toString().getBytes("UTF-8"));
-          localCache.store(bais, meta.MetaHash);
+          bais = new ByteArrayInputStream(meta.getDataAsString().getBytes("UTF-8"));
+          localCache.store(bais, meta.getHash());
           IndexStorageService.instance().add(meta);
         }
       }

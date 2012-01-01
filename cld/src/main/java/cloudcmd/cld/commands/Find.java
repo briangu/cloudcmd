@@ -4,10 +4,8 @@ package cloudcmd.cld.commands;
 import cloudcmd.common.MetaUtil;
 import cloudcmd.common.StringUtil;
 import cloudcmd.common.index.IndexStorageService;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import javax.swing.text.html.Option;
 
 import jpbetz.cli.*;
 import org.json.JSONArray;
@@ -43,8 +41,8 @@ public class Find implements Command
     if (_filename != null) filter.put("filename", _filename);
     if (_fileext != null) filter.put("fileext", _fileext);
 
-    JSONArray result = IndexStorageService.instance().find(filter);
+    JSONArray selections = IndexStorageService.instance().find(filter);
 
-    System.out.println(result.toString());
+    System.out.println(selections.toString());
   }
 }

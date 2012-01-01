@@ -14,6 +14,8 @@ import java.io.InputStream;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.json.JSONObject;
+
 
 @SubCommand(name = "tag", description = "Add or remove tags to/from archived files.")
 public class Tag implements Command

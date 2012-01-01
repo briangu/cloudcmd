@@ -16,11 +16,11 @@ public class Listing implements Command
   {
     JSONObject filter = new JSONObject();
 
-    JSONArray result = IndexStorageService.instance().find(filter);
+    JSONArray selections = IndexStorageService.instance().find(filter);
 
-    for (int i = 0; i < result.length(); i++)
+    for (int i = 0; i < selections.length(); i++)
     {
-      JSONObject entry = result.getJSONObject(i);
+      JSONObject entry = selections.getJSONObject(i).getJSONObject("data");
       System.out.println(entry.getString("path"));
     }
   }

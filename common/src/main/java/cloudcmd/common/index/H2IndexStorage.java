@@ -21,6 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import org.apache.log4j.Logger;
 import org.h2.fulltext.FullText;
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.json.JSONArray;
@@ -29,6 +30,8 @@ import org.json.JSONObject;
 
 public class H2IndexStorage implements IndexStorage
 {
+  private static Logger log = Logger.getLogger(H2IndexStorage.class);
+
   private static final int MAX_QUEUE_SIZE = 1024 * 8;
 
   private static String _configRoot;
@@ -107,7 +110,7 @@ public class H2IndexStorage implements IndexStorage
     }
     catch (SQLException e)
     {
-      e.printStackTrace();
+      log.error(e);
     }
     finally
     {
@@ -130,7 +133,7 @@ public class H2IndexStorage implements IndexStorage
     }
     catch (SQLException e)
     {
-      e.printStackTrace();
+      log.error(e);
     }
     finally
     {
@@ -164,11 +167,11 @@ public class H2IndexStorage implements IndexStorage
     }
     catch (SQLException e)
     {
-      e.printStackTrace();
+      log.error(e);
     }
     catch (JSONException e)
     {
-      e.printStackTrace();
+      log.error(e);
     }
     finally
     {
@@ -191,20 +194,20 @@ public class H2IndexStorage implements IndexStorage
       fields.add("HASH");
       fields.add("PATH");
       fields.add("FILENAME");
-      if (meta.Meta.has("fileext")) fields.add("FILEEXT");
+      if (meta.getFileExt() != null) fields.add("FILEEXT");
       fields.add("FILESIZE");
       fields.add("FILEDATE");
       fields.add("TAGS");
       fields.add("RAWMETA");
 
-      bind.add(meta.MetaHash);
-      bind.add(meta.Meta.getString("path"));
-      bind.add(meta.Meta.getString("filename"));
-      if (meta.Meta.has("fileext")) bind.add(meta.Meta.getString("fileext"));
-      bind.add(meta.Meta.getLong("filesize"));
-      bind.add(meta.Meta.getLong("filedate"));
-      bind.add(StringUtil.join(meta.Tags, " "));
-      bind.add(meta.Meta.toString());
+      bind.add(meta.getHash());
+      bind.add(meta.getPath());
+      bind.add(meta.getFilename());
+      if (meta.getFileExt() != null) bind.add(meta.getFileExt());
+      bind.add(meta.getFileSize());
+      bind.add(meta.getFileDate());
+      bind.add(StringUtil.join(meta.getTags(), " "));
+      bind.add(meta.getDataAsString());
 
       sql = String.format("MERGE INTO FILE_INDEX (%s) VALUES (%s);", StringUtil.join(fields, ","), StringUtil.joinRepeat(bind.size(), "?", ","));
 
@@ -219,7 +222,7 @@ public class H2IndexStorage implements IndexStorage
     }
     catch (Exception e)
     {
-      e.printStackTrace();
+      log.error(e);
     }
     finally
     {
@@ -263,11 +266,11 @@ public class H2IndexStorage implements IndexStorage
     }
     catch (JSONException e)
     {
-      e.printStackTrace();
+      log.error(e);
     }
     catch (SQLException e)
     {
-      e.printStackTrace();
+      log.error(e);
     }
     finally
     {
@@ -295,11 +298,11 @@ public class H2IndexStorage implements IndexStorage
     }
     catch (JSONException e)
     {
-      e.printStackTrace();
+      log.error(e);
     }
     catch (SQLException e)
     {
-      e.printStackTrace();
+      log.error(e);
     }
     finally
     {
@@ -375,24 +378,20 @@ public class H2IndexStorage implements IndexStorage
         bind(statement, paramIdx, bind.get(i));
       }
 
-      ResultSet resultSet = statement.executeQuery();
+      ResultSet rs = statement.executeQuery();
 
-      while (resultSet.next())
+      while (rs.next())
       {
-        String rawJson = resultSet.getString("RAWMETA");
-        JSONObject obj = new JSONObject(rawJson);
-        obj.put("hash", resultSet.getString("HASH"));
-        obj.put("tags", JsonUtil.createSet(resultSet.getString("TAGS"), " "));
-        results.put(obj);
+        results.put(MetaUtil.loadMeta(rs.getString("HASH"), new JSONObject(rs.getString("RAWMETA"))).toJson());
       }
     }
     catch (JSONException e)
     {
-      e.printStackTrace();
+      log.error(e);
     }
     catch (SQLException e)
     {
-      e.printStackTrace();
+      log.error(e);
     }
     finally
     {
@@ -404,7 +403,7 @@ public class H2IndexStorage implements IndexStorage
   }
 
   @Override
-  public JSONArray addTags(JSONArray array, Set<String> tags) throws Exception
+  public JSONArray addTags(JSONArray selections, Set<String> tags) throws Exception
   {
     Connection db = null;
     PreparedStatement statement = null;
@@ -413,27 +412,15 @@ public class H2IndexStorage implements IndexStorage
 
     try
     {
-      List<String> hashes = new ArrayList<String>();
-
-      for (int i = 0; i < array.length(); i++)
-      {
-        hashes.add(array.getJSONObject(i).getString("hash"));
-      }
-
       db = getReadOnlyDbConnection();
 
-      String sql = String.format("SELECT HASH,TAGS,RAWMETA FROM FILE_INDEX WHERE HASH IN (%s);", StringUtil.joinRepeat(hashes.size(), "?", ","));
+      String sql = String.format("SELECT HASH,TAGS,RAWMETA FROM FILE_INDEX WHERE HASH IN (%s);", StringUtil.joinRepeat(selections.length(), "?", ","));
 
-      statement =
-        db.prepareStatement(
-          sql,
-          ResultSet.TYPE_SCROLL_SENSITIVE,
-          ResultSet.CONCUR_UPDATABLE,
-          ResultSet.HOLD_CURSORS_OVER_COMMIT);
+      statement = db.prepareStatement(sql);
 
-      for (int i = 0, paramIdx = 1; i < hashes.size(); i++, paramIdx++)
+      for (int i = 0, paramIdx = 1; i < selections.length(); i++, paramIdx++)
       {
-        bind(statement, paramIdx, hashes.get(i));
+        bind(statement, paramIdx, selections.getJSONObject(i).getString("hash"));
       }
 
       ResultSet rs = statement.executeQuery();
@@ -448,20 +435,22 @@ public class H2IndexStorage implements IndexStorage
         rowTagSet.addAll(tags);
         obj.put("tags", rowTagSet);
 
-        newMeta.add(MetaUtil.createMeta(obj));
+        FileMetaData meta = MetaUtil.deriveMeta(rs.getString("HASH"), obj);
+
+        newMeta.add(meta);
       }
     }
     catch (JSONException e)
     {
-      e.printStackTrace();
+      log.error(e);
     }
     catch (SQLException e)
     {
-      e.printStackTrace();
+      log.error(e);
     }
     catch (IOException e)
     {
-      e.printStackTrace();
+      log.error(e);
     }
     finally
     {
@@ -469,8 +458,10 @@ public class H2IndexStorage implements IndexStorage
       SqlUtil.SafeClose(db);
     }
 
+
+    // TODO: should go into try block?
     addAll(newMeta);
 
-    return MetaUtil.createJson(newMeta);
+    return MetaUtil.toJsonArray(newMeta);
   }
 }
