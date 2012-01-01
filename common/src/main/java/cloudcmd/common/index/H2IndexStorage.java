@@ -283,10 +283,6 @@ public class H2IndexStorage implements IndexStorage
     {
       db = getDbConnection();
       addMeta(db, meta);
-      if (meta.getParent() != null)
-      {
-        removeMeta(db, meta.getParent());
-      }
     }
     catch (JSONException e)
     {
