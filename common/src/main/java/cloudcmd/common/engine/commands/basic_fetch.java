@@ -67,7 +67,7 @@ public class basic_fetch implements AsyncCommand
       boolean success = pullSubBlock(context, meta.getPath(), blockProviders, hash);
       if (success)
       {
-        context.make(new MemoryElement("msg", "body", String.format("%s pulled block %s", meta.getFilename(), hash)));
+        context.make(new MemoryElement("msg", "body", String.format("%s pulled block %s", meta.getPath(), hash)));
       }
       else
       {

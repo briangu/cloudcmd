@@ -81,10 +81,10 @@ public class Get implements Command
   {
     for (int i = 0; i < selections.length(); i++)
     {
-      JSONObject selection = selections.getJSONObject(i);
-      String path = selection.getJSONObject("data").getString("path");
+      JSONObject data = selections.getJSONObject(i).getJSONObject("data");
+      String path = data.getString("path");
       path = prefix + (path.startsWith(File.separator) ? path : File.separator + path);
-      selection.put("path", path);
+      data.put("path", path);
     }
   }
 }
