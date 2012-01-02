@@ -43,7 +43,7 @@ public class MetaUtil
         "filesize", file.length(),
         "filedate", file.lastModified(),
         "blocks", new JSONArray(blockHashes),
-        "tags", tags
+        "tags", new JSONArray(tags)
       ));
 
     return meta;
@@ -67,7 +67,7 @@ public class MetaUtil
     JSONObject derivedObj = new JSONObject(data.toString()); // TODO: there has to be a better way to clone!
     derivedObj.put("parent", hash);
     String derivedHash = CryptoUtil.computeHashAsString(new ByteArrayInputStream(derivedObj.toString().getBytes("UTF-8"))) + ".meta";
-    FileMetaData meta = FileMetaData.create(derivedHash, data);
+    FileMetaData meta = FileMetaData.create(derivedHash, derivedObj);
     return meta;
   }
 

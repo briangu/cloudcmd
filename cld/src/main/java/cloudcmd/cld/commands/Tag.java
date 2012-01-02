@@ -42,8 +42,12 @@ public class Tag implements Command
 
       if (_remove)
       {
-//        IndexStorageService.instance().removeTags(selections, preparedTags);
-        // TODO: apply - tags
+        Set<String> removeTags = new HashSet<String>(preparedTags.size());
+        for (String tag : preparedTags)
+        {
+          removeTags.add("-" + tag);
+        }
+        preparedTags = removeTags;
       }
 
       JSONArray newMeta = CloudEngineService.instance().addTags(selections, preparedTags);

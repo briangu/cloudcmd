@@ -242,6 +242,7 @@ public class H2IndexStorage implements IndexStorage
     }
     catch (Exception e)
     {
+      e.printStackTrace();
       log.error(e);
     }
     finally
@@ -286,6 +287,7 @@ public class H2IndexStorage implements IndexStorage
     }
     catch (JSONException e)
     {
+      e.printStackTrace();
       log.error(e);
     }
     catch (SQLException e)
@@ -407,6 +409,7 @@ public class H2IndexStorage implements IndexStorage
     }
     catch (JSONException e)
     {
+      e.printStackTrace();
       log.error(e);
     }
     catch (SQLException e)
@@ -444,6 +447,7 @@ public class H2IndexStorage implements IndexStorage
     }
     catch (JSONException e)
     {
+      e.printStackTrace();
       log.error(e);
     }
     catch (SQLException e)

@@ -304,7 +304,9 @@ public class LocalCacheCloudEngine implements CloudEngine
       String hash = selections.getJSONObject(i).getString("hash");
       JSONObject data = selections.getJSONObject(i).getJSONObject("data");
       FileMetaData oldMeta = FileMetaData.create(hash, data);
-      data.put("tags", MetaUtil.applyTags(oldMeta.getTags(), tags));
+      Set<String> newTags = MetaUtil.applyTags(oldMeta.getTags(), tags);
+      if (newTags.equals(oldMeta.getTags())) continue;
+      data.put("tags", newTags);
       FileMetaData derivedMeta = MetaUtil.deriveMeta(hash, data);
       fmds.add(derivedMeta);
       if (localDescription.contains(derivedMeta.getHash())) continue;
