@@ -77,11 +77,12 @@ public class Get implements Command
     }
   }
 
-  private void prefixPaths(String prefix, JSONArray selections) throws JSONException {
+  private void prefixPaths(String prefix, JSONArray selections) throws JSONException
+  {
     for (int i = 0; i < selections.length(); i++)
     {
       JSONObject selection = selections.getJSONObject(i);
-      String path = selection.getString("path");
+      String path = selection.getJSONObject("data").getString("path");
       path = prefix + (path.startsWith(File.separator) ? path : File.separator + path);
       selection.put("path", path);
     }
