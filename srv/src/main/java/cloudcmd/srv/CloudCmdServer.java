@@ -1,15 +1,22 @@
 package cloudcmd.srv;
 
 
-import cloudcmd.common.MetaUtil;
-import cloudcmd.common.StringUtil;
-import cloudcmd.common.engine.CloudEngineService;
 import cloudcmd.common.index.IndexStorageService;
 import io.viper.core.server.Util;
 import io.viper.core.server.file.FileContentInfoProvider;
 import io.viper.core.server.file.StaticFileContentInfoProvider;
 import io.viper.core.server.file.StaticFileServerHandler;
-import io.viper.core.server.router.*;
+import io.viper.core.server.router.GetRoute;
+import io.viper.core.server.router.PostRoute;
+import io.viper.core.server.router.Route;
+import io.viper.core.server.router.RouteHandler;
+import io.viper.core.server.router.RouterMatcherUpstreamHandler;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Executors;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
@@ -21,14 +28,6 @@ import org.jboss.netty.handler.codec.http.HttpResponseEncoder;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Executors;
 
 
 public class CloudCmdServer
@@ -136,11 +135,11 @@ public class CloudCmdServer
           if (_fileext != null) filter.put("fileext", _fileext);
 */
 
-          JSONArray result = IndexStorageService.instance().find(filter);
+          JSONArray selections = IndexStorageService.instance().find(filter);
 
           JSONObject jsonResponse = new JSONObject();
           jsonResponse.put("status", "true");
-          jsonResponse.put("array", result);
+          jsonResponse.put("array", selections);
 
           HttpResponse response = Util.createJsonResponse(jsonResponse);
           return response;

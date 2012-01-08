@@ -71,19 +71,20 @@ public class Get implements Command
   private void removePaths(JSONArray selections) throws JSONException {
     for (int i = 0; i < selections.length(); i++)
     {
-      JSONObject selection = selections.getJSONObject(i);
-      String path = selection.getString("path");
-      selection.put("path", new File(path).getName());
+      JSONObject data = selections.getJSONObject(i).getJSONObject("data");
+      String path = data.getString("path");
+      data.put("path", new File(path).getName());
     }
   }
 
-  private void prefixPaths(String prefix, JSONArray selections) throws JSONException {
+  private void prefixPaths(String prefix, JSONArray selections) throws JSONException
+  {
     for (int i = 0; i < selections.length(); i++)
     {
-      JSONObject selection = selections.getJSONObject(i);
-      String path = selection.getString("path");
+      JSONObject data = selections.getJSONObject(i).getJSONObject("data");
+      String path = data.getString("path");
       path = prefix + (path.startsWith(File.separator) ? path : File.separator + path);
-      selection.put("path", path);
+      data.put("path", path);
     }
   }
 }

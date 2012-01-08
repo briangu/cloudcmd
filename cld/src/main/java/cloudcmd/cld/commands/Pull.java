@@ -24,6 +24,8 @@ public class Pull implements Command
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
+    // TODO: purgeHistory/reindex after successful pull
+
     if (_pullAll)
     {
       CloudEngineService.instance().pull(_maxTier.intValue(), _retrieveBlocks);

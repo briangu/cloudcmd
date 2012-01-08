@@ -7,6 +7,8 @@ import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.json.JSONObject;
+
 
 public interface CloudEngine
 {
@@ -29,7 +31,12 @@ public interface CloudEngine
 
   void fetch(int maxTier, JSONArray selections) throws Exception;
 
-  void push(int maxTier, JSONArray selections);
+  void push(int maxTier, JSONArray selections)
+      throws Exception;
 
-  void pull(int maxTier, boolean retrieveBlocks, JSONArray selections);
+  void pull(int maxTier, boolean retrieveBlocks, JSONArray selections)
+      throws Exception;
+
+  JSONArray addTags(JSONArray selections, Set<String> tags)
+      throws Exception;
 }

@@ -17,13 +17,11 @@ public interface IndexStorage
 
   void shutdown();
 
-  void add(FileMetaData meta);
-
   JSONArray find(JSONObject filter);
 
-  void addTags(JSONArray array, Set<String> tags);
-
-  void removeTags(JSONArray array, Set<String> tags);
+  void add(FileMetaData meta);
 
   void addAll(List<FileMetaData> fmds);
+
+  void pruneHistory(JSONArray selections);
 }

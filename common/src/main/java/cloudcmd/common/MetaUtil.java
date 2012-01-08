@@ -1,99 +1,73 @@
 package cloudcmd.common;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class MetaUtil
 {
+  public static JSONArray toJsonArray(List<FileMetaData> meta)
+      throws JSONException
+  {
+    JSONArray result = new JSONArray();
+
+    for (FileMetaData metaData : meta)
+    {
+      result.put(metaData.toJson());
+    }
+
+    return result;
+  }
+
   // TODO: support file subblocks
   public static FileMetaData createMeta(File file, List<String> blockHashes, Set<String> tags)
+      throws IOException, JSONException
   {
-    FileMetaData meta = new FileMetaData();
 
-    try
-    {
-      String fileName = file.getName();
+    String fileName = file.getName();
 
-      int extIndex = fileName.lastIndexOf(".");
+    int extIndex = fileName.lastIndexOf(".");
 
-      meta.Tags = tags;
-      meta.BlockHashes = new JSONArray(blockHashes);
-      meta.Meta = JsonUtil.createJsonObject(
+    FileMetaData meta = FileMetaData.create(
+      JsonUtil.createJsonObject(
         "path", file.getCanonicalPath(),
         "filename", fileName,
         "fileext", extIndex >= 0 ? fileName.substring(extIndex + 1) : null,
         "filesize", file.length(),
         "filedate", file.lastModified(),
-        "blocks", meta.BlockHashes,
-        "tags", tags
-      );
-      meta.MetaHash = CryptoUtil.computeHashAsString(new ByteArrayInputStream(meta.Meta.toString().getBytes())) + ".meta";
-    }
-    catch (JSONException e)
-    {
-      e.printStackTrace();
-      meta = null;
-    }
-    catch (IOException e)
-    {
-      e.printStackTrace();
-      meta = null;
-    }
+        "blocks", new JSONArray(blockHashes),
+        "tags", new JSONArray(tags)
+      ));
 
     return meta;
   }
 
-  public static Set<String> createTagSet(String rowTags)
+  public static FileMetaData loadMeta(JSONObject jsonObject)
+      throws JSONException, IOException
   {
-    String[] parts = rowTags.split(" ");
-    Set<String> tags = new HashSet<String>();
-    for (String part : parts)
-    {
-      if (part.length() == 0) continue;
-    }
-    return tags;
+    return loadMeta(jsonObject.getString("hash"), jsonObject.getJSONObject("data"));
   }
 
-  public static Set<String> createTagSet(JSONArray tags) throws JSONException
+  public static FileMetaData loadMeta(String hash, JSONObject data)
+      throws JSONException
   {
-    Set<String> set = new HashSet<String>();
-
-    for (int i = 0; i < set.size(); i++)
-    {
-      String tag = tags.getString(i);
-      if (tag.length() == 0) continue;
-      set.add(tags.getString(i));
-    }
-
-    return set;
+    return FileMetaData.create(hash, data);
   }
 
-  public static FileMetaData createMeta(JSONObject jsonObject) throws JSONException
+  public static FileMetaData deriveMeta(String hash, JSONObject data)
+      throws JSONException, IOException
   {
-    FileMetaData meta = new FileMetaData();
-
-    meta.Tags = createTagSet(jsonObject.getJSONArray("tags"));
-    meta.BlockHashes = jsonObject.getJSONArray("blocks");
-    meta.Meta = JsonUtil.createJsonObject(
-      "path", jsonObject.getString("path"),
-      "filename", jsonObject.getString("filename"),
-      "fileext", jsonObject.has("fileext") ? jsonObject.getString("fileext") : null,
-      "filesize", jsonObject.getLong("filesize"),
-      "filedate", jsonObject.getLong("filedate"),
-      "blocks", meta.BlockHashes,
-      "tags", meta.Tags
-    );
-    meta.MetaHash = jsonObject.getString("hash");
-
+    JSONObject derivedObj = new JSONObject(data.toString()); // TODO: there has to be a better way to clone!
+    derivedObj.put("parent", hash);
+    String derivedHash = CryptoUtil.computeHashAsString(new ByteArrayInputStream(derivedObj.toString().getBytes("UTF-8"))) + ".meta";
+    FileMetaData meta = FileMetaData.create(derivedHash, derivedObj);
     return meta;
   }
 
@@ -115,5 +89,30 @@ public class MetaUtil
     }
 
     return tags;
+  }
+
+  public static Set<String> applyTags(Set<String> tags, Set<String> newTags)
+  {
+    Set<String> addTags = new HashSet<String>();
+    Set<String> removeTags = new HashSet<String>();
+
+    for (String tag : newTags)
+    {
+      if (tag.startsWith("-"))
+      {
+        removeTags.add(tag.substring(1));
+      }
+      else
+      {
+        addTags.add(tag);
+      }
+    }
+
+    Set<String> appliedTags = new HashSet<String>(tags);
+
+    appliedTags.addAll(addTags);
+    appliedTags.removeAll(removeTags);
+
+    return appliedTags;
   }
 }

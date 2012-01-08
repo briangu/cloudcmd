@@ -3,6 +3,7 @@ package cloudcmd.cld.commands;
 
 import cloudcmd.common.JsonUtil;
 import cloudcmd.common.MetaUtil;
+import cloudcmd.common.engine.CloudEngineService;
 import cloudcmd.common.index.IndexStorageService;
 import jpbetz.cli.*;
 import org.json.JSONArray;
@@ -13,6 +14,8 @@ import java.io.InputStream;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.json.JSONObject;
+
 
 @SubCommand(name = "tag", description = "Add or remove tags to/from archived files.")
 public class Tag implements Command
@@ -35,15 +38,20 @@ public class Tag implements Command
     {
       Set<String> preparedTags = MetaUtil.prepareTags(_tags);
 
-      JSONArray selections = JsonUtil.loadJsonArray(System.in);
+      JSONArray selections = JsonUtil.loadJsonArray(is);
 
       if (_remove)
       {
-        IndexStorageService.instance().removeTags(selections, preparedTags);
-      } else
-      {
-        IndexStorageService.instance().addTags(selections, preparedTags);
+        Set<String> removeTags = new HashSet<String>(preparedTags.size());
+        for (String tag : preparedTags)
+        {
+          removeTags.add("-" + tag);
+        }
+        preparedTags = removeTags;
       }
+
+      JSONArray newMeta = CloudEngineService.instance().addTags(selections, preparedTags);
+      System.out.println(newMeta.toString());
     }
     finally
     {

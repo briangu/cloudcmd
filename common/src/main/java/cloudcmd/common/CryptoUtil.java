@@ -24,6 +24,7 @@ public class CryptoUtil
     if (digest == null) return null;
     BigInteger bigInt = new BigInteger(1, digest);
     String hash = bigInt.toString(16);
+    if (hash.length() == 63) hash = "0" + hash;
     return hash;
   }
 

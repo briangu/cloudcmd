@@ -87,18 +87,14 @@ public class pull_block implements AsyncCommand
 
         BlockCacheService.instance().getBlockCache().store(remoteData, hash);
 
-        FileMetaData fmd = new FileMetaData();
-        fmd.Meta = JsonUtil.loadJson(BlockCacheService.instance().getBlockCache().load(hash));
-        fmd.MetaHash = hash;
-        fmd.BlockHashes = fmd.Meta.getJSONArray("blocks");
-        fmd.Tags = MetaUtil.createTagSet(fmd.Meta.getJSONArray("tags"));
+        FileMetaData fmd = MetaUtil.loadMeta(hash, JsonUtil.loadJson(BlockCacheService.instance().getBlockCache().load(hash)));
 
         // if localcache has block continue
         IndexStorageService.instance().add(fmd);
 
         if (retrieveBlocks)
         {
-          JSONArray blocks = fmd.BlockHashes;
+          JSONArray blocks = fmd.getBlockHashes();
 
           for (int i = 0; i < blocks.length(); i++)
           {

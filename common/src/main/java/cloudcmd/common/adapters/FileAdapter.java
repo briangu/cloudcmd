@@ -15,6 +15,8 @@ import java.util.UUID;
 
 public class FileAdapter extends Adapter
 {
+  private final static int MIN_FREE_STORAGE_SIZE = 1024 * 1024;
+
   String _rootPath;
 
   public FileAdapter()
@@ -22,9 +24,9 @@ public class FileAdapter extends Adapter
   }
 
   @Override
-  public void init(Integer tier, String type, Set<String> tags, URI config) throws Exception
+  public void init(String configDir, Integer tier, String type, Set<String> tags, URI config) throws Exception
   {
-    super.init(tier, type, tags, config);
+    super.init(configDir, tier, type, tags, config);
 
     _rootPath = URI.getPath();
 
@@ -33,7 +35,19 @@ public class FileAdapter extends Adapter
     File rootPathDir = new File(_rootPath);
     rootPathDir.mkdirs();
 
-    IsOnLine = rootPathDir.exists();
+    _isOnline = rootPathDir.exists();
+  }
+
+  @Override
+  public boolean IsOnLine()
+  {
+    return _isOnline;
+  }
+
+  @Override
+  public boolean IsFull()
+  {
+    return new File(_rootPath).getUsableSpace() < MIN_FREE_STORAGE_SIZE;
   }
 
   private static void initSubDirs(String rootPath)
@@ -84,7 +98,7 @@ public class FileAdapter extends Adapter
     tmpFile.createNewFile();
     String hash = FileUtil.writeFileAndComputeHash(is, tmpFile);
     File newFile = new File(getDataFileFromHash(hash));
-    if (newFile.exists())
+    if (newFile.exists() && newFile.length() == tmpFile.length())
     {
       tmpFile.delete();
     }

@@ -76,9 +76,35 @@ public class JsonUtil
 
     for (int i = 0; i < array.length(); i++)
     {
-      set.add(array.getString(i));
+      String val = array.getString(i);
+      if (val.length() == 0) continue;
+      set.add(val);
     }
 
     return set;
+  }
+
+  public static Set<String> createSet(String rowTags, String delimiter)
+  {
+    String[] parts = rowTags.split(delimiter);
+    Set<String> tags = new HashSet<String>();
+    for (String part : parts)
+    {
+      if (part.length() == 0) continue;
+      tags.add(part);
+    }
+    return tags;
+  }
+
+  public static String prettyToString(JSONObject jsonObject)
+  {
+    try
+    {
+      return jsonObject.toString(2);
+    }
+    catch (JSONException e)
+    {
+      return jsonObject.toString();
+    }
   }
 }

@@ -6,19 +6,30 @@ import java.util.Set;
 
 public abstract class Adapter
 {
+  public String ConfigDir;
   public String Type;
   public Set<String> Tags;
   public URI URI;
   public Integer Tier;
-  public boolean IsOnLine;
-  public boolean IsFull;
+  protected boolean _isOnline;
 
   public Adapter()
   {
   }
 
-  public void init(Integer tier, String type, Set<String> tags, URI uri) throws Exception
+  public boolean IsOnLine()
   {
+    return true;
+  }
+
+  public boolean IsFull()
+  {
+    return false;
+  }
+
+  public void init(String configDir, Integer tier, String type, Set<String> tags, URI uri) throws Exception
+  {
+    ConfigDir = configDir;
     Tier = tier;
     Type = type;
     Tags = tags;
@@ -46,6 +57,8 @@ public abstract class Adapter
   public abstract void store(InputStream data, String hash) throws Exception;
 
   // store the file and compute the hash at runtime
+  // TODO: remove this function as it's only used for internal use
+  @Deprecated
   public abstract String store(InputStream data) throws Exception;
 
   public abstract InputStream load(String hash) throws Exception;
