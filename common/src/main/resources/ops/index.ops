@@ -83,6 +83,7 @@
           ["push_block", "dest", "$dest", "src", "$src", "hash", "$hash"]
         ],
         [
+          ["promote"],
           ["write", "pushing {0}", "$hash"],
           ["push_block", "$dest", "$src", "$hash"],
           ["remove", 0]
