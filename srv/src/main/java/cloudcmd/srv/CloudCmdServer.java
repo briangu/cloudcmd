@@ -6,11 +6,8 @@ import io.viper.core.server.Util;
 import io.viper.core.server.file.FileContentInfoProvider;
 import io.viper.core.server.file.StaticFileContentInfoProvider;
 import io.viper.core.server.file.StaticFileServerHandler;
-import io.viper.core.server.router.GetRoute;
-import io.viper.core.server.router.PostRoute;
-import io.viper.core.server.router.Route;
-import io.viper.core.server.router.RouteHandler;
-import io.viper.core.server.router.RouterMatcherUpstreamHandler;
+import io.viper.core.server.router.*;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -23,7 +20,6 @@ import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.DefaultChannelPipeline;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 import org.jboss.netty.handler.codec.http.HttpRequestDecoder;
-import org.jboss.netty.handler.codec.http.HttpResponse;
 import org.jboss.netty.handler.codec.http.HttpResponseEncoder;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -92,7 +88,7 @@ public class CloudCmdServer
       routes.add(new PostRoute("/cas/", new RouteHandler()
       {
         @Override
-        public HttpResponse exec(Map<String, String> args) throws Exception
+        public RouteResponse exec(Map<String, String> args) throws Exception
         {
           if (!args.containsKey("rawFile"))
           {
@@ -106,20 +102,19 @@ public class CloudCmdServer
       routes.add(new GetRoute("/cas/$var", new RouteHandler()
       {
         @Override
-        public HttpResponse exec(Map<String, String> args) throws Exception
+        public RouteResponse exec(Map<String, String> args) throws Exception
         {
           JSONObject obj = new JSONObject();
           obj.put("status", "woot!");
           obj.put("var", args.get("var"));
-          HttpResponse response = Util.createJsonResponse(obj);
-          return response;
+          return Util.createJsonResponse(obj);
         }
       }));
 
       routes.add(new GetRoute("/cld/ls", new RouteHandler()
       {
         @Override
-        public HttpResponse exec(Map<String, String> args) throws Exception
+        public RouteResponse exec(Map<String, String> args) throws Exception
         {
           JSONObject filter = new JSONObject();
 
@@ -141,8 +136,7 @@ public class CloudCmdServer
           jsonResponse.put("status", "true");
           jsonResponse.put("array", selections);
 
-          HttpResponse response = Util.createJsonResponse(jsonResponse);
-          return response;
+          return Util.createJsonResponse(jsonResponse);
         }
       }));
 

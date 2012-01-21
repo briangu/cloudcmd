@@ -34,7 +34,8 @@ public class FileUploadChunkRelayEventListener implements HttpChunkRelayEventLis
     sendResponse(clientChannel, false);
   }
 
-  public void onCompleted(Channel clientChannel)
+  @Override
+  public void onCompleted(String fileKey, Channel clientChannel)
   {
     sendResponse(clientChannel, true);
   }
