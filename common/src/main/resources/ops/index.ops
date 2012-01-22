@@ -21,7 +21,6 @@
           ["rawFile", "name", "$name", "file", "$file", "tags", "$tags"]
         ],
         [
-          ["promote"],
           ["write", "processing {0}", "$name"],
           ["process", "$file", "$tags"],
           ["remove", 0]
@@ -32,21 +31,9 @@
           ["index", "name", "$name", "type", "$type", "ext", "$ext", "file", "$file", "tags", "$tags"]
         ],
         [
-          ["promote"],
           ["write", "indexing (default) {0}", "$name"],
           ["index_default", "$file", "$type", "$tags"],
           ["remove", 0]
-        ]
-      ],
-      ["p", "task_finish",
-        [
-          ["async_task", "phase", "start", "id", "$id", "name", "$name"],
-          ["async_task", "phase", "stop", "id", "$id", "name", "$name"]
-        ],
-        [
-          ["debug", "finished task: {0} {1}", "$name", "$id"],
-          ["remove", 0],
-          ["remove", 1]
         ]
       ],
       ["p", "msg",
@@ -83,18 +70,9 @@
           ["push_block", "dest", "$dest", "src", "$src", "hash", "$hash"]
         ],
         [
-          ["promote"],
           ["write", "pushing {0}", "$hash"],
           ["push_block", "$dest", "$src", "$hash"],
           ["remove", 0]
-        ]
-      ],
-      ["p", "add_meta_to_index",
-      	[
-          ["add_meta", "meta", "$meta"]
-        ],
-        [
-          ["add_meta", "$meta"]
         ]
       ],
       ["p", "fetch_file_file_from_cloud",
@@ -104,15 +82,6 @@
         [
           ["fetch", "$meta"],
           ["remove", 0]
-        ]
-      ],
-      ["p", "task_wait",
-        [
-          ["async_task", "phase", "start", "id", "$id", "name", "$name"]
-        ],
-        [
-          ["debug", "waiting for file {0}", "$name"],
-          ["sleep", 100]
         ]
       ]
     ]
