@@ -1,5 +1,15 @@
 add ability to only index certain file types (white list) - e.g. index *.jpg
 
+replication policy - min copies
+skip cache and push directly to at least one adapter
+pack
+gc
+verify
+remove block from adapter
+remove file - have to account for references to a subblock
+repair
+
+
 srv presentation layer
 srv based adapter
 

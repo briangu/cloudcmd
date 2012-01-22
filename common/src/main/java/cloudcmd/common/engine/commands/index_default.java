@@ -57,7 +57,6 @@ public class index_default implements AsyncCommand
       finally
       {
         String msg = String.format("took %6d ms to index %s", (System.currentTimeMillis() - startTime), file.getName());
-        System.err.println(msg);
         context.make(new MemoryElement("msg", "body", msg));
       }
     }
