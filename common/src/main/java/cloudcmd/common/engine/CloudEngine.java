@@ -23,20 +23,24 @@ public interface CloudEngine
   void push(int maxTier)
       throws Exception;
 
+  void push(int maxTier, JSONArray selections)
+    throws Exception;
+
   void pull(int maxTier, boolean retrieveBlocks)
       throws Exception;
+
+  void pull(int maxTier, boolean retrieveBlocks, JSONArray selections)
+    throws Exception;
 
   void reindex()
       throws Exception;
 
   void fetch(int maxTier, JSONArray selections) throws Exception;
 
-  void push(int maxTier, JSONArray selections)
-      throws Exception;
-
-  void pull(int maxTier, boolean retrieveBlocks, JSONArray selections)
-      throws Exception;
-
   JSONArray addTags(JSONArray selections, Set<String> tags)
       throws Exception;
+
+  void verify(int i, boolean deleteOnInvalid) throws Exception;
+
+  void verify(int i, JSONArray selections, boolean deleteOnInvalid) throws Exception;
 }

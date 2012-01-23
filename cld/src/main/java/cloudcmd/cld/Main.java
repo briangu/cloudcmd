@@ -42,6 +42,7 @@ public class Main
       app.addSubCommands(Push.class);
       app.addSubCommands(Reindex.class);
       app.addSubCommands(Tag.class);
+      app.addSubCommands(Verify.class);
       app.invoke(args);
 
       CloudEngineService.instance().run();

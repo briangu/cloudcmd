@@ -16,6 +16,8 @@
       ["literalize", "recover_block", "hash"],
       ["literalize", "add_meta", "meta"],
       ["literalize", "fetch", "meta"],
+      ["literalize", "verify_block", "hash", "deleteOnInvalid"],
+      ["literalize", "remove_block", "hash"],
       ["p", "scan",
         [
           ["rawFile", "name", "$name", "file", "$file", "tags", "$tags"]
@@ -81,6 +83,24 @@
         ],
         [
           ["fetch", "$meta"],
+          ["remove", 0]
+        ]
+      ],
+      ["p", "verify_block_on_storage",
+        [
+          ["verify_block", "hash", "$hash", "deleteOnInvalid", "$del"]
+        ],
+        [
+          ["verify_block", "$hash", "$del"],
+          ["remove", 0]
+        ]
+      ],
+      ["p", "remove_block_from_storage",
+        [
+          ["remove_block", "hash", "$hash", "deleteOnInvalid", "$del"]
+        ],
+        [
+          ["remove_block", "$hash"],
           ["remove", 0]
         ]
       ]

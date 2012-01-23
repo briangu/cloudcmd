@@ -50,6 +50,10 @@ public abstract class Adapter
     return false;
   }
 
+  public abstract boolean remove(String hash) throws Exception;
+
+  public abstract boolean verify(String hash) throws Exception;
+  
   public abstract void refreshCache() throws Exception;
 
   public abstract boolean contains(String hash) throws Exception;

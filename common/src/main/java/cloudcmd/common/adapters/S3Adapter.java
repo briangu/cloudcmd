@@ -206,6 +206,20 @@ public class S3Adapter extends Adapter
   }
 
   @Override
+  public boolean remove(String hash) throws Exception
+  {
+    _s3Service.deleteObject(_bucketName, hash);
+    return true;
+  }
+
+  @Override
+  public boolean verify(String hash) throws Exception
+  {
+    // we rely on S3 md5 integrity check that we used on push
+    return true;
+  }
+
+  @Override
   public void store(InputStream data, String hash)
       throws Exception
   {

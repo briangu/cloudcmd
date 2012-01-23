@@ -1,5 +1,6 @@
 package cloudcmd.common.adapters;
 
+import cloudcmd.common.CryptoUtil;
 import cloudcmd.common.FileHandler;
 import cloudcmd.common.FileUtil;
 import cloudcmd.common.FileWalker;
@@ -73,6 +74,27 @@ public class FileAdapter extends Adapter
   @Override
   public void shutdown()
   {
+  }
+
+  @Override
+  public boolean remove(String hash) throws Exception
+  {
+    File file = new File(getDataFileFromHash(hash));
+    if (file.exists()) file.delete();
+    return true;
+  }
+
+  @Override
+  public boolean verify(String hash) throws Exception
+  {
+    File file = new File(getDataFileFromHash(hash));
+    if (!file.exists()) return false;
+    int idx = hash.lastIndexOf(".");
+    if (idx >= 0)
+    {
+      hash = hash.substring(0, idx);
+    }
+    return (CryptoUtil.computeHashAsString(file).equals(hash));
   }
 
   private String getPathFromHash(String hash) throws JSONException

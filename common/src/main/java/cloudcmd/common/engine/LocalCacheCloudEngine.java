@@ -36,6 +36,8 @@ public class LocalCacheCloudEngine implements CloudEngine
     registry.put("sleep", new sleep());
     registry.put("pull_block", new pull_block());
     registry.put("push_block", new push_block());
+    registry.put("verify_block", new verify_block());
+    registry.put("remove_block", new remove_block());
 
     JSONObject indexOps;
 
@@ -321,6 +323,33 @@ public class LocalCacheCloudEngine implements CloudEngine
     IndexStorageService.instance().pruneHistory(newSelections);
 
     return newSelections;
+  }
+
+  @Override
+  public void verify(int maxTier, boolean deleteOnInvalid)
+    throws Exception
+  {
+    BlockCacheService.instance().loadCache(maxTier);
+
+    Map<String, List<Adapter>> hashProviders = BlockCacheService.instance().getHashProviders();
+
+    for (String hash : hashProviders.keySet())
+    {
+      _ops.make("verify_block", "hash", hash, "deleteOnInValid", deleteOnInvalid);
+    }
+  }
+
+  @Override
+  public void verify(int maxTier, JSONArray selections, boolean deleteOnInvalid)
+    throws Exception
+  {
+    BlockCacheService.instance().loadCache(maxTier);
+
+    for (int i = 0; i < selections.length(); i++)
+    {
+      String hash = selections.getJSONObject(i).getString("hash");
+      _ops.make("verify_block", "hash", hash, "deleteOnInValid", deleteOnInvalid);
+    }
   }
 
   @Override
