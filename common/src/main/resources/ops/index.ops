@@ -17,7 +17,7 @@
       ["literalize", "add_meta", "meta"],
       ["literalize", "fetch", "meta"],
       ["literalize", "verify_block", "hash", "deleteOnInvalid"],
-      ["literalize", "remove_block", "hash", "adapterURI"],
+      ["literalize", "remove_block", "hash", "adapter"],
       ["p", "scan",
         [
           ["rawFile", "name", "$name", "file", "$file", "tags", "$tags"]
@@ -97,10 +97,10 @@
       ],
       ["p", "remove_block_from_storage",
         [
-          ["remove_block", "hash", "$hash", "adapterURI", "$uri"]
+          ["remove_block", "hash", "$hash", "adapter", "$adapter"]
         ],
         [
-          ["remove_block", "$hash", "$uri"],
+          ["remove_block", "$hash", "$adapter"],
           ["remove", 0]
         ]
       ]

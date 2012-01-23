@@ -301,6 +301,34 @@ public class H2IndexStorage implements IndexStorage
   }
 
   @Override
+  public void remove(FileMetaData meta)
+  {
+    Connection db = null;
+    try
+    {
+      db = getDbConnection();
+      db.setAutoCommit(false);
+
+      removeMeta(db, meta.getHash());
+
+      db.commit();
+    }
+    catch (JSONException e)
+    {
+      e.printStackTrace();
+      log.error(e);
+    }
+    catch (SQLException e)
+    {
+      log.error(e);
+    }
+    finally
+    {
+      SqlUtil.SafeClose(db);
+    }
+  }
+
+  @Override
   public void addAll(List<FileMetaData> meta)
   {
     if (meta == null) return;

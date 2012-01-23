@@ -43,6 +43,7 @@ public class Main
       app.addSubCommands(Reindex.class);
       app.addSubCommands(Tag.class);
       app.addSubCommands(Verify.class);
+      app.addSubCommands(Remove.class);
       app.invoke(args);
 
       CloudEngineService.instance().run();

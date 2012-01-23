@@ -2,16 +2,10 @@ package cloudcmd.common.engine.commands;
 
 
 import cloudcmd.common.adapters.Adapter;
-import cloudcmd.common.config.ConfigStorageService;
-import cloudcmd.common.engine.BlockCacheService;
 import ops.AsyncCommand;
 import ops.CommandContext;
 import ops.MemoryElement;
 import org.apache.log4j.Logger;
-
-import java.net.URI;
-import java.util.List;
-import java.util.Map;
 
 
 public class remove_block implements AsyncCommand
@@ -23,13 +17,7 @@ public class remove_block implements AsyncCommand
     throws Exception
   {
     String hash = (String) args[0];
-    URI adapterURI = (URI) args[1];
-
-    Adapter adapter = ConfigStorageService.instance().getAdapter(adapterURI);
-    if (adapter == null)
-    {
-      throw new IllegalArgumentException("unknown adapter " + adapterURI);
-    }
+    Adapter adapter = (Adapter) args[1];
 
     try
     {

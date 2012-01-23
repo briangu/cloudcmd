@@ -357,6 +357,55 @@ public class LocalCacheCloudEngine implements CloudEngine
   }
 
   @Override
+  public void remove(JSONArray selections) throws Exception
+  {
+    BlockCacheService.instance().loadCache(Integer.MAX_VALUE);
+
+    Map<String, List<Adapter>> hashProviders = BlockCacheService.instance().getHashProviders();
+
+    Adapter localCache = BlockCacheService.instance().getBlockCache();
+    
+    for (int i = 0; i < selections.length(); i++)
+    {
+      String hash = selections.getJSONObject(i).getString("hash");
+
+      List<Adapter> adapters = hashProviders.get(hash);
+      if (adapters == null)
+      {
+        continue;
+      }
+
+      JSONObject meta = JsonUtil.loadJson(localCache.load(hash));
+      JSONArray blocks = meta.getJSONArray("blocks");
+
+      for (int j = 0; j < blocks.length(); j++)
+      {
+        removeBlock(hashProviders, blocks.getString(j));
+      }
+
+      removeBlock(hashProviders, hash);
+
+      JSONObject indexMeta = new JSONObject();
+      indexMeta.put("hash", hash);
+      indexMeta.put("data", meta);
+
+      // TODO: we should only do this if we are sure the rest happened correctly (although at worst we could reindex)
+      IndexStorageService.instance().remove(MetaUtil.loadMeta(indexMeta));
+    }
+  }
+
+  private void removeBlock(Map<String, List<Adapter>> hashProviders, String hash)
+  {
+    List<Adapter> adapters = hashProviders.get(hash);
+    if (adapters == null) return;
+
+    for (Adapter adapter : adapters)
+    {
+      _ops.make("remove_block", "hash", hash, "adapter", adapter);
+    }
+  }
+  
+  @Override
   public void fetch(int maxTier, JSONArray selections) throws Exception
   {
     BlockCacheService.instance().loadCache(maxTier);

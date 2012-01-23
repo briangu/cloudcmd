@@ -43,4 +43,6 @@ public interface CloudEngine
   void verify(int i, boolean deleteOnInvalid) throws Exception;
 
   void verify(int i, JSONArray selections, boolean deleteOnInvalid) throws Exception;
+
+  void remove(JSONArray selections) throws Exception;
 }
