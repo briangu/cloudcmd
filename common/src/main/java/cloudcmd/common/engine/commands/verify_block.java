@@ -48,7 +48,7 @@ public class verify_block implements AsyncCommand
           context.make(new MemoryElement("msg", "body", String.format("bad block %s found on adapter %s", hash, adapter.URI)));
           if (deleteOnInvalid)
           {
-            context.make(new MemoryElement("remove_block", "hash", hash, "adapterURI", adapter.URI));
+            context.make(new MemoryElement("remove_block", "hash", hash, "adapter", adapter));
           }
         }
       }

@@ -17,7 +17,16 @@ public class remove_block implements AsyncCommand
     throws Exception
   {
     String hash = (String) args[0];
+    if (hash == null)
+    {
+      throw new IllegalArgumentException("hash is null");
+    }
+
     Adapter adapter = (Adapter) args[1];
+    if (adapter == null)
+    {
+      throw new IllegalArgumentException("adapter is null");
+    }
 
     try
     {
