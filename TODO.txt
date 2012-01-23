@@ -7,7 +7,6 @@ replication policy - min copies
 skip cache and push directly to at least one adapter
 pack
 gc
-verify
 remove block from adapter
 remove file - have to account for references to a subblock
 repair
@@ -23,3 +22,5 @@ srv based adapter
 
 compression bson
 packing small files into pack files
+
+[x]verify
