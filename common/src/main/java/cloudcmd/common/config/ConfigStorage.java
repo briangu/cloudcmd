@@ -31,4 +31,6 @@ public interface ConfigStorage
   void createDefaultConfig(String path) throws IOException;
 
   void writeConfig() throws IOException, JSONException;
+
+  Adapter getAdapter(URI adapterURI);
 }

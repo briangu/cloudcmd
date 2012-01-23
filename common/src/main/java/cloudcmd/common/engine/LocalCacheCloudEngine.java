@@ -333,9 +333,11 @@ public class LocalCacheCloudEngine implements CloudEngine
 
     Map<String, List<Adapter>> hashProviders = BlockCacheService.instance().getHashProviders();
 
+    Boolean boxed = new Boolean(deleteOnInvalid);
+    
     for (String hash : hashProviders.keySet())
     {
-      _ops.make("verify_block", "hash", hash, "deleteOnInValid", deleteOnInvalid);
+      _ops.make("verify_block", "hash", hash, "deleteOnInvalid", boxed);
     }
   }
 
@@ -345,10 +347,12 @@ public class LocalCacheCloudEngine implements CloudEngine
   {
     BlockCacheService.instance().loadCache(maxTier);
 
+    Boolean boxed = new Boolean(deleteOnInvalid);
+
     for (int i = 0; i < selections.length(); i++)
     {
       String hash = selections.getJSONObject(i).getString("hash");
-      _ops.make("verify_block", "hash", hash, "deleteOnInValid", deleteOnInvalid);
+      _ops.make("verify_block", "hash", hash, "deleteOnInvalid", boxed);
     }
   }
 

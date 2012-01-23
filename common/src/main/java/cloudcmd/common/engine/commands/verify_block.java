@@ -21,7 +21,7 @@ public class verify_block implements AsyncCommand
     throws Exception
   {
     String hash = (String) args[0];
-    Boolean deleteOnInValid = (Boolean) args[1];
+    Boolean deleteOnInvalid = (Boolean) args[1];
     
     Map<String, List<Adapter>> hashProviders = BlockCacheService.instance().getHashProviders();
 
@@ -37,17 +37,17 @@ public class verify_block implements AsyncCommand
     {
       try
       {
-        boolean adapterSuccess = adapter.verify(hash);
-        if (adapterSuccess)
+        boolean isValid = adapter.verify(hash);
+        if (isValid)
         {
           context.make(new MemoryElement("msg", "body", String.format("successfully validated block %s is on adapter %s", hash, adapter.URI)));
         }
         else
         {
           context.make(new MemoryElement("msg", "body", String.format("bad block %s found on adapter %s", hash, adapter.URI)));
-          if (deleteOnInValid)
+          if (deleteOnInvalid)
           {
-            context.make(new MemoryElement("remove_block", "hash", hash));
+            context.make(new MemoryElement("remove_block", "hash", hash, "adapterURI", adapter.URI));
           }
         }
       }

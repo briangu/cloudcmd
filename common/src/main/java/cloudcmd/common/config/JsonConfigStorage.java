@@ -305,6 +305,20 @@ public class JsonConfigStorage implements ConfigStorage
   }
 
   @Override
+  public Adapter getAdapter(URI adapterURI)
+  {
+    List<Adapter> adapters = getAdapters();
+    for (Adapter adapter : adapters)
+    {
+      if (adapter.URI.equals(adapterURI))
+      {
+        return adapter;
+      }
+    }
+    return null;
+  }
+
+  @Override
   public boolean removeAdapter(URI uri)
   {
     return false;
