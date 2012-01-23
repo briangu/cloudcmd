@@ -40,7 +40,8 @@ public class verify_block implements AsyncCommand
         boolean isValid = adapter.verify(hash);
         if (isValid)
         {
-          context.make(new MemoryElement("msg", "body", String.format("successfully validated block %s is on adapter %s", hash, adapter.URI)));
+// TODO: enable verbose flag
+//          context.make(new MemoryElement("msg", "body", String.format("successfully validated block %s is on adapter %s", hash, adapter.URI)));
         }
         else
         {
