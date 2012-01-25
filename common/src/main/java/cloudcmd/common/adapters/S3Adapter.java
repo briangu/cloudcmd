@@ -225,6 +225,7 @@ public class S3Adapter extends Adapter
   {
     // TODO: check local h2 db for presence
     //       if not present, push to s3 and update db cache info
+    // TODO: insert into db upon write
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     IOUtils.copy(data, baos);

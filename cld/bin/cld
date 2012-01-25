@@ -1,5 +1,5 @@
 #!/bin/bash
-java -cp $CLOUDCMD_HOME/cld/target/cloudcmd.cld-1.0-SNAPSHOT-jar-with-dependencies.jar \
+java -server -cp $CLOUDCMD_HOME/cld/target/cloudcmd.cld-1.0-SNAPSHOT-jar-with-dependencies.jar \
   $CLOUDCMD_OPTS \
   cloudcmd.cld.Main \
   "$@"
