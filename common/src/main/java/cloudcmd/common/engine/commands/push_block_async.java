@@ -12,33 +12,4 @@ import java.io.InputStream;
 
 public class push_block_async extends push_block implements AsyncCommand
 {
-  static Logger log = Logger.getLogger(push_block_async.class);
-
-  @Override
-  public void exec(CommandContext context, Object[] args)
-      throws Exception
-  {
-    Adapter dest = (Adapter)args[0];
-    Adapter src = (Adapter)args[1];
-    String hash = (String) args[2];
-
-    if (dest.contains(hash)) return;
-
-    InputStream is = null;
-
-    try
-    {
-      is = src.load(hash);
-      dest.store(is, hash);
-    }
-    catch (Exception e)
-    {
-      context.make("error_push_block", "hash", hash);
-      log.error(hash, e);
-    }
-    finally
-    {
-      FileUtil.SafeClose(is);
-    }
-  }
 }

@@ -4,21 +4,17 @@ package cloudcmd.common.adapters;
 import cloudcmd.common.CryptoUtil;
 import cloudcmd.common.FileUtil;
 import cloudcmd.common.SqlUtil;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.InputStream;
+
+import java.io.*;
 import java.net.URI;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+
+import cloudcmd.common.UriUtil;
 import org.apache.commons.io.IOUtils;
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.jets3t.service.S3ServiceException;
@@ -47,7 +43,7 @@ public class S3Adapter extends Adapter
   {
     super.init(configDir, tier, type, tags, uri);
 
-    List<String> awsInfo = parseAuthority(uri.getAuthority());
+    List<String> awsInfo = parseAwsInfo(uri);
     AWSCredentials creds = new AWSCredentials(awsInfo.get(0), awsInfo.get(1));
     _s3Service = new RestS3Service(creds);
     _bucketName = awsInfo.get(2);
@@ -144,15 +140,15 @@ public class S3Adapter extends Adapter
     }
   }
 
-  private static List<String> parseAuthority(String authority)
+  private static List<String> parseAwsInfo(URI adapterUri)
   {
-    String[] parts = authority.split("@");
-    if (parts.length != 2) throw new IllegalArgumentException("authority format: awsKey:awssecret@bucketname");
+    String[] parts = adapterUri.getAuthority().split("@");
+    if (parts.length != 2) throw new IllegalArgumentException("authority format: awsKey@bucketname");
 
-    String[] awsParts = parts[0].split(":");
-    if (awsParts.length != 2) throw new IllegalArgumentException("authority format: awsKey:awssecret@bucketname");
+    Map<String, String> queryParams = UriUtil.parseQueryString(adapterUri);
+    if (!queryParams.containsKey("secret")) throw new IllegalArgumentException("missing aws secret");
 
-    return Arrays.asList(awsParts[0], awsParts[1], parts[1]);
+    return Arrays.asList(parts[0], queryParams.get("secret"), parts[1]);
   }
 
   @Override
@@ -174,7 +170,7 @@ public class S3Adapter extends Adapter
 
       for (S3Object s3Object : s3Objects)
       {
-        statement.setString(0, s3Object.getName());
+        statement.setString(1, s3Object.getName());
         statement.execute();
         statement.clearParameters();
       }
@@ -203,7 +199,7 @@ public class S3Adapter extends Adapter
       db.setAutoCommit(false);
 
       statement = db.prepareStatement("INSERT INTO BLOCK_INDEX VALUES (?)");
-      statement.setString(0, hash);
+      statement.setString(1, hash);
       statement.execute();
 
       db.commit();
@@ -232,7 +228,7 @@ public class S3Adapter extends Adapter
       db = getReadOnlyDbConnection();
 
       statement = db.prepareStatement("SELECT * FROM BLOCK_INDEX WHERE HASH = ?");
-      statement.setString(0, hash);
+      statement.setString(1, hash);
       statement.execute();
 
       ResultSet resultSet = statement.executeQuery();
@@ -286,18 +282,14 @@ public class S3Adapter extends Adapter
 
     // TODO: this is really bad for big files.
     // TODO: we should really/ideally be getting the md5 hash as an argument
-    if (!data.markSupported())
-    {
-      throw new RuntimeException("mark is not supported!");
-    }
 
-    data.mark(0);
-    byte[] md5Hash = CryptoUtil.computeMD5Hash(data);
-    data.reset();
-    
+    byte[] buffer = IOUtils.toByteArray(data);
+
+    byte[] md5Hash = CryptoUtil.computeMD5Hash(new ByteArrayInputStream(buffer));
+
     S3Object s3Object = new S3Object(hash);
-    s3Object.setDataInputStream(data);
-    s3Object.setContentLength(data.available());
+    s3Object.setDataInputStream(new ByteArrayInputStream(buffer));
+    s3Object.setContentLength(buffer.length);
     s3Object.setMd5Hash(md5Hash);
     s3Object.setBucketName(_bucketName);
 
