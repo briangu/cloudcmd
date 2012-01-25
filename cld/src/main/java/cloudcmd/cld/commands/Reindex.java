@@ -2,8 +2,9 @@ package cloudcmd.cld.commands;
 
 
 import cloudcmd.common.engine.CloudEngineService;
-import cloudcmd.common.index.IndexStorageService;
-import jpbetz.cli.*;
+import jpbetz.cli.Command;
+import jpbetz.cli.CommandContext;
+import jpbetz.cli.SubCommand;
 
 @SubCommand(name = "reindex", description = "Rebuild the index from the archived files.")
 public class Reindex implements Command

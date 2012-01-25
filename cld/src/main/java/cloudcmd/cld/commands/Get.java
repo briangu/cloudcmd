@@ -4,7 +4,10 @@ package cloudcmd.cld.commands;
 import cloudcmd.common.FileUtil;
 import cloudcmd.common.JsonUtil;
 import cloudcmd.common.engine.CloudEngineService;
-import jpbetz.cli.*;
+import jpbetz.cli.Command;
+import jpbetz.cli.CommandContext;
+import jpbetz.cli.Opt;
+import jpbetz.cli.SubCommand;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -40,6 +43,8 @@ public class Get implements Command
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
+    CloudEngineService.instance().init("get.ops");
+
     InputStream is = (_inputFilePath != null) ? new FileInputStream(new File(_inputFilePath)) : System.in;
 
     try

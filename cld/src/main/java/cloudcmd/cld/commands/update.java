@@ -1,16 +1,11 @@
 package cloudcmd.cld.commands;
 
 
-import cloudcmd.common.FileHandler;
-import cloudcmd.common.FileUtil;
-import cloudcmd.common.FileWalker;
 import cloudcmd.common.engine.BlockCacheService;
-import cloudcmd.common.engine.CloudEngineService;
-import jpbetz.cli.*;
-
-import java.io.File;
-import java.util.HashSet;
-import java.util.List;
+import jpbetz.cli.Command;
+import jpbetz.cli.CommandContext;
+import jpbetz.cli.Opt;
+import jpbetz.cli.SubCommand;
 
 @SubCommand(name = "update", description = "update cached adapter information.")
 public class update implements Command

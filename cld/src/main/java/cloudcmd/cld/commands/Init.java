@@ -5,7 +5,6 @@ import cloudcmd.common.FileUtil;
 import cloudcmd.common.config.ConfigStorageService;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
-import jpbetz.cli.CommandError;
 import jpbetz.cli.SubCommand;
 
 import java.io.File;

@@ -3,7 +3,6 @@ package cloudcmd.cld.commands;
 
 import cloudcmd.common.config.ConfigStorageService;
 import jpbetz.cli.*;
-import org.json.JSONObject;
 
 import java.net.URI;
 

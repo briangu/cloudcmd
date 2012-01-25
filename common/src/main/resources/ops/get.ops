@@ -1,0 +1,51 @@
+{
+  "name": "index.ops",
+  "description": "index command ops",
+  "format": "compact",
+  "ops":
+    [
+      ["literalize", "msg", "body"],
+      ["literalize", "pull_block", "hash", "retrieveSubBlocks"],
+      ["literalize", "error_pull_block", "hash"],
+      ["literalize", "recover_block", "hash"],
+      ["literalize", "fetch", "meta"],
+      ["p", "msg",
+        [
+          ["msg", "body", "$body" ]
+        ],
+        [
+          ["write", "$body"],
+          ["remove", 0]
+        ]
+      ],
+      ["p", "pull_block",
+        [
+          ["pull_block", "hash", "$hash", "retrieveSubBlocks", "$sub"]
+        ],
+        [
+          ["write", "pulling {0}", "$hash"],
+          ["pull_block", "$hash", "$sub"],
+          ["remove", 0]
+        ]
+      ],
+      ["p", "pull_block",
+        [
+          ["pull_block", "hash", "$hash"]
+        ],
+        [
+          ["write", "pulling {0}", "$hash"],
+          ["pull_block", "$hash", "$sub"],
+          ["remove", 0]
+        ]
+      ],
+      ["p", "fetch_file_file_from_cloud",
+      	[
+          ["fetch", "meta", "$meta"]
+        ],
+        [
+          ["fetch", "$meta"],
+          ["remove", 0]
+        ]
+      ]
+    ]
+}

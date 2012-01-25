@@ -15,6 +15,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.net.URI;
 import java.util.*;
 
 public class LocalCacheCloudEngine implements CloudEngine
@@ -23,11 +24,10 @@ public class LocalCacheCloudEngine implements CloudEngine
   OPS _ops;
   Thread _opsThread = null;
 
-  @Override
-  public void init() throws Exception
+  private Map<String, Command> buildRegistry()
   {
     Map<String, Command> registry = OpsFactory.getDefaultRegistry();
-
+    
     registry.put("fetch", new basic_fetch());
     registry.put("add_meta", new add_meta());
     registry.put("debug", new debug());
@@ -36,14 +36,29 @@ public class LocalCacheCloudEngine implements CloudEngine
     registry.put("sleep", new sleep());
     registry.put("pull_block", new pull_block());
     registry.put("push_block", new push_block());
+    registry.put("push_block_async", new push_block_async());
     registry.put("verify_block", new verify_block());
     registry.put("remove_block", new remove_block());
+
+    return registry;
+  }
+
+  @Override
+  public void init() throws Exception
+  {
+    init("index.ops");
+  }
+
+  @Override
+  public void init(String opsName) throws Exception
+  {
+    Map<String, Command> registry = buildRegistry();
 
     JSONObject indexOps;
 
     try
     {
-      indexOps = ResourceUtil.loadOps("index.ops");
+      indexOps = ResourceUtil.loadOps(opsName);
     }
     catch (JSONException e)
     {
@@ -52,6 +67,12 @@ public class LocalCacheCloudEngine implements CloudEngine
     }
 
     _ops = OpsFactory.create(registry, indexOps);
+  }
+
+  @Override
+  public void flushToAdapter(Adapter adapter)
+  {
+    _ops.make("flush_to_adapter", "src", BlockCacheService.instance().getBlockCache(), "dest", adapter);
   }
 
   @Override

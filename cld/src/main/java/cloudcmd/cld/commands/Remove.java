@@ -15,6 +15,8 @@ public class Remove implements Command
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
+    CloudEngineService.instance().init("remove.ops");
+
     JSONArray selections = JsonUtil.loadJsonArray(System.in);
     CloudEngineService.instance().remove(selections);
   }

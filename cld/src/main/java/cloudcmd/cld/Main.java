@@ -28,7 +28,6 @@ public class Main
       ConfigStorageService.instance().init(configRoot);
       IndexStorageService.instance().init();
       BlockCacheService.instance().init();
-      CloudEngineService.instance().init();
 
       CommandSet app = new CommandSet("cld");
       app.addSubCommands(Adapter.class);

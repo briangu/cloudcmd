@@ -4,12 +4,12 @@ package cloudcmd.cld.commands;
 import cloudcmd.common.MetaUtil;
 import cloudcmd.common.StringUtil;
 import cloudcmd.common.index.IndexStorageService;
-import java.util.List;
-import java.util.Set;
-
 import jpbetz.cli.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
+import java.util.List;
+import java.util.Set;
 
 @SubCommand(name = "find", description = "Query the index of archived files.")
 public class Find implements Command

@@ -30,7 +30,6 @@ public class remove_block implements AsyncCommand
 
     try
     {
-      context.make(new MemoryElement("msg", "body", String.format("deleting block %s found on adapter %s", hash, adapter.URI)));
       boolean deleteSuccess = adapter.remove(hash);
       if (deleteSuccess)
       {

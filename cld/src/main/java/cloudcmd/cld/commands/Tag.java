@@ -4,7 +4,6 @@ package cloudcmd.cld.commands;
 import cloudcmd.common.JsonUtil;
 import cloudcmd.common.MetaUtil;
 import cloudcmd.common.engine.CloudEngineService;
-import cloudcmd.common.index.IndexStorageService;
 import jpbetz.cli.*;
 import org.json.JSONArray;
 
@@ -14,7 +13,6 @@ import java.io.InputStream;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.json.JSONObject;
 
 
 @SubCommand(name = "tag", description = "Add or remove tags to/from archived files.")

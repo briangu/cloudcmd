@@ -1,11 +1,10 @@
 package cloudcmd.cld.commands;
 
 
-import jpbetz.cli.*;
 import cloudcmd.common.JsonUtil;
-
-import org.json.JSONException;
-import org.json.JSONObject;
+import jpbetz.cli.Command;
+import jpbetz.cli.CommandContext;
+import jpbetz.cli.SubCommand;
 
 
 @SubCommand(name = "print", description = "Pretty print JSON from other commands.")

@@ -3,7 +3,10 @@ package cloudcmd.cld.commands;
 
 import cloudcmd.common.JsonUtil;
 import cloudcmd.common.engine.CloudEngineService;
-import jpbetz.cli.*;
+import jpbetz.cli.Command;
+import jpbetz.cli.CommandContext;
+import jpbetz.cli.Opt;
+import jpbetz.cli.SubCommand;
 import org.json.JSONArray;
 
 @SubCommand(name = "push", description = "Push the local cache to storage endpoints.")
@@ -18,6 +21,8 @@ public class Push implements Command
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
+    CloudEngineService.instance().init("push.ops");
+
     if (_pushAll)
     {
       CloudEngineService.instance().push(_maxTier.intValue());

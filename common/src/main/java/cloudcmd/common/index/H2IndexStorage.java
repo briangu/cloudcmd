@@ -2,13 +2,11 @@ package cloudcmd.common.index;
 
 
 import cloudcmd.common.FileMetaData;
-import cloudcmd.common.JsonUtil;
 import cloudcmd.common.MetaUtil;
 import cloudcmd.common.SqlUtil;
 import cloudcmd.common.StringUtil;
 import cloudcmd.common.config.ConfigStorageService;
 import java.io.File;
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -19,7 +17,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.log4j.Logger;
 import org.h2.fulltext.FullText;

@@ -2,7 +2,6 @@ package cloudcmd.common.config;
 
 import cloudcmd.common.adapters.Adapter;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.IOException;
 import java.net.URI;

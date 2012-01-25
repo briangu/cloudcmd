@@ -4,19 +4,14 @@
   "format": "compact",
   "ops":
     [
-      ["literalize", "goal", "type"],
+      ["literalize", "flush_to_adapter", "src", "dest"],
+      ["literalize", "new_block", "type", "hash"],
       ["literalize", "rawFile", "file"],
       ["literalize", "index", "name", "type", "ext", "file", "tags"],
       ["literalize", "msg", "body"],
-      ["literalize", "async_task", "phase", "id", "name"],
       ["literalize", "push_block", "dest", "src", "hash"],
-      ["literalize", "pull_block", "hash", "retrieveSubBlocks"],
       ["literalize", "error_push_block", "hash"],
-      ["literalize", "error_pull_block", "hash"],
       ["literalize", "recover_block", "hash"],
-      ["literalize", "add_meta", "meta"],
-      ["literalize", "fetch", "meta"],
-      ["literalize", "verify_block", "hash", "deleteOnInvalid"],
       ["literalize", "remove_block", "hash", "adapter"],
       ["p", "scan",
         [
@@ -47,60 +42,34 @@
           ["remove", 0]
         ]
       ],
-      ["p", "pull_block",
+      ["p", "skip_cache_and_flush_to_adapter",
         [
-          ["pull_block", "hash", "$hash", "retrieveSubBlocks", "$sub"]
+          ["flush_to_adapter", "src", "$src", "dest", "$dest"],
+          ["new_block", "type", "subblock", "hash", "$hash"]
         ],
         [
-          ["write", "pulling {0}", "$hash"],
-          ["pull_block", "$hash", "$sub"],
-          ["remove", 0]
-        ]
-      ],
-      ["p", "pull_block",
-        [
-          ["pull_block", "hash", "$hash"]
-        ],
-        [
-          ["write", "pulling {0}", "$hash"],
-          ["pull_block", "$hash", "$sub"],
-          ["remove", 0]
-        ]
-      ],
-      ["p", "push_block",
-        [
-          ["push_block", "dest", "$dest", "src", "$src", "hash", "$hash"]
-        ],
-        [
-          ["write", "pushing {0}", "$hash"],
+          ["write", "flushing {0}", "$hash"],
           ["push_block", "$dest", "$src", "$hash"],
-          ["remove", 0]
+          ["remove_block", "$hash", "$src"],
+          ["remove", 1]
         ]
       ],
-      ["p", "fetch_file_file_from_cloud",
-      	[
-          ["fetch", "meta", "$meta"]
+      ["p", "skip_cache_and_flush_to_adapter",
+        [
+          ["flush_to_adapter", "src", "$src", "dest", "$dest"],
+          ["new_block", "type", "meta", "hash", "$hash"]
         ],
         [
-          ["fetch", "$meta"],
-          ["remove", 0]
+          ["write", "flushing {0}", "$hash"],
+          ["push_block", "$dest", "$src", "$hash"],
+          ["remove", 1]
         ]
       ],
-      ["p", "verify_block_on_storage",
+      ["p", "remove_new_block_element",
         [
-          ["verify_block", "hash", "$hash", "deleteOnInvalid", "$deleteOnInvalid"]
+          ["new_block", "type", "$type", "hash", "$hash"]
         ],
         [
-          ["verify_block", "$hash", "$deleteOnInvalid"],
-          ["remove", 0]
-        ]
-      ],
-      ["p", "remove_block_from_storage",
-        [
-          ["remove_block", "hash", "$hash", "adapter", "$adapter"]
-        ],
-        [
-          ["remove_block", "$hash", "$adapter"],
           ["remove", 0]
         ]
       ]

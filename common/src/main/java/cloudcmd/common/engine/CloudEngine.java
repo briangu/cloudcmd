@@ -4,6 +4,7 @@ import cloudcmd.common.adapters.Adapter;
 import org.json.JSONArray;
 
 import java.io.File;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -14,6 +15,10 @@ public interface CloudEngine
 {
   void init() throws Exception;
 
+  void init(String opsName) throws Exception;
+
+  void flushToAdapter(Adapter adpter);
+  
   void run() throws Exception;
 
   void shutdown();

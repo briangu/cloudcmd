@@ -24,6 +24,8 @@ public class Verify implements Command
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
+    CloudEngineService.instance().init("verify.ops");
+
     if (_verifyAll)
     {
       CloudEngineService.instance().verify(_maxTier.intValue(), _deleteOnInvalid);
