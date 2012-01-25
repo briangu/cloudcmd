@@ -1,6 +1,7 @@
 package cloudcmd.common.adapters;
 
 
+import cloudcmd.common.FileUtil;
 import cloudcmd.common.SqlUtil;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -190,10 +191,67 @@ public class S3Adapter extends Adapter
     }
   }
 
+  private void insertHash(String hash) throws Exception
+  {
+    Connection db = null;
+    PreparedStatement statement = null;
+    try
+    {
+      db = getDbConnection();
+
+      db.setAutoCommit(false);
+
+      statement = db.prepareStatement("INSERT INTO BLOCK_INDEX VALUES (?)");
+      statement.setString(0, hash);
+      statement.execute();
+
+      db.commit();
+    }
+    catch (SQLException e)
+    {
+      e.printStackTrace();
+    }
+    finally
+    {
+      SqlUtil.SafeClose(statement);
+      SqlUtil.SafeClose(db);
+    }
+  }
+
   @Override
   public boolean contains(String hash) throws Exception
   {
-    return describe().contains(hash);
+    Set<String> description = new HashSet<String>();
+
+    Connection db = null;
+    PreparedStatement statement = null;
+
+    try
+    {
+      db = getReadOnlyDbConnection();
+
+      statement = db.prepareStatement("SELECT * FROM BLOCK_INDEX WHERE HASH = ?");
+      statement.setString(0, hash);
+      statement.execute();
+
+      ResultSet resultSet = statement.executeQuery();
+
+      while (resultSet.next())
+      {
+        description.add(resultSet.getString("HASH"));
+      }
+    }
+    catch (SQLException e)
+    {
+      e.printStackTrace();
+    }
+    finally
+    {
+      SqlUtil.SafeClose(statement);
+      SqlUtil.SafeClose(db);
+    }
+
+    return description.contains(hash);
   }
 
   @Override
@@ -223,11 +281,10 @@ public class S3Adapter extends Adapter
   public void store(InputStream data, String hash)
       throws Exception
   {
-    // TODO: check local h2 db for presence
-    //       if not present, push to s3 and update db cache info
-    // TODO: insert into db upon write
+    if (contains(hash)) return;
 
     // TODO: this is really bad for big files.
+    // TODO: we should really/ideally be getting the md5 hash as an argument
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     IOUtils.copy(data, baos);
@@ -240,6 +297,8 @@ public class S3Adapter extends Adapter
     s3Object.setBucketName(_bucketName);
 
     _s3Service.putObject(_bucketName, s3Object);
+
+    insertHash(hash);
   }
 
   @Override
