@@ -227,6 +227,8 @@ public class S3Adapter extends Adapter
     //       if not present, push to s3 and update db cache info
     // TODO: insert into db upon write
 
+    // TODO: this is really bad for big files.
+
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     IOUtils.copy(data, baos);
     byte[] arr = baos.toByteArray();
