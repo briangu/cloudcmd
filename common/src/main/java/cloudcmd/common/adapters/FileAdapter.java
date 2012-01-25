@@ -141,7 +141,7 @@ public class FileAdapter extends Adapter
   {
     File file = new File(getDataFileFromHash(hash));
     if (!file.exists()) throw new DataNotFoundException(hash);
-    return new FileInputStream(file);
+    return new BufferedInputStream(new FileInputStream(file));
   }
 
   @Override

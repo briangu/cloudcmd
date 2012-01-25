@@ -1,6 +1,7 @@
 package cloudcmd.common.adapters;
 
 
+import cloudcmd.common.CryptoUtil;
 import cloudcmd.common.FileUtil;
 import cloudcmd.common.SqlUtil;
 import java.io.ByteArrayInputStream;
@@ -285,15 +286,19 @@ public class S3Adapter extends Adapter
 
     // TODO: this is really bad for big files.
     // TODO: we should really/ideally be getting the md5 hash as an argument
+    if (!data.markSupported())
+    {
+      throw new RuntimeException("mark is not supported!");
+    }
 
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    IOUtils.copy(data, baos);
-    byte[] arr = baos.toByteArray();
-
+    data.mark(0);
+    byte[] md5Hash = CryptoUtil.computeMD5Hash(data);
+    data.reset();
+    
     S3Object s3Object = new S3Object(hash);
-    s3Object.setDataInputStream(new ByteArrayInputStream(arr));
+    s3Object.setDataInputStream(data);
     s3Object.setContentLength(data.available());
-    s3Object.setMd5Hash(ServiceUtils.computeMD5Hash(new ByteArrayInputStream(arr)));
+    s3Object.setMd5Hash(md5Hash);
     s3Object.setBucketName(_bucketName);
 
     _s3Service.putObject(_bucketName, s3Object);

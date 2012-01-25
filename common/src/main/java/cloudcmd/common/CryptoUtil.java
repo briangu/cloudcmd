@@ -130,7 +130,7 @@ public class CryptoUtil
   {
     byte[] digest = null;
 
-    int buff = 16384;
+    int buff = 1024*1024;
     try
     {
       MessageDigest hash = MessageDigest.getInstance("SHA-256");
@@ -164,5 +164,15 @@ public class CryptoUtil
     }
 
     return digest;
+  }
+
+  public static byte[] computeMD5Hash(InputStream is) throws NoSuchAlgorithmException, IOException {
+    MessageDigest messageDigest = MessageDigest.getInstance("MD5");
+    byte[] buffer = new byte[1024*1024];
+    int bytesRead;
+    while ((bytesRead = is.read(buffer, 0, buffer.length)) != -1) {
+      messageDigest.update(buffer, 0, bytesRead);
+    }
+    return messageDigest.digest();
   }
 }
