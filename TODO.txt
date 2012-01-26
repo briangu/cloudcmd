@@ -1,4 +1,5 @@
 add ability to only index certain file types (white list) - e.g. index *.jpg
+[bug] cant index single files or glob file list
 
 make blacklist matching regex
 allow for .cld optional blacklists (e.g. in user-custom properties)
