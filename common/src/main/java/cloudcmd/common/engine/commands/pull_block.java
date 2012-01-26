@@ -32,7 +32,9 @@ public class pull_block implements AsyncCommand
 
     if (!hashProviders.containsKey(hash))
     {
-      System.err.println("unexpected: could not find block in existing storage!");
+      System.err.println();
+      System.err.println(String.format("unexpected: could not find block %s in existing storage!", hash));
+      System.err.println();
       return;
     }
 

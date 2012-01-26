@@ -3,6 +3,7 @@ package cloudcmd.common.config;
 import cloudcmd.common.FileUtil;
 import cloudcmd.common.JsonUtil;
 import cloudcmd.common.ResourceUtil;
+import cloudcmd.common.UriUtil;
 import cloudcmd.common.adapters.Adapter;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -91,35 +92,9 @@ public class JsonConfigStorage implements ConfigStorage
     return adapters;
   }
 
-  static Map<String, String> parseQueryString(URI uri)
-  {
-    Map<String, String> queryParams = new HashMap<String, String>();
-
-    String query = uri.getQuery();
-
-    if (query == null || query.isEmpty()) return queryParams;
-
-    String[] parts = query.split("&");
-
-    for (String part : parts)
-    {
-      String[] subParts = part.split("=");
-      if (subParts.length == 1)
-      {
-        queryParams.put(subParts[0], "");
-      }
-      else if (subParts.length == 2)
-      {
-        queryParams.put(subParts[0], subParts[1]);
-      }
-    }
-
-    return queryParams;
-  }
-
   private Integer getTierFromUri(URI adapterUri)
   {
-    Map<String, String> queryParams = parseQueryString(adapterUri);
+    Map<String, String> queryParams = UriUtil.parseQueryString(adapterUri);
     Integer tier = (queryParams.containsKey("tier")) ? Integer.parseInt(queryParams.get("tier")) : _defaultTier;
     return tier;
   }
@@ -127,7 +102,7 @@ public class JsonConfigStorage implements ConfigStorage
   private Set<String> getTagsFromUri(URI adapterUri)
   {
     Set<String> tags = new HashSet<String>();
-    Map<String, String> queryParams = parseQueryString(adapterUri);
+    Map<String, String> queryParams = UriUtil.parseQueryString(adapterUri);
 
     if (queryParams.containsKey("tags"))
     {

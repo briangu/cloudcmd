@@ -8,7 +8,7 @@ import jpbetz.cli.Opt;
 import jpbetz.cli.SubCommand;
 
 @SubCommand(name = "update", description = "update cached adapter information.")
-public class update implements Command
+public class Update implements Command
 {
   @Opt(opt = "t", longOpt = "tier", description = "max tier to push to", required = false)
   Number _maxTier = Integer.MAX_VALUE;
