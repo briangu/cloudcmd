@@ -1,10 +1,8 @@
 add ability to only index certain file types (white list) - e.g. index *.jpg
 
 make blacklist matching regex
-allow for .cld optional blacklists (e.g. in user-custom properties)
 stats - e.g. or sort results by properties, such as size
 replication policy - min copies
-skip cache and push directly to at least one adapter
 pack
 gc
 crack zip files and get content list
@@ -15,6 +13,9 @@ subblock to file-meta reverse map
 purge cache
 rebalance - apply replication policy and purge unnecessary blocks, while also balancing disk space on file adapter
 verify (partially done) -- need to trace back to the holding meta files and ensure the files are still readable
+
+skip cache and push directly to at least one adapter
+allow for .cld optional blacklists (e.g. in user-custom properties)
 
 [x] repair - do verify and then push
 [x] remove file - have to account for references to a subblock
