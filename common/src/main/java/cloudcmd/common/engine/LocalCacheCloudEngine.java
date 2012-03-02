@@ -9,19 +9,20 @@ import java.io.ByteArrayInputStream;
 import ops.Command;
 import ops.OPS;
 import ops.OpsFactory;
+import ops.WorkingMemory;
 import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
-import java.net.URI;
 import java.util.*;
 
 public class LocalCacheCloudEngine implements CloudEngine
 {
   Logger log = Logger.getLogger(LocalCacheCloudEngine.class);
   OPS _ops;
+  WorkingMemory _wm;
   Thread _opsThread = null;
 
   private Map<String, Command> buildRegistry()
@@ -67,12 +68,13 @@ public class LocalCacheCloudEngine implements CloudEngine
     }
 
     _ops = OpsFactory.create(registry, indexOps);
+    _wm = _ops.getWorkingMemory();
   }
 
   @Override
   public void flushToAdapter(Adapter adapter)
   {
-    _ops.make("flush_to_adapter", "src", BlockCacheService.instance().getBlockCache(), "dest", adapter);
+    _wm.make("flush_to_adapter", "src", BlockCacheService.instance().getBlockCache(), "dest", adapter);
   }
 
   @Override
@@ -108,7 +110,7 @@ public class LocalCacheCloudEngine implements CloudEngine
   @Override
   public void add(File file, Set<String> tags)
   {
-    _ops.make("rawFile", "name", file.getName(), "file", file, "tags", tags);
+    _wm.make("rawFile", "name", file.getName(), "file", file, "tags", tags);
   }
 
   @Override
@@ -190,7 +192,7 @@ public class LocalCacheCloudEngine implements CloudEngine
 
             if (!adapterDescription.contains(hash))
             {
-              _ops.make("push_block", "dest", adapter, "src", localCache, "hash", hash);
+              _wm.make("push_block", "dest", adapter, "src", localCache, "hash", hash);
             }
 
             JSONArray blocks = entry.getJSONArray("blocks");
@@ -199,12 +201,7 @@ public class LocalCacheCloudEngine implements CloudEngine
             {
               String blockHash = blocks.getString(blockIdx);
               if (adapterDescription.contains(blockHash)) continue;
-              if (!localDescription.contains(blockHash))
-              {
-                // TODO: message (it's possible that we legitimately don't have the block if we only have the meta data)
-                continue;
-              }
-              _ops.make("push_block", "dest", adapter, "src", localCache, "hash", blockHash);
+              _wm.make("push_block", "dest", adapter, "hash", blockHash);
             }
           }
           catch (Exception e)
@@ -256,7 +253,7 @@ public class LocalCacheCloudEngine implements CloudEngine
 
       if (!localCache.contains(hash))
       {
-        _ops.make("pull_block", "hash", hash, "retrieveSubBlocks", retrieveBlocks);
+        _wm.make("pull_block", "hash", hash, "retrieveSubBlocks", retrieveBlocks);
         continue;
       }
 
@@ -271,7 +268,7 @@ public class LocalCacheCloudEngine implements CloudEngine
         {
           String blockHash = blocks.getString(i);
           if (localCache.contains(blockHash)) continue;
-          _ops.make("pull_block", "hash", blockHash);
+          _wm.make("pull_block", "hash", blockHash);
         }
       }
       catch (Exception e)
@@ -358,7 +355,7 @@ public class LocalCacheCloudEngine implements CloudEngine
     
     for (String hash : hashProviders.keySet())
     {
-      _ops.make("verify_block", "hash", hash, "deleteOnInvalid", boxed);
+      _wm.make("verify_block", "hash", hash, "deleteOnInvalid", boxed);
     }
   }
 
@@ -373,7 +370,7 @@ public class LocalCacheCloudEngine implements CloudEngine
     for (int i = 0; i < selections.length(); i++)
     {
       String hash = selections.getJSONObject(i).getString("hash");
-      _ops.make("verify_block", "hash", hash, "deleteOnInvalid", boxed);
+      _wm.make("verify_block", "hash", hash, "deleteOnInvalid", boxed);
     }
   }
 
@@ -422,7 +419,7 @@ public class LocalCacheCloudEngine implements CloudEngine
 
     for (Adapter adapter : adapters)
     {
-      _ops.make("remove_block", "hash", hash, "adapter", adapter);
+      _wm.make("remove_block", "hash", hash, "adapter", adapter);
     }
   }
   
@@ -435,7 +432,7 @@ public class LocalCacheCloudEngine implements CloudEngine
     {
       try
       {
-        _ops.make("fetch", "meta", MetaUtil.loadMeta(selections.getJSONObject(i)));
+        _wm.make("fetch", "meta", MetaUtil.loadMeta(selections.getJSONObject(i)));
       }
       catch (JSONException e)
       {

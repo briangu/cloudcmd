@@ -5,7 +5,7 @@
   "ops":
     [
       ["literalize", "msg", "body"],
-      ["literalize", "push_block", "dest", "src", "hash"],
+      ["literalize", "push_block", "dest", "hash"],
       ["literalize", "error_push_block", "hash"],
       ["literalize", "recover_block", "hash"],
       ["p", "msg",
@@ -19,11 +19,11 @@
       ],
       ["p", "push_block",
         [
-          ["push_block", "dest", "$dest", "src", "$src", "hash", "$hash"]
+          ["push_block", "dest", "$dest", "hash", "$hash"]
         ],
         [
           ["write", "pushing {0}", "$hash"],
-          ["push_block_async", "$dest", "$src", "$hash"],
+          ["push_block_async", "$dest", "$hash"],
           ["remove", 0]
         ]
       ],

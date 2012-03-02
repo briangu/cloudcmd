@@ -3,6 +3,7 @@ package cloudcmd.common.engine.commands;
 
 import cloudcmd.common.FileUtil;
 import cloudcmd.common.adapters.Adapter;
+import cloudcmd.common.engine.BlockCacheService;
 import ops.AsyncCommand;
 import ops.Command;
 import ops.CommandContext;
@@ -10,6 +11,10 @@ import ops.MemoryElement;
 import org.apache.log4j.Logger;
 
 import java.io.InputStream;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 
 
 public class push_block implements Command
@@ -21,8 +26,7 @@ public class push_block implements Command
       throws Exception
   {
     Adapter dest = (Adapter)args[0];
-    Adapter src = (Adapter)args[1];
-    String hash = (String) args[2];
+    String hash = (String) args[1];
 
     if (dest.contains(hash))
     {
@@ -30,21 +34,46 @@ public class push_block implements Command
       return;
     }
 
-    InputStream is = null;
+    Map<String, List<Adapter>> hashProviders = BlockCacheService.instance().getHashProviders();
 
-    try
+    if (!hashProviders.containsKey(hash))
     {
-      is = src.load(hash);
-      dest.store(is, hash);
+      System.err.println();
+      System.err.println(String.format("unexpected: could not find block %s in existing storage!", hash));
+      System.err.println();
+      return;
     }
-    catch (Exception e)
+
+    List<Adapter> blockProviders = hashProviders.get(hash);
+
+    Collections.sort(blockProviders, new Comparator<Adapter>()
     {
-      context.make("error_push_block", "hash", hash);
-      log.error(hash, e);
-    }
-    finally
+      @Override
+      public int compare(Adapter o1, Adapter o2)
+      {
+        return o1.Tier.compareTo(o2.Tier);
+      }
+    });
+
+    for (Adapter src : blockProviders)
     {
-      FileUtil.SafeClose(is);
+      InputStream is = null;
+
+      try
+      {
+        is = src.load(hash);
+        dest.store(is, hash);
+        break;
+      }
+      catch (Exception e)
+      {
+        context.make("error_push_block", "hash", hash);
+        log.error(hash, e);
+      }
+      finally
+      {
+        FileUtil.SafeClose(is);
+      }
     }
   }
 }

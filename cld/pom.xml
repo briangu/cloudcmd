@@ -18,11 +18,6 @@
       <version>1.0-SNAPSHOT</version>
     </dependency>
     <dependency>
-      <groupId>io.cyclops</groupId>
-      <artifactId>io.cyclops</artifactId>
-      <version>0.1.0-SNAPSHOT</version>
-    </dependency>
-    <dependency>
       <groupId>com.github.jpbetz</groupId>
       <artifactId>cli-util</artifactId>
       <version>1.0</version>

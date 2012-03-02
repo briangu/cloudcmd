@@ -16,7 +16,7 @@ public class Pull implements Command
   Number _maxTier = Integer.MAX_VALUE;
 
   @Opt(opt = "b", longOpt = "blocks", description = "retrieve blocks as well as meta data", required = false)
-  boolean _retrieveBlocks = true;
+  boolean _retrieveBlocks = false;
 
   @Opt(opt = "a", longOpt = "all", description = "push all", required = false)
   boolean _pullAll = true;
@@ -26,7 +26,7 @@ public class Pull implements Command
   {
     CloudEngineService.instance().init("pull.ops");
 
-    // TODO: purgeHistory/reindex after successful pull
+    // TODO: purgeHistory/reindex after successful pull     false
 
     if (_pullAll)
     {
