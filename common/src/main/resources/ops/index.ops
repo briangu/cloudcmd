@@ -9,7 +9,7 @@
       ["literalize", "rawFile", "file"],
       ["literalize", "index", "name", "type", "ext", "file", "tags"],
       ["literalize", "msg", "body"],
-      ["literalize", "push_block", "dest", "src", "hash"],
+      ["literalize", "push_block", "dest", "hash"],
       ["literalize", "error_push_block", "hash"],
       ["literalize", "recover_block", "hash"],
       ["literalize", "remove_block", "hash", "adapter"],
@@ -49,7 +49,7 @@
         ],
         [
           ["write", "flushing {0}", "$hash"],
-          ["push_block", "$dest", "$src", "$hash"],
+          ["push_block", "$dest", "$hash"],
           ["remove_block", "$hash", "$src"],
           ["remove", 1]
         ]
@@ -61,7 +61,7 @@
         ],
         [
           ["write", "flushing {0}", "$hash"],
-          ["push_block", "$dest", "$src", "$hash"],
+          ["push_block", "$dest", "$hash"],
           ["remove", 1]
         ]
       ],
