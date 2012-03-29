@@ -46,7 +46,7 @@ public class Index implements Command
       }
 
       // TODO: make selectable
-      CloudEngineService.instance().flushToAdapter(adapters.get(0));
+      CloudEngineService.instance().prepareFlushToAdapter(adapters.get(0));
     }
 
     FileWalker.enumerateFolders(_path, new FileHandler()
