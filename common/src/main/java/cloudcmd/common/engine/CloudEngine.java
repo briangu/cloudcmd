@@ -17,7 +17,7 @@ public interface CloudEngine
 
   void init(String opsName) throws Exception;
 
-  void flushToAdapter(Adapter adpter);
+  void prepareFlushToAdapter(Adapter adpter) throws Exception;
   
   void run() throws Exception;
 

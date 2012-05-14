@@ -72,8 +72,9 @@ public class LocalCacheCloudEngine implements CloudEngine
   }
 
   @Override
-  public void flushToAdapter(Adapter adapter)
+  public void prepareFlushToAdapter(Adapter adapter) throws Exception
   {
+    BlockCacheService.instance().loadCache(adapter.Tier);
     _wm.make("flush_to_adapter", "src", BlockCacheService.instance().getBlockCache(), "dest", adapter);
   }
 
@@ -192,7 +193,7 @@ public class LocalCacheCloudEngine implements CloudEngine
 
             if (!adapterDescription.contains(hash))
             {
-              _wm.make("push_block", "dest", adapter, "src", localCache, "hash", hash);
+              _wm.make("push_block", "dest", adapter, "hash", hash);
             }
 
             JSONArray blocks = entry.getJSONArray("blocks");
