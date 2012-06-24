@@ -119,24 +119,7 @@ public class H2IndexStorage implements IndexStorage
   @Override
   public void purge()
   {
-    Connection db = null;
-    Statement st = null;
-    try
-    {
-      db = getDbConnection();
-      st = db.createStatement();
-
-      st.execute("delete from FILE_INDEX;");
-    }
-    catch (SQLException e)
-    {
-      log.error(e);
-    }
-    finally
-    {
-      SqlUtil.SafeClose(st);
-      SqlUtil.SafeClose(db);
-    }
+    bootstrapDb();
   }
 
   volatile boolean _flushing = false;

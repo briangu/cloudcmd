@@ -139,6 +139,8 @@ public class LocalCacheCloudEngine implements CloudEngine
     for (final Adapter adapter : ConfigStorageService.instance().getAdapters())
     {
       if (adapter.Tier > maxTier) continue;
+      if (adapter.Tier == 0) continue;
+
       if (!adapter.IsOnLine())
       {
         log.warn(String.format("skipping adapter because it's not online: %s", adapter.URI.toASCIIString()));
@@ -297,7 +299,7 @@ public class LocalCacheCloudEngine implements CloudEngine
     final Set<String> localDescription = localCache.describe();
 
     List<FileMetaData> fmds = new ArrayList<FileMetaData>();
-      
+
     for (String hash : localDescription)
     {
       if (!hash.endsWith(".meta")) continue;
@@ -305,7 +307,7 @@ public class LocalCacheCloudEngine implements CloudEngine
       try
       {
         FileMetaData fmd = MetaUtil.loadMeta(hash, JsonUtil.loadJson(localCache.load(hash)));
-        log.info(String.format("reindexing: %s %s", hash, fmd.getFilename()));
+        System.out.println(String.format("reindexing: %s %s", hash, fmd.getFilename()));
         fmds.add(fmd);
       }
       catch (Exception e)

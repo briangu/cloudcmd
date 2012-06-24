@@ -38,7 +38,9 @@ public class pull_block implements AsyncCommand
       return;
     }
 
-    List<Adapter> blockProviders = hashProviders.get(hash);
+    List<Adapter> blockProviders = new ArrayList<Adapter>(hashProviders.get(hash));
+
+    Collections.shuffle(blockProviders);
 
     Collections.sort(blockProviders, new Comparator<Adapter>()
     {
