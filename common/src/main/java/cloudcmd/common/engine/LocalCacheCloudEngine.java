@@ -154,6 +154,8 @@ public class LocalCacheCloudEngine implements CloudEngine
       {
         Set<String> adapterDescription = adapter.describe();
 
+        Set<String> pushSet = new HashSet<String>(selections.length());
+
         for (int i = 0; i < selections.length(); i++)
         {
           String hash = selections.getJSONObject(i).getString("hash");
@@ -193,7 +195,7 @@ public class LocalCacheCloudEngine implements CloudEngine
 
             if (!adapterDescription.contains(hash))
             {
-              _wm.make("push_block", "dest", adapter, "hash", hash);
+              pushSet.add(hash);
             }
 
             JSONArray blocks = entry.getJSONArray("blocks");
@@ -202,13 +204,18 @@ public class LocalCacheCloudEngine implements CloudEngine
             {
               String blockHash = blocks.getString(blockIdx);
               if (adapterDescription.contains(blockHash)) continue;
-              _wm.make("push_block", "dest", adapter, "hash", blockHash);
+              pushSet.add(blockHash);
             }
           }
           catch (Exception e)
           {
             log.error("adapter = " + adapter.URI, e);
           }
+        }
+
+        for (String hash : pushSet)
+        {
+          _wm.make("push_block", "dest", adapter, "hash", hash);
         }
       }
       catch (Exception e)
