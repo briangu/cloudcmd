@@ -105,25 +105,7 @@ public class FileAdapter extends Adapter
 
   public void purge()
   {
-    Connection db = null;
-    Statement st = null;
-    try
-    {
-      db = getDbConnection();
-      st = db.createStatement();
-      st.execute("delete from BLOCK_INDEX;");
-
-      _description = null;
-    }
-    catch (SQLException e)
-    {
-      e.printStackTrace();
-    }
-    finally
-    {
-      SqlUtil.SafeClose(st);
-      SqlUtil.SafeClose(db);
-    }
+    bootstrapDb();
   }
 
   @Override
@@ -305,7 +287,7 @@ public class FileAdapter extends Adapter
       _description = _describe();
     }
 
-    return _description;
+    return Collections.unmodifiableSet(_description);
   }
 
   private Set<String> _describe()
@@ -318,7 +300,7 @@ public class FileAdapter extends Adapter
 
     try
     {
-      db = getReadOnlyDbConnection();
+      db = getDbConnection(); //getReadOnlyDbConnection();
 
       statement = db.prepareStatement("SELECT * FROM BLOCK_INDEX");
 
@@ -339,7 +321,7 @@ public class FileAdapter extends Adapter
       SqlUtil.SafeClose(db);
     }
 
-    return Collections.unmodifiableSet(description);
+    return description;
   }
 
   public Set<String> rebuildHashIndexFromDisk()
@@ -357,7 +339,9 @@ public class FileAdapter extends Adapter
       @Override
       public void process(File file)
       {
-        hashes.add(file.getName());
+        String fileName = file.getName();
+        if (fileName.endsWith(".tmp") || fileName.endsWith(".db")) return;
+        hashes.add(fileName);
       }
     });
 

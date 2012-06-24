@@ -114,25 +114,7 @@ public class S3Adapter extends Adapter
 
   public void purge()
   {
-    Connection db = null;
-    Statement st = null;
-    try
-    {
-      db = getDbConnection();
-      st = db.createStatement();
-      st.execute("delete from BLOCK_INDEX;");
-
-      _description = null;
-    }
-    catch (SQLException e)
-    {
-      e.printStackTrace();
-    }
-    finally
-    {
-      SqlUtil.SafeClose(st);
-      SqlUtil.SafeClose(db);
-    }
+    bootstrapDb();
   }
 
   private static List<String> parseAwsInfo(URI adapterUri)

@@ -39,7 +39,7 @@ public class push_block implements Command
     if (!hashProviders.containsKey(hash))
     {
       System.err.println();
-      System.err.println(String.format("unexpected: could not find block %s in existing storage!", hash));
+      System.err.println(String.format("push_block: could not find block %s in existing storage!", hash));
       System.err.println();
       return;
     }

@@ -17,7 +17,8 @@ public class LocalBlockCache implements BlockCache
   {
     URI adapterUri = new URI("file:///" + ConfigStorageService.instance().getConfigRoot() + File.separator + "cache");
     _cacheAdapter = new FileAdapter();
-    _cacheAdapter.init(adapterUri.getPath(), 0, FileAdapter.class.getName(), new HashSet<String>(), adapterUri);
+    String cacheIndex = ConfigStorageService.instance().getConfigRoot() + File.separator + "adapterCaches" + File.separator + "localCache";
+    _cacheAdapter.init(cacheIndex, 0, FileAdapter.class.getName(), new HashSet<String>(), adapterUri);
   }
 
   @Override
@@ -50,8 +51,6 @@ public class LocalBlockCache implements BlockCache
         e.printStackTrace();
       }
     }
-
-    loadCache(maxTier);
   }
 
   @Override

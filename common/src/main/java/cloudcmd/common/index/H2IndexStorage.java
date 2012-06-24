@@ -367,7 +367,7 @@ public class H2IndexStorage implements IndexStorage
 
     try
     {
-      db = getReadOnlyDbConnection();
+      db = getDbConnection(); //getReadOnlyDbConnection();
 
       String sql;
 
@@ -410,11 +410,11 @@ public class H2IndexStorage implements IndexStorage
 
         if (list.size() > 0)
         {
-          sql = String.format("SELECT HASH,TAGS,RAWMETA FROM FILE_INDEX WHERE %s", StringUtil.join(list, " AND "));
+          sql = String.format("SELECT HASH,RAWMETA FROM FILE_INDEX WHERE %s", StringUtil.join(list, " AND "));
         }
         else
         {
-          sql = String.format("SELECT HASH,TAGS,RAWMETA FROM FILE_INDEX");
+          sql = String.format("SELECT HASH,RAWMETA FROM FILE_INDEX");
         }
       }
 
