@@ -4,18 +4,14 @@ import cloudcmd.common.adapters.Adapter;
 import org.json.JSONArray;
 
 import java.io.File;
-import java.net.URI;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import org.json.JSONObject;
 
 
 public interface CloudEngine
 {
-  void init() throws Exception;
+  void init(ReplicationStrategy replicationStrategy) throws Exception;
 
-  void init(String opsName) throws Exception;
+  void init(ReplicationStrategy replicationStrategy, String opsName) throws Exception;
 
   void prepareFlushToAdapter(Adapter adpter) throws Exception;
   

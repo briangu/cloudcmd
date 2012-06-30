@@ -2,6 +2,7 @@ package cloudcmd.cld.commands;
 
 
 import cloudcmd.common.JsonUtil;
+import cloudcmd.common.config.ConfigStorageService;
 import cloudcmd.common.engine.CloudEngineService;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
@@ -24,7 +25,7 @@ public class Pull implements Command
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
-    CloudEngineService.instance().init("pull.ops");
+    CloudEngineService.instance().init(ConfigStorageService.instance().getReplicationStrategy(), "pull.ops");
 
     // TODO: purgeHistory/reindex after successful pull     false
 

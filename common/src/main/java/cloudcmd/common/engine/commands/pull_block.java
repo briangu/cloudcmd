@@ -39,9 +39,7 @@ public class pull_block implements AsyncCommand
     }
 
     List<Adapter> blockProviders = new ArrayList<Adapter>(hashProviders.get(hash));
-
     Collections.shuffle(blockProviders);
-
     Collections.sort(blockProviders, new Comparator<Adapter>()
     {
       @Override
@@ -84,6 +82,11 @@ public class pull_block implements AsyncCommand
 
     for (Adapter adapter : blockProviders)
     {
+      if (!adapter.IsOnLine()) {
+        log.info(String.format("adapter %s is offline, skipping", adapter.URI));
+        continue;
+      }
+
       InputStream remoteData = null;
       try
       {
@@ -133,6 +136,11 @@ public class pull_block implements AsyncCommand
 
     for (Adapter adapter : blockProviders)
     {
+      if (!adapter.IsOnLine()) {
+        log.info(String.format("adapter %s is offline, skipping", adapter.URI));
+        continue;
+      }
+
       InputStream remoteData = null;
       try
       {

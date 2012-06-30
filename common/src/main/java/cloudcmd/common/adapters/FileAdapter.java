@@ -2,7 +2,6 @@ package cloudcmd.common.adapters;
 
 import cloudcmd.common.*;
 import org.h2.jdbcx.JdbcConnectionPool;
-import org.jets3t.service.model.S3Object;
 import org.json.JSONException;
 
 import java.io.*;
@@ -167,7 +166,7 @@ public class FileAdapter extends Adapter
   @Override
   public boolean contains(String hash) throws Exception
   {
-    return _description.contains(hash);
+    return getDescription().contains(hash);
   }
 
   @Override
@@ -251,6 +250,8 @@ public class FileAdapter extends Adapter
 
   private void insertHash(String hash) throws Exception
   {
+    if (getDescription().contains(hash)) return;
+
     Connection db = null;
     PreparedStatement statement = null;
     try
@@ -259,13 +260,13 @@ public class FileAdapter extends Adapter
 
       db.setAutoCommit(false);
 
-      statement = db.prepareStatement("INSERT INTO BLOCK_INDEX VALUES (?)");
+      statement = db.prepareStatement("MERGE INTO BLOCK_INDEX VALUES (?)");
       statement.setString(1, hash);
       statement.execute();
 
       db.commit();
 
-      _description.add(hash);
+      getDescription().add(hash);
     }
     catch (SQLException e)
     {
@@ -282,17 +283,17 @@ public class FileAdapter extends Adapter
   public Set<String> describe()
     throws Exception
   {
-    if (_description == null)
-    {
-      _description = _describe();
-    }
-
-    return Collections.unmodifiableSet(_description);
+    return Collections.unmodifiableSet(getDescription());
   }
 
-  private Set<String> _describe()
+  private Set<String> getDescription()
     throws Exception
   {
+    if (_description != null)
+    {
+      return _description;
+    }
+
     Set<String> description = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
     Connection db = null;

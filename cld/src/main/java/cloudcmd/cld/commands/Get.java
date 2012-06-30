@@ -3,7 +3,10 @@ package cloudcmd.cld.commands;
 
 import cloudcmd.common.FileUtil;
 import cloudcmd.common.JsonUtil;
+import cloudcmd.common.config.ConfigStorageService;
+import cloudcmd.common.engine.CloudEngine;
 import cloudcmd.common.engine.CloudEngineService;
+import cloudcmd.common.index.IndexStorageService;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
 import jpbetz.cli.Opt;
@@ -43,33 +46,42 @@ public class Get implements Command
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
-    CloudEngineService.instance().init("get.ops");
+    CloudEngineService.instance().init(ConfigStorageService.instance().getReplicationStrategy(), "get.ops");
 
-    InputStream is = (_inputFilePath != null) ? new FileInputStream(new File(_inputFilePath)) : System.in;
+    JSONArray selections;
 
-    try
+    if (_pullAll)
     {
-      JSONArray selections = JsonUtil.loadJsonArray(is);
-
-      // Apply the path modification pipeline.  Intentionally not combining these for now to keep flexible.
-      if (_removePaths) removePaths(selections);
-      if (_prefix != null) prefixPaths(_prefix, selections);
-
-      if (_outdir == null) _outdir = FileUtil.getCurrentWorkingDirectory();
-      prefixPaths(_outdir, selections);
-
-      if (!_dryrun)
+      selections = IndexStorageService.instance().find(new JSONObject());
+    }
+    else
+    {
+      InputStream is = null;
+      try
       {
-        CloudEngineService.instance().fetch(_maxTier.intValue(), selections);
+        is = (_inputFilePath != null) ? new FileInputStream(new File(_inputFilePath)) : System.in;
+        selections = JsonUtil.loadJsonArray(is);
       }
-      else
+      finally
       {
-        System.out.print(selections.toString());
+        if (is != System.in) is.close();
       }
     }
-    finally
+
+    // Apply the path modification pipeline.  Intentionally not combining these for now to keep flexible.
+    if (_removePaths) removePaths(selections);
+    if (_prefix != null) prefixPaths(_prefix, selections);
+
+    if (_outdir == null) _outdir = FileUtil.getCurrentWorkingDirectory();
+    prefixPaths(_outdir, selections);
+
+    if (!_dryrun)
     {
-      if (is != System.in) is.close();
+      CloudEngineService.instance().fetch(_maxTier.intValue(), selections);
+    }
+    else
+    {
+      System.out.print(selections.toString());
     }
   }
 

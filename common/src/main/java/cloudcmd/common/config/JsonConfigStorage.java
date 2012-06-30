@@ -2,6 +2,8 @@ package cloudcmd.common.config;
 
 import cloudcmd.common.*;
 import cloudcmd.common.adapters.Adapter;
+import cloudcmd.common.engine.MirrorReplicationStrategy;
+import cloudcmd.common.engine.ReplicationStrategy;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -290,6 +292,11 @@ public class JsonConfigStorage implements ConfigStorage
       }
     }
     return null;
+  }
+
+  @Override
+  public ReplicationStrategy getReplicationStrategy() {
+    return new MirrorReplicationStrategy();
   }
 
   @Override

@@ -1,11 +1,12 @@
 package cloudcmd.common.engine;
 
-import cloudcmd.common.*;
+import cloudcmd.common.FileMetaData;
+import cloudcmd.common.JsonUtil;
+import cloudcmd.common.MetaUtil;
+import cloudcmd.common.ResourceUtil;
 import cloudcmd.common.adapters.Adapter;
-import cloudcmd.common.config.ConfigStorageService;
 import cloudcmd.common.engine.commands.*;
 import cloudcmd.common.index.IndexStorageService;
-import java.io.ByteArrayInputStream;
 import ops.Command;
 import ops.OPS;
 import ops.OpsFactory;
@@ -15,6 +16,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.util.*;
 
@@ -24,6 +26,7 @@ public class LocalCacheCloudEngine implements CloudEngine
   OPS _ops;
   WorkingMemory _wm;
   Thread _opsThread = null;
+  ReplicationStrategy _replicationStrategy;
 
   private Map<String, Command> buildRegistry()
   {
@@ -45,14 +48,16 @@ public class LocalCacheCloudEngine implements CloudEngine
   }
 
   @Override
-  public void init() throws Exception
+  public void init(ReplicationStrategy replicationStrategy) throws Exception
   {
-    init("index.ops");
+    init(replicationStrategy, "index.ops");
   }
 
   @Override
-  public void init(String opsName) throws Exception
+  public void init(ReplicationStrategy replicationStrategy, String opsName) throws Exception
   {
+    _replicationStrategy = replicationStrategy;
+
     Map<String, Command> registry = buildRegistry();
 
     JSONObject indexOps;
@@ -130,101 +135,7 @@ public class LocalCacheCloudEngine implements CloudEngine
   public void push(int maxTier, JSONArray selections)
       throws Exception
   {
-    BlockCacheService.instance().loadCache(maxTier);
-
-    Adapter localCache = BlockCacheService.instance().getBlockCache();
-
-    final Set<String> localDescription = localCache.describe();
-
-    for (final Adapter adapter : ConfigStorageService.instance().getAdapters())
-    {
-      if (adapter.Tier > maxTier) continue;
-      if (adapter.Tier == 0) continue;
-
-      if (!adapter.IsOnLine())
-      {
-        log.warn(String.format("skipping adapter because it's not online: %s", adapter.URI.toASCIIString()));
-        continue;
-      }
-      if (adapter.IsFull())
-      {
-        log.warn(String.format("skipping adapter because it's full: %s", adapter.URI.toASCIIString()));
-        continue;
-      }
-
-      try
-      {
-        Set<String> adapterDescription = adapter.describe();
-
-        Set<String> pushSet = new HashSet<String>(selections.length());
-
-        for (int i = 0; i < selections.length(); i++)
-        {
-          String hash = selections.getJSONObject(i).getString("hash");
-
-          if (!hash.endsWith(".meta"))
-          {
-            log.error("unexpected hash type: " + hash);
-            continue;
-          }
-
-          if (!localDescription.contains(hash))
-          {
-            // the index should always by in sync with the local cache
-            log.error("hash not found in local cache: " + hash);
-            continue;
-          }
-
-          JSONObject entry = selections.getJSONObject(i).getJSONObject("data");
-
-          try
-          {
-            Set<String> tags = JsonUtil.createSet(entry.getJSONArray("tags"));
-
-            // TODO: accepts should take the file size as well
-
-            if (!adapter.accepts(tags))
-            {
-              if (log.isDebugEnabled())
-              {
-                log.debug(String.format("skipping adapter %s because it doesn't accept tags (%s) for hash %s",
-                                        adapter.URI.toASCIIString(),
-                                        StringUtil.join(tags, ","),
-                                        hash));
-              }
-              continue;
-            }
-
-            if (!adapterDescription.contains(hash))
-            {
-              pushSet.add(hash);
-            }
-
-            JSONArray blocks = entry.getJSONArray("blocks");
-
-            for (int blockIdx = 0; blockIdx < blocks.length(); blockIdx++)
-            {
-              String blockHash = blocks.getString(blockIdx);
-              if (adapterDescription.contains(blockHash)) continue;
-              pushSet.add(blockHash);
-            }
-          }
-          catch (Exception e)
-          {
-            log.error("adapter = " + adapter.URI, e);
-          }
-        }
-
-        for (String hash : pushSet)
-        {
-          _wm.make("push_block", "dest", adapter, "hash", hash);
-        }
-      }
-      catch (Exception e)
-      {
-        log.error(e);
-      }
-    }
+    _replicationStrategy.push(_wm, maxTier, selections);
   }
 
   @Override

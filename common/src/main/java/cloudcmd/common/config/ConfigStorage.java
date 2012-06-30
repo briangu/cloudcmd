@@ -1,6 +1,7 @@
 package cloudcmd.common.config;
 
 import cloudcmd.common.adapters.Adapter;
+import cloudcmd.common.engine.ReplicationStrategy;
 import org.json.JSONException;
 
 import java.io.IOException;
@@ -32,4 +33,6 @@ public interface ConfigStorage
   void writeConfig() throws IOException, JSONException;
 
   Adapter getAdapter(URI adapterURI);
+
+  ReplicationStrategy getReplicationStrategy();
 }

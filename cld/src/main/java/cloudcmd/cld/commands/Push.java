@@ -2,6 +2,7 @@ package cloudcmd.cld.commands;
 
 
 import cloudcmd.common.JsonUtil;
+import cloudcmd.common.config.ConfigStorageService;
 import cloudcmd.common.engine.CloudEngineService;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
@@ -21,7 +22,7 @@ public class Push implements Command
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
-    CloudEngineService.instance().init("push.ops");
+    CloudEngineService.instance().init(ConfigStorageService.instance().getReplicationStrategy(), "push.ops");
 
     if (_pushAll)
     {
