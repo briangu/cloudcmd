@@ -102,7 +102,7 @@ public class H2IndexStorage implements IndexStorage
       db.commit();
 
       FullText.init(db);
-      FullText.setWhitespaceChars(db, " ,:-._/" + File.separator);
+      FullText.setWhitespaceChars(db, " ,:-._" + File.separator);
       FullText.createIndex(db, "PUBLIC", "FILE_INDEX", null);
     }
     catch (SQLException e)
@@ -350,7 +350,7 @@ public class H2IndexStorage implements IndexStorage
 
     try
     {
-      db = getDbConnection(); //getReadOnlyDbConnection();
+      db = getReadOnlyDbConnection();
 
       String sql;
 
