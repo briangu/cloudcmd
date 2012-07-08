@@ -10,9 +10,6 @@ import org.apache.log4j.Logger
 import cloudcmd.common.index.IndexStorageService
 import cloudcmd.common.config.ConfigStorageService
 
-object ParallelCloudEngine {
-}
-
 class ParallelCloudEngine extends CloudEngine {
 
   val log = Logger.getLogger(classOf[ParallelCloudEngine])

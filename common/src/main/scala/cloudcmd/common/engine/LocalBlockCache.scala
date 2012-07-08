@@ -5,11 +5,10 @@ import cloudcmd.common.adapters.FileAdapter
 import cloudcmd.common.config.ConfigStorageService
 import java.io.File
 import java.net.URI
-import java.util._
 
 class LocalBlockCache extends BlockCache {
   private var _cacheAdapter: Adapter = null
-  private var _hashProviders: Map[String, List[Adapter]] = null
+  private var _hashProviders: java.util.Map[String, java.util.List[Adapter]] = null
 
   private def available(p: Adapter, minTier: Int, maxTier: Int) = (p.IsOnLine && p.Tier >= minTier && p.Tier <= maxTier)
 
@@ -17,7 +16,7 @@ class LocalBlockCache extends BlockCache {
     val adapterUri: URI = new URI("file:///" + ConfigStorageService.instance.getConfigRoot + File.separator + "cache")
     _cacheAdapter = new FileAdapter
     val cacheIndex: String = ConfigStorageService.instance.getConfigRoot + File.separator + "adapterCaches" + File.separator + "localCache"
-    _cacheAdapter.init(cacheIndex, 0, classOf[FileAdapter].getName, new HashSet[String], adapterUri)
+    _cacheAdapter.init(cacheIndex, 0, classOf[FileAdapter].getName, new java.util.HashSet[String], adapterUri)
   }
 
   def shutdown {}
@@ -33,16 +32,19 @@ class LocalBlockCache extends BlockCache {
     _hashProviders = buildHashProviders(minTier, maxTier)
   }
 
-  private def buildHashProviders(minTier: Int, maxTier: Int) : Map[String, List[Adapter]] = {
+  private def buildHashProviders(minTier: Int, maxTier: Int) : java.util.Map[String, java.util.List[Adapter]] = {
     import scala.collection.JavaConversions._
 
-    val hashProviders = new HashMap[String, List[Adapter]]
-    ConfigStorageService.instance.getAdapters.filter(available(_, minTier, maxTier)).par.foreach{ p =>
+    val adapters : List[Adapter] = ConfigStorageService.instance.getAdapters.toList ::: List(BlockCacheService.instance.getBlockCache)
+
+    val hashProviders = new java.util.HashMap[String, java.util.List[Adapter]]
+
+    adapters.filter(available(_, minTier, maxTier)).par.foreach{ p =>
       p.describe.foreach{ hash =>
         if (!hashProviders.containsKey(hash)) {
           hashProviders.synchronized {
             if (!hashProviders.containsKey(hash)) {
-              hashProviders.put(hash, new ArrayList[Adapter])
+              hashProviders.put(hash, new java.util.ArrayList[Adapter])
             }
           }
         }
@@ -51,13 +53,14 @@ class LocalBlockCache extends BlockCache {
         }
       }
     }
+
     hashProviders
   }
 
-  def getHashProviders: Map[String, List[Adapter]] = {
+  def getHashProviders: java.util.Map[String, java.util.List[Adapter]] = {
     if (_hashProviders == null) {
       throw new RuntimeException("call loadCache first")
     }
-    Collections.unmodifiableMap(_hashProviders)
+    java.util.Collections.unmodifiableMap(_hashProviders)
   }
 }
