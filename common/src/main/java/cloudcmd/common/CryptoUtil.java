@@ -90,7 +90,7 @@ public class CryptoUtil
 
     try
     {
-      return writeAndComputeHash(srcData, new FileOutputStream(destFile));
+      return writeAndComputeHash(srcData, fos = new FileOutputStream(destFile));
     }
     catch (FileNotFoundException e)
     {
