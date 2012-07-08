@@ -97,7 +97,7 @@ public class pull_block implements AsyncCommand
         FileMetaData fmd = MetaUtil.loadMeta(hash, JsonUtil.loadJson(BlockCacheService.instance().getBlockCache().load(hash)));
 
         // if localcache has block continue
-        IndexStorageService.instance().add(fmd);
+//        IndexStorageService.instance().add(fmd);
 
         if (retrieveBlocks)
         {

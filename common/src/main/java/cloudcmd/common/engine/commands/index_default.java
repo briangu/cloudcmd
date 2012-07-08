@@ -53,7 +53,7 @@ public class index_default implements AsyncCommand
         {
           bais = new ByteArrayInputStream(meta.getDataAsString().getBytes("UTF-8"));
           localCache.store(bais, meta.getHash());
-          IndexStorageService.instance().add(meta);
+//          IndexStorageService.instance().add(meta);
           context.make("new_block", "type", "meta", "hash", meta.getHash());
         }
       }
