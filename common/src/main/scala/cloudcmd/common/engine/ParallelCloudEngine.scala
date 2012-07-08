@@ -111,11 +111,11 @@ class ParallelCloudEngine extends CloudEngine {
       val hash = selections.getJSONObject(i).getString("hash")
       if (!hash.endsWith(".meta")) {
         log.error("unexpected hash type: " + hash)
-        List(null)
+        Nil
       } else if (!localDescription.contains(hash)) {
         // the index should always by in sync with the local cache
         log.error("hash not found in local cache: " + hash)
-        List(null)
+        Nil
       } else {
         val blocks = selections.getJSONObject(i).getJSONObject("data").getJSONArray("blocks")
         val searchSet = Set(hash) ++ (0 until blocks.length).flatMap{ blockIdx => Set(blocks.getString(blockIdx))}
@@ -179,7 +179,7 @@ class ParallelCloudEngine extends CloudEngine {
 
     val fmds = localDescription.par.flatMap{ hash =>
       if (!hash.endsWith(".meta")) {
-        List(null)
+        Nil
       } else {
         try {
           val fmd = MetaUtil.loadMeta(hash, JsonUtil.loadJson(localCache.load(hash)))
@@ -188,7 +188,7 @@ class ParallelCloudEngine extends CloudEngine {
         } catch {
           case e:Exception => {
             log.error(hash, e)
-            List(null)
+            Nil
           }
         }
       }
@@ -221,13 +221,13 @@ class ParallelCloudEngine extends CloudEngine {
 
       val newTags = MetaUtil.applyTags(oldMeta.getTags, tags)
       if (newTags.equals(oldMeta.getTags)) {
-        List(null)
+        Nil
       } else {
         data.put("tags", new JSONArray(newTags))
 
         val derivedMeta = MetaUtil.deriveMeta(hash, data)
         if (localDescription.contains(derivedMeta.getHash)) {
-          List(null)
+          Nil
         } else {
           localCache.store(new ByteArrayInputStream(derivedMeta.getDataAsString.getBytes("UTF-8")), derivedMeta.getHash)
           List(derivedMeta)
