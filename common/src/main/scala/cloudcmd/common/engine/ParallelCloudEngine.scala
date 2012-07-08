@@ -192,19 +192,12 @@ class ParallelCloudEngine extends CloudEngine {
     }.toList
 
     IndexStorageService.instance.addAll(fmds)
-    IndexStorageService.instance.pruneHistory(MetaUtil.toJsonArray(fmds))
+    IndexStorageService.instance.pruneHistory(fmds)
   }
 
   def fetch(minTier: Int, maxTier: Int, selections: JSONArray) {
     BlockCacheService.instance.loadCache(minTier, maxTier)
-
-    (0 until selections.length).par.foreach{ i =>
-      try{
-        _wm.make("fetch", "meta", MetaUtil.loadMeta(selections.getJSONObject(i)))
-      } catch {
-        case e:JSONException => log.error("index = " + i, e)
-      }
-    }
+    (0 until selections.length).par.foreach(i => _wm.make("fetch", "meta", MetaUtil.loadMeta(selections.getJSONObject(i))))
   }
 
   def addTags(selections: JSONArray, tags: java.util.Set[String]) : JSONArray = {
@@ -234,12 +227,10 @@ class ParallelCloudEngine extends CloudEngine {
 
     import collection.JavaConversions._
 
-    val newSelections = MetaUtil.toJsonArray(fmds)
-
     IndexStorageService.instance.addAll(fmds)
-    IndexStorageService.instance.pruneHistory(newSelections)
+    IndexStorageService.instance.pruneHistory(fmds)
 
-    newSelections
+    MetaUtil.toJsonArray(fmds)
   }
 
   def verify(minTier: Int, maxTier: Int, deleteOnInvalid: Boolean) {
@@ -268,23 +259,22 @@ class ParallelCloudEngine extends CloudEngine {
     (0 until selections.length).par.foreach{ i =>
       val hash = selections.getJSONObject(i).getString("hash")
 
-      if (hashProviders.containsKey(hash)) {
-        val meta = JsonUtil.loadJson(localCache.load(hash))
+      removeBlock(hashProviders, hash)
+
+      val meta = JsonUtil.loadJson(localCache.load(hash))
+
+      if (false) {
+        // TODO: only delete if there are no other files referencing these blocks
         val blocks = meta.getJSONArray("blocks")
-
-        (0 until blocks.length).foreach { j =>
-          removeBlock(hashProviders, blocks.getString(j))
-        }
-
-        removeBlock(hashProviders, hash)
-
-        val indexMeta = new JSONObject
-        indexMeta.put("hash", hash)
-        indexMeta.put("data", meta)
-
-        // TODO: we should only do this if we are sure the rest happened correctly (although at worst we could reindex)
-        IndexStorageService.instance.remove(MetaUtil.loadMeta(indexMeta))
+        (0 until blocks.length).foreach(j => removeBlock(hashProviders, blocks.getString(j)))
       }
+
+      val indexMeta = new JSONObject
+      indexMeta.put("hash", hash)
+      indexMeta.put("data", meta)
+
+      // TODO: we should only do this if we are sure the rest happened correctly (although at worst we could reindex)
+      IndexStorageService.instance.remove(MetaUtil.loadMeta(indexMeta))
     }
   }
 

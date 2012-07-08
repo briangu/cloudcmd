@@ -30,7 +30,6 @@ public class MetaUtil
   public static FileMetaData createMeta(File file, List<String> blockHashes, Set<String> tags)
       throws IOException, JSONException
   {
-
     String fileName = file.getName();
 
     int extIndex = fileName.lastIndexOf(".");

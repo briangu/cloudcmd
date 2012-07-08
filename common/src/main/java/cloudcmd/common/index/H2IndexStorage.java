@@ -102,7 +102,7 @@ public class H2IndexStorage implements IndexStorage
       db.commit();
 
       FullText.init(db);
-      FullText.setWhitespaceChars(db, " ,:-._" + File.separator);
+      FullText.setWhitespaceChars(db, " ,:-._/" + File.separator);
       FullText.createIndex(db, "PUBLIC", "FILE_INDEX", null);
     }
     catch (SQLException e)
@@ -434,7 +434,7 @@ public class H2IndexStorage implements IndexStorage
   }
 
   @Override
-  public void pruneHistory(JSONArray selections)
+  public void pruneHistory(List<FileMetaData> selections)
   {
     Connection db = null;
     try
@@ -442,12 +442,12 @@ public class H2IndexStorage implements IndexStorage
       db = getDbConnection();
       db.setAutoCommit(false);
 
-      for (int i = 0; i < selections.length(); i++)
+      for (FileMetaData meta : selections)
       {
-        JSONObject meta = selections.getJSONObject(i).getJSONObject("data");
-        if (meta.has("parent"))
+        String parent = meta.getParent();
+        if (parent != null)
         {
-          removeMeta(db, meta.getString("parent"));
+          removeMeta(db, parent);
         }
       }
 

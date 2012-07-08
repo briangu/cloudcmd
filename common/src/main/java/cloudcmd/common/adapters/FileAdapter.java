@@ -221,6 +221,7 @@ public class FileAdapter extends Adapter
   {
     File tmpFile = new File(_rootPath + File.separator + UUID.randomUUID().toString() + ".tmp");
     tmpFile.createNewFile();
+    // TODO: do in memory if small enough
     String hash = FileUtil.writeFileAndComputeHash(is, tmpFile);
     File newFile = new File(getDataFileFromHash(hash));
     if (newFile.exists() && newFile.length() == tmpFile.length())
