@@ -200,6 +200,11 @@ public class FileAdapter extends Adapter
     return (CryptoUtil.computeHashAsString(file).equals(hash));
   }
 
+  private String getHashFromDataFile(String hash) {
+    int idx = hash.lastIndexOf(".");
+    return (idx >= 0) ? hash.substring(0, idx) : hash;
+  }
+
   private String getPathFromHash(String hash) throws JSONException
   {
     return _rootPath + File.separator + hash.substring(0, 2);
@@ -213,7 +218,10 @@ public class FileAdapter extends Adapter
   @Override
   public void store(InputStream is, String hash) throws Exception
   {
-    FileUtil.writeFile(is, getDataFileFromHash(hash));
+    String writeHash = FileUtil.writeFileAndComputeHash(is, new File(getDataFileFromHash(hash)));
+    if (!writeHash.equals(getHashFromDataFile(hash))) {
+      throw new RuntimeException(String.format("failed to store data: expected %s got %s", hash, writeHash));
+    }
     insertHash(hash);
   }
 
