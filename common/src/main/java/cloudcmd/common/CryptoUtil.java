@@ -5,7 +5,6 @@ import java.math.BigInteger;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.UUID;
 
 public class CryptoUtil
 {
@@ -87,27 +86,45 @@ public class CryptoUtil
 
   public static byte[] writeAndComputeHash(InputStream srcData, File destFile)
   {
+    FileOutputStream fos = null;
+
+    try
+    {
+      return writeAndComputeHash(srcData, new FileOutputStream(destFile));
+    }
+    catch (FileNotFoundException e)
+    {
+      e.printStackTrace();
+    }
+    catch (IOException e)
+    {
+      e.printStackTrace();
+    }
+    finally
+    {
+      FileUtil.SafeClose(fos);
+    }
+
+    return null;
+  }
+
+  public static byte[] writeAndComputeHash(InputStream is, OutputStream os)
+  {
     byte[] digest = null;
 
     DigestInputStream dis = null;
-    FileOutputStream fos = null;
 
     final int buff = 1024 * 1024;
     try
     {
       MessageDigest hash = MessageDigest.getInstance("SHA-256");
-      dis = new DigestInputStream(srcData, hash);
-      fos = new FileOutputStream(destFile);
+      dis = new DigestInputStream(is, hash);
       byte[] buffer = new byte[buff];
       int read;
       while ((read = dis.read(buffer)) != -1) {
-        fos.write(buffer, 0, read);
+        os.write(buffer, 0, read);
       }
       digest = hash.digest();
-    }
-    catch (FileNotFoundException e)
-    {
-      e.printStackTrace();
     }
     catch (NoSuchAlgorithmException e)
     {
@@ -120,7 +137,7 @@ public class CryptoUtil
     finally
     {
       FileUtil.SafeClose(dis);
-      FileUtil.SafeClose(fos);
+      FileUtil.SafeClose(os);
     }
 
     return digest;

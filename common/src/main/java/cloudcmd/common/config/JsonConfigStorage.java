@@ -1,14 +1,14 @@
 package cloudcmd.common.config;
 
-import cloudcmd.common.FileUtil;
-import cloudcmd.common.JsonUtil;
-import cloudcmd.common.ResourceUtil;
-import cloudcmd.common.UriUtil;
+import cloudcmd.common.*;
 import cloudcmd.common.adapters.Adapter;
+import cloudcmd.common.engine.MirrorReplicationStrategy;
+import cloudcmd.common.engine.ReplicationStrategy;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -135,7 +135,8 @@ public class JsonConfigStorage implements ConfigStorage
     try
     {
       adapter = (Adapter) clazz.newInstance();
-      adapter.init(_configRoot + File.separator + handlerType, tier, handlerType, tags, adapterUri);
+      String adapterIdHash = CryptoUtil.digestToString(CryptoUtil.computeMD5Hash(new ByteArrayInputStream(adapterUri.toASCIIString().getBytes("UTF-8"))));
+      adapter.init(_configRoot + File.separator + "adapterCaches" + File.separator + adapterIdHash, tier, handlerType, tags, adapterUri);
     }
     catch (Exception e)
     {
@@ -291,6 +292,11 @@ public class JsonConfigStorage implements ConfigStorage
       }
     }
     return null;
+  }
+
+  @Override
+  public ReplicationStrategy getReplicationStrategy() {
+    return new MirrorReplicationStrategy();
   }
 
   @Override

@@ -13,6 +13,16 @@ public class FileMetaData
   private JSONObject _data;
   private String _hash;
 
+  @Override
+  public int hashCode() {
+    return _hash.hashCode();
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    return _hash.equals(other);
+  }
+
   public JSONArray getBlockHashes()
       throws JSONException
   {

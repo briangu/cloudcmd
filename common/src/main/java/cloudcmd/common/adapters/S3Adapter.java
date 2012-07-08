@@ -2,18 +2,7 @@ package cloudcmd.common.adapters;
 
 
 import cloudcmd.common.CryptoUtil;
-import cloudcmd.common.FileUtil;
 import cloudcmd.common.SqlUtil;
-
-import java.io.*;
-import java.net.URI;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.*;
-
 import cloudcmd.common.UriUtil;
 import org.apache.commons.io.IOUtils;
 import org.h2.jdbcx.JdbcConnectionPool;
@@ -21,8 +10,14 @@ import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.AWSCredentials;
-import org.jets3t.service.utils.ServiceUtils;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.InputStream;
+import java.net.URI;
+import java.sql.*;
+import java.util.*;
 
 //     "s3://<aws id>:<aws secret>@<bucket>?tier=2&tags=s3"
 
@@ -119,25 +114,7 @@ public class S3Adapter extends Adapter
 
   public void purge()
   {
-    Connection db = null;
-    Statement st = null;
-    try
-    {
-      db = getDbConnection();
-      st = db.createStatement();
-      st.execute("delete from BLOCK_INDEX;");
-
-      _description = null;
-    }
-    catch (SQLException e)
-    {
-      e.printStackTrace();
-    }
-    finally
-    {
-      SqlUtil.SafeClose(st);
-      SqlUtil.SafeClose(db);
-    }
+    bootstrapDb();
   }
 
   private static List<String> parseAwsInfo(URI adapterUri)
@@ -203,6 +180,8 @@ public class S3Adapter extends Adapter
       statement.execute();
 
       db.commit();
+
+      _description.add(hash);
     }
     catch (SQLException e)
     {
@@ -218,37 +197,7 @@ public class S3Adapter extends Adapter
   @Override
   public boolean contains(String hash) throws Exception
   {
-    Set<String> description = new HashSet<String>();
-
-    Connection db = null;
-    PreparedStatement statement = null;
-
-    try
-    {
-      db = getReadOnlyDbConnection();
-
-      statement = db.prepareStatement("SELECT * FROM BLOCK_INDEX WHERE HASH = ?");
-      statement.setString(1, hash);
-      statement.execute();
-
-      ResultSet resultSet = statement.executeQuery();
-
-      while (resultSet.next())
-      {
-        description.add(resultSet.getString("HASH"));
-      }
-    }
-    catch (SQLException e)
-    {
-      e.printStackTrace();
-    }
-    finally
-    {
-      SqlUtil.SafeClose(statement);
-      SqlUtil.SafeClose(db);
-    }
-
-    return description.contains(hash);
+    return describe().contains(hash);
   }
 
   @Override
@@ -264,6 +213,7 @@ public class S3Adapter extends Adapter
   public boolean remove(String hash) throws Exception
   {
     _s3Service.deleteObject(_bucketName, hash);
+    _description.remove(hash);
     return true;
   }
 

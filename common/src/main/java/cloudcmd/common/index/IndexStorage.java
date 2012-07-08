@@ -25,5 +25,5 @@ public interface IndexStorage
 
   void addAll(List<FileMetaData> fmds);
 
-  void pruneHistory(JSONArray selections);
+  void pruneHistory(List<FileMetaData> fmds);
 }

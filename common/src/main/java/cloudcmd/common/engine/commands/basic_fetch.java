@@ -14,10 +14,7 @@ import org.json.JSONArray;
 
 import java.io.File;
 import java.io.InputStream;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 /*
@@ -53,8 +50,8 @@ public class basic_fetch implements AsyncCommand
     {
       String hash = blockHashes.getString(i);
 
-      List<Adapter> blockProviders = hashProviders.get(hash);
-
+      List<Adapter> blockProviders = new ArrayList<Adapter>(hashProviders.get(hash));
+      Collections.shuffle(blockProviders);
       Collections.sort(blockProviders, new Comparator<Adapter>()
       {
         @Override

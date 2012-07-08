@@ -119,24 +119,13 @@ public class H2IndexStorage implements IndexStorage
   @Override
   public void purge()
   {
-    Connection db = null;
-    Statement st = null;
-    try
+    File file = new File(getDbFile() + ".h2.db");
+    if (file.exists())
     {
-      db = getDbConnection();
-      st = db.createStatement();
+      file.delete();
+    }
 
-      st.execute("delete from FILE_INDEX;");
-    }
-    catch (SQLException e)
-    {
-      log.error(e);
-    }
-    finally
-    {
-      SqlUtil.SafeClose(st);
-      SqlUtil.SafeClose(db);
-    }
+    bootstrapDb();
   }
 
   volatile boolean _flushing = false;
@@ -410,11 +399,11 @@ public class H2IndexStorage implements IndexStorage
 
         if (list.size() > 0)
         {
-          sql = String.format("SELECT HASH,TAGS,RAWMETA FROM FILE_INDEX WHERE %s", StringUtil.join(list, " AND "));
+          sql = String.format("SELECT HASH,RAWMETA FROM FILE_INDEX WHERE %s", StringUtil.join(list, " AND "));
         }
         else
         {
-          sql = String.format("SELECT HASH,TAGS,RAWMETA FROM FILE_INDEX");
+          sql = String.format("SELECT HASH,RAWMETA FROM FILE_INDEX");
         }
       }
 
@@ -451,7 +440,7 @@ public class H2IndexStorage implements IndexStorage
   }
 
   @Override
-  public void pruneHistory(JSONArray selections)
+  public void pruneHistory(List<FileMetaData> selections)
   {
     Connection db = null;
     try
@@ -459,12 +448,12 @@ public class H2IndexStorage implements IndexStorage
       db = getDbConnection();
       db.setAutoCommit(false);
 
-      for (int i = 0; i < selections.length(); i++)
+      for (FileMetaData meta : selections)
       {
-        JSONObject meta = selections.getJSONObject(i).getJSONObject("data");
-        if (meta.has("parent"))
+        String parent = meta.getParent();
+        if (parent != null)
         {
-          removeMeta(db, meta.getString("parent"));
+          removeMeta(db, parent);
         }
       }
 

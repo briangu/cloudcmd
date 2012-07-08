@@ -4,17 +4,13 @@ package cloudcmd.common.engine.commands;
 import cloudcmd.common.FileUtil;
 import cloudcmd.common.adapters.Adapter;
 import cloudcmd.common.engine.BlockCacheService;
-import ops.AsyncCommand;
 import ops.Command;
 import ops.CommandContext;
 import ops.MemoryElement;
 import org.apache.log4j.Logger;
 
 import java.io.InputStream;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 public class push_block implements Command
@@ -33,19 +29,29 @@ public class push_block implements Command
       context.make(new MemoryElement("msg", "body", String.format("adapter %s already has block %s", dest.URI, hash)));
       return;
     }
+    if (dest.IsFull())
+    {
+      context.make(new MemoryElement("msg", "body", String.format("adapter %s is full and cannot write %s", dest.URI, hash)));
+      return;
+    }
+    if (!dest.IsOnLine())
+    {
+      context.make(new MemoryElement("msg", "body", String.format("adapter %s is offline and cannot write %s", dest.URI, hash)));
+      return;
+    }
 
     Map<String, List<Adapter>> hashProviders = BlockCacheService.instance().getHashProviders();
 
     if (!hashProviders.containsKey(hash))
     {
       System.err.println();
-      System.err.println(String.format("unexpected: could not find block %s in existing storage!", hash));
+      System.err.println(String.format("push_block: could not find block %s in existing storage!", hash));
       System.err.println();
       return;
     }
 
-    List<Adapter> blockProviders = hashProviders.get(hash);
-
+    List<Adapter> blockProviders = new ArrayList<Adapter>(hashProviders.get(hash));
+    Collections.shuffle(blockProviders);
     Collections.sort(blockProviders, new Comparator<Adapter>()
     {
       @Override
@@ -57,6 +63,8 @@ public class push_block implements Command
 
     for (Adapter src : blockProviders)
     {
+      if (!src.IsOnLine()) continue;
+
       InputStream is = null;
 
       try
