@@ -119,6 +119,12 @@ public class H2IndexStorage implements IndexStorage
   @Override
   public void purge()
   {
+    File file = new File(getDbFile() + ".h2.db");
+    if (file.exists())
+    {
+      file.delete();
+    }
+
     bootstrapDb();
   }
 
