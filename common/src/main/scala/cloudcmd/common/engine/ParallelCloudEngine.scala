@@ -289,8 +289,9 @@ class ParallelCloudEngine extends CloudEngine {
   }
 
   private def removeBlock(hashProviders : java.util.Map[String, java.util.List[Adapter]], hash: String) {
-    Option(hashProviders.get(hash)).foreach{ adapter =>
-      _wm.make("remove_block", "hash", hash, "adapter", adapter)
+    Option(hashProviders.get(hash)).foreach{ adapters =>
+      import collection.JavaConversions._
+      adapters.foreach(_wm.make("remove_block", "hash", hash, "adapter", _))
     }
   }
 }
