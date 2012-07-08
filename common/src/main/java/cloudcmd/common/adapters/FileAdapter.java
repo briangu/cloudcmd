@@ -22,7 +22,7 @@ public class FileAdapter extends Adapter
 
   String _rootPath;
   JdbcConnectionPool _cp = null;
-  Set<String> _description = null;
+  volatile Set<String> _description = null;
 
   public FileAdapter()
   {
@@ -325,35 +325,41 @@ public class FileAdapter extends Adapter
       return _description;
     }
 
-    Set<String> description = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+    synchronized (this) {
+      if (_description == null) {
+        Set<String> description = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
-    Connection db = null;
-    PreparedStatement statement = null;
+        Connection db = null;
+        PreparedStatement statement = null;
 
-    try
-    {
-      db = getDbConnection(); //getReadOnlyDbConnection();
+        try
+        {
+          db = getDbConnection(); //getReadOnlyDbConnection();
 
-      statement = db.prepareStatement("SELECT * FROM BLOCK_INDEX");
+          statement = db.prepareStatement("SELECT * FROM BLOCK_INDEX");
 
-      ResultSet resultSet = statement.executeQuery();
+          ResultSet resultSet = statement.executeQuery();
 
-      while (resultSet.next())
-      {
-        description.add(resultSet.getString("HASH"));
+          while (resultSet.next())
+          {
+            description.add(resultSet.getString("HASH"));
+          }
+
+          _description = description;
+        }
+        catch (SQLException e)
+        {
+          e.printStackTrace();
+        }
+        finally
+        {
+          SqlUtil.SafeClose(statement);
+          SqlUtil.SafeClose(db);
+        }
       }
     }
-    catch (SQLException e)
-    {
-      e.printStackTrace();
-    }
-    finally
-    {
-      SqlUtil.SafeClose(statement);
-      SqlUtil.SafeClose(db);
-    }
 
-    return description;
+    return _description;
   }
 
   public Set<String> rebuildHashIndexFromDisk()
