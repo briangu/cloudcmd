@@ -13,7 +13,7 @@ public interface CloudEngine
 
   void init(ReplicationStrategy replicationStrategy, String opsName) throws Exception;
 
-  void prepareFlushToAdapter(Adapter adpter) throws Exception;
+  void prepareFlushToAdapter(Adapter adapter) throws Exception;
   
   void run() throws Exception;
 
@@ -21,29 +21,27 @@ public interface CloudEngine
 
   void add(File file, Set<String> tags);
 
-  void push(int maxTier)
+  void push(int minTier, int maxTier)
       throws Exception;
 
-  void push(int maxTier, JSONArray selections)
+  void push(int minTier, int maxTier, JSONArray selections)
     throws Exception;
 
-  void pull(int maxTier, boolean retrieveBlocks)
+  void pull(int minTier, int maxTier, boolean retrieveBlocks)
       throws Exception;
 
-  void pull(int maxTier, boolean retrieveBlocks, JSONArray selections)
+  void pull(int minTier, int maxTier, boolean retrieveBlocks, JSONArray selections)
     throws Exception;
 
-  void reindex()
-      throws Exception;
+  void reindex() throws Exception;
 
-  void fetch(int maxTier, JSONArray selections) throws Exception;
+  void fetch(int minTier, int maxTier, JSONArray selections) throws Exception;
 
-  JSONArray addTags(JSONArray selections, Set<String> tags)
-      throws Exception;
+  JSONArray addTags(JSONArray selections, Set<String> tags) throws Exception;
 
-  void verify(int i, boolean deleteOnInvalid) throws Exception;
+  void verify(int minTier, int maxTier, boolean deleteOnInvalid) throws Exception;
 
-  void verify(int i, JSONArray selections, boolean deleteOnInvalid) throws Exception;
+  void verify(int minTier, int maxTier, JSONArray selections, boolean deleteOnInvalid) throws Exception;
 
-  void remove(JSONArray selections) throws Exception;
+  void remove(int minTier, int maxTier, JSONArray selections) throws Exception;
 }

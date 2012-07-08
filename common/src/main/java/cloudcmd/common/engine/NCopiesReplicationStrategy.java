@@ -9,20 +9,27 @@ import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
-public class MirrorReplicationStrategy implements ReplicationStrategy {
+public class NCopiesReplicationStrategy implements ReplicationStrategy {
   Logger log = Logger.getLogger(NCopiesReplicationStrategy.class);
+
+  int _n;
+
+  public NCopiesReplicationStrategy(int n)
+  {
+    _n = n;
+  }
 
   @Override
   public boolean isReplicated(Set<Adapter> adapters, String hash) throws Exception {
+    int count = 0;
     for (Adapter adapter : adapters) {
       if (!adapter.describe().contains(hash)) {
-        return false;
+        count++;
       }
     }
-    return true;
+    return count < _n;
   }
 
   @Override

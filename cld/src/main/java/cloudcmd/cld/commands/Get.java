@@ -40,7 +40,10 @@ public class Get implements Command
   @Opt(opt = "i", longOpt = "input", description = "input file", required = false)
   String _inputFilePath = null;
 
-  @Opt(opt = "t", longOpt = "tier", description = "max tier to get from", required = false)
+  @Opt(opt = "n", longOpt = "minTier", description = "min tier to verify to", required = false)
+  Number _minTier = 0;
+
+  @Opt(opt = "m", longOpt = "maxTier", description = "max tier to verify to", required = false)
   Number _maxTier = Integer.MAX_VALUE;
 
   @Override
@@ -77,7 +80,7 @@ public class Get implements Command
 
     if (!_dryrun)
     {
-      CloudEngineService.instance().fetch(_maxTier.intValue(), selections);
+      CloudEngineService.instance().fetch(_minTier.intValue(), _maxTier.intValue(), selections);
     }
     else
     {
