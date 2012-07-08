@@ -18,6 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class FileAdapter extends Adapter
 {
   private final static int MIN_FREE_STORAGE_SIZE = 1024 * 1024;
+  private final static int LARGE_FILE_CUTOFF = 128 * 1024 * 1024;
 
   String _rootPath;
   JdbcConnectionPool _cp = null;
@@ -218,6 +219,29 @@ public class FileAdapter extends Adapter
 
   @Override
   public String store(InputStream is) throws Exception
+  {
+    if (is.available() > LARGE_FILE_CUTOFF) {
+      return storeLargeFile(is);
+    }
+
+    ByteArrayOutputStream baos = null;
+    ByteArrayInputStream bais = null;
+    String hash = null;
+
+    try {
+      baos = new ByteArrayOutputStream();
+      hash = CryptoUtil.digestToString(CryptoUtil.writeAndComputeHash(is, baos));
+      FileUtil.writeFile(bais = new ByteArrayInputStream(baos.toByteArray()), getDataFileFromHash(hash));
+      insertHash(hash);
+    } finally {
+      FileUtil.SafeClose(bais);
+      FileUtil.SafeClose(baos);
+    }
+
+    return hash;
+  }
+
+  private String storeLargeFile(InputStream is) throws Exception
   {
     File tmpFile = new File(_rootPath + File.separator + UUID.randomUUID().toString() + ".tmp");
     tmpFile.createNewFile();
