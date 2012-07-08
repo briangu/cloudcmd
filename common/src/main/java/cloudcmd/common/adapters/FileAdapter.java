@@ -229,8 +229,7 @@ public class FileAdapter extends Adapter
     String hash = null;
 
     try {
-      baos = new ByteArrayOutputStream();
-      hash = CryptoUtil.digestToString(CryptoUtil.writeAndComputeHash(is, baos));
+      hash = CryptoUtil.digestToString(CryptoUtil.writeAndComputeHash(is, baos = new ByteArrayOutputStream()));
       FileUtil.writeFile(bais = new ByteArrayInputStream(baos.toByteArray()), getDataFileFromHash(hash));
       insertHash(hash);
     } finally {
@@ -245,7 +244,6 @@ public class FileAdapter extends Adapter
   {
     File tmpFile = new File(_rootPath + File.separator + UUID.randomUUID().toString() + ".tmp");
     tmpFile.createNewFile();
-    // TODO: do in memory if small enough
     String hash = FileUtil.writeFileAndComputeHash(is, tmpFile);
     File newFile = new File(getDataFileFromHash(hash));
     if (newFile.exists() && newFile.length() == tmpFile.length())
