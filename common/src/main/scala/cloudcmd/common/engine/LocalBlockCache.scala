@@ -30,24 +30,28 @@ class LocalBlockCache extends BlockCache {
   }
 
   def loadCache(minTier: Int, maxTier: Int) {
+    _hashProviders = buildHashProviders(minTier, maxTier)
+  }
+
+  private def buildHashProviders(minTier: Int, maxTier: Int) : Map[String, List[Adapter]] = {
     import scala.collection.JavaConversions._
 
-    _hashProviders = new HashMap[String, List[Adapter]]
-
+    val hashProviders = new HashMap[String, List[Adapter]]
     ConfigStorageService.instance.getAdapters.filter(available(_, minTier, maxTier)).par.foreach{ p =>
       p.describe.foreach{ hash =>
-        if (!_hashProviders.containsKey(hash)) {
-          _hashProviders.synchronized {
-            if (!_hashProviders.containsKey(hash)) {
-              _hashProviders.put(hash, new ArrayList[Adapter])
+        if (!hashProviders.containsKey(hash)) {
+          hashProviders.synchronized {
+            if (!hashProviders.containsKey(hash)) {
+              hashProviders.put(hash, new ArrayList[Adapter])
             }
           }
         }
-        _hashProviders.get(hash).synchronized {
-          _hashProviders.get(hash).add(p)
+        hashProviders.get(hash).synchronized {
+          hashProviders.get(hash).add(p)
         }
       }
     }
+    hashProviders
   }
 
   def getHashProviders: Map[String, List[Adapter]] = {
