@@ -1,5 +1,9 @@
 package cloudcmd.common;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -7,6 +11,20 @@ import java.util.List;
 
 public class StringUtil
 {
+  public static String loadLine(InputStream load) throws IOException, JSONException
+  {
+    try
+    {
+      DataInputStream bis = new DataInputStream(load);
+      BufferedReader br = new BufferedReader(new InputStreamReader(bis));
+      return br.readLine();
+    }
+    finally
+    {
+      load.close();
+    }
+  }
+
   public static String join(Collection<?> s, String delimiter)
   {
     StringBuilder builder = new StringBuilder();

@@ -19,7 +19,8 @@ public interface CloudEngine
 
   void shutdown();
 
-  void add(File file, Set<String> tags);
+  void add(File file, Set<String> tags, Adapter adapter);
+  void batchAdd(Set<File> file, Set<String> tags, Adapter adapter);
 
   void push(int minTier, int maxTier)
       throws Exception;

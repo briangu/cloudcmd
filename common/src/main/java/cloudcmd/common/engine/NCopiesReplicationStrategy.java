@@ -40,4 +40,9 @@ public class NCopiesReplicationStrategy implements ReplicationStrategy {
       }
     }
   }
+
+  @Override
+  public void pull(WorkingMemory wm, Set<Adapter> adapters, String hash) throws Exception {
+    //To change body of implemented methods use File | Settings | File Templates.
+  }
 }

@@ -7,12 +7,14 @@ import cloudcmd.common.FileUtil;
 import cloudcmd.common.FileWalker;
 import cloudcmd.common.adapters.Adapter;
 import cloudcmd.common.config.ConfigStorageService;
+import cloudcmd.common.engine.BlockCacheService;
 import cloudcmd.common.engine.CloudEngineService;
 import jpbetz.cli.*;
 
 import java.io.File;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @SubCommand(name = "index", description = "Index files")
 public class Index implements Command
@@ -36,6 +38,8 @@ public class Index implements Command
       _path = FileUtil.getCurrentWorkingDirectory();
     }
 
+    Adapter adapter = BlockCacheService.instance().getBlockCache();
+
     if (_skipCache)
     {
       List<Adapter> adapters = ConfigStorageService.instance().getAdapters();
@@ -46,8 +50,10 @@ public class Index implements Command
       }
 
       // TODO: make selectable
-      CloudEngineService.instance().prepareFlushToAdapter(adapters.get(0));
+      adapter = adapters.get(0);
     }
+
+    final Set<File> fileSet = new HashSet<File>();
 
     FileWalker.enumerateFolders(_path, new FileHandler()
     {
@@ -65,8 +71,10 @@ public class Index implements Command
       @Override
       public void process(File file)
       {
-        CloudEngineService.instance().add(file, new HashSet<String>(_tags));
+        fileSet.add(file);
       }
     });
+
+    CloudEngineService.instance().batchAdd(fileSet, new HashSet<String>(_tags), adapter);
   }
 }
