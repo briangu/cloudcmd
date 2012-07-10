@@ -16,17 +16,8 @@
           <groupId>org.apache.lucene</groupId>
           <artifactId>lucene-core</artifactId>
           <version>3.6.0</version>
+          <scope>runtime</scope>
       </dependency>
-    <dependency>
-      <groupId>com.jcraft</groupId>
-      <artifactId>jsch</artifactId>
-      <version>0.1.45</version>
-    </dependency>
-    <dependency>
-      <groupId>commons-vfs</groupId>
-      <artifactId>commons-vfs</artifactId>
-      <version>20050307052300</version>
-    </dependency>
     <dependency>
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
