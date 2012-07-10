@@ -155,13 +155,21 @@ public class FileAdapter extends Adapter
 
       statement = db.prepareStatement("INSERT INTO BLOCK_INDEX VALUES (?,?)");
 
+      int k = 0;
+
       for (String hash : rebuildHashIndexFromDisk())
       {
         statement.setString(1, hash);
         statement.setString(2, _isCache ? hash.endsWith(".meta") ? StringUtil.loadLine(load(hash)) : null : null);
-        statement.execute();
-        statement.clearParameters();
+        statement.addBatch();
+
+        if (++k > 1024) {
+          statement.executeBatch();
+          k = 0;
+        }
       }
+
+      statement.executeBatch();
 
       db.commit();
     }
