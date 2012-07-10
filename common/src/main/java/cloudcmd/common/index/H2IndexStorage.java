@@ -97,7 +97,9 @@ public class H2IndexStorage implements IndexStorage
       st = db.createStatement();
 
       st.execute("DROP TABLE if exists FILE_INDEX;");
-      st.execute("CREATE TABLE FILE_INDEX ( HASH VARCHAR PRIMARY KEY, PATH VARCHAR, FILENAME VARCHAR, FILEEXT VARCHAR, FILESIZE BIGINT, FILEDATE BIGINT, TAGS VARCHAR, RAWMETA VARCHAR );");
+      st.execute("CREATE TABLE FILE_INDEX ( HASH VARCHAR PRIMARY KEY, PATH VARCHAR, FILENAME VARCHAR, FILEEXT VARCHAR, FILESIZE BIGINT, FILEDATE BIGINT, TAGS VARCHAR );");
+      st.execute("DROP TABLE if exists RAWMETA_INDEX;");
+      st.execute("CREATE TABLE RAWMETA_INDEX ( HASH VARCHAR PRIMARY KEY, RAWMETA VARCHAR );");
 
       db.commit();
 
@@ -190,7 +192,8 @@ public class H2IndexStorage implements IndexStorage
   {
     String sql;
 
-    PreparedStatement statement = null;
+    PreparedStatement statementA = null;
+    PreparedStatement statementB = null;
 
     try
     {
@@ -204,7 +207,6 @@ public class H2IndexStorage implements IndexStorage
       fields.add("FILESIZE");
       fields.add("FILEDATE");
       fields.add("TAGS");
-      fields.add("RAWMETA");
 
       bind.add(meta.getHash());
       bind.add(meta.getPath());
@@ -213,18 +215,22 @@ public class H2IndexStorage implements IndexStorage
       bind.add(meta.getFileSize());
       bind.add(meta.getFileDate());
       bind.add(StringUtil.join(meta.getTags(), " "));
-      bind.add(meta.getDataAsString());
 
       sql = String.format("MERGE INTO FILE_INDEX (%s) VALUES (%s);", StringUtil.join(fields, ","), StringUtil.joinRepeat(bind.size(), "?", ","));
 
-      statement = db.prepareStatement(sql);
+      statementA = db.prepareStatement(sql);
 
       for (int i = 0, paramIdx = 1; i < bind.size(); i++, paramIdx++)
       {
-        bind(statement, paramIdx, bind.get(i));
+        bind(statementA, paramIdx, bind.get(i));
       }
 
-      statement.execute();
+      statementA.execute();
+
+      statementB = db.prepareStatement("MERGE INTO RAWMETA_INDEX (HASH,RAWMETA) VALUES (?,?);");
+      bind(statementB, 1, meta.getHash());
+      bind(statementB, 2, meta.getDataAsString());
+      statementB.execute();
     }
     catch (Exception e)
     {
@@ -233,7 +239,8 @@ public class H2IndexStorage implements IndexStorage
     }
     finally
     {
-      SqlUtil.SafeClose(statement);
+      SqlUtil.SafeClose(statementA);
+      SqlUtil.SafeClose(statementB);
     }
   }
 
@@ -364,7 +371,7 @@ public class H2IndexStorage implements IndexStorage
 
       if (filter.has("tags"))
       {
-        sql = "SELECT T.* FROM FT_SEARCH_DATA(?, 0, 0) FT, FILE_INDEX T WHERE FT.TABLE='FILE_INDEX' AND T.HASH = FT.KEYS[0]";
+        sql = "SELECT HASH,RAWMETA FROM RAWMETA_INDEX WHERE HASH in (SELECT T.HASH FROM FT_SEARCH_DATA(?, 0, 0) FT, FILE_INDEX T WHERE FT.TABLE='FILE_INDEX' AND T.HASH = FT.KEYS[0])";
         bind.add(filter.getString("tags"));
       }
       else
@@ -399,11 +406,11 @@ public class H2IndexStorage implements IndexStorage
 
         if (list.size() > 0)
         {
-          sql = String.format("SELECT HASH,RAWMETA FROM FILE_INDEX WHERE %s", StringUtil.join(list, " AND "));
+          sql = String.format("SELECT HASH,RAWMETA FROM RAWMETA_INDEX WHERE HASH in (SELECT HASH FROM FILE_INDEX WHERE %s)", StringUtil.join(list, " AND "));
         }
         else
         {
-          sql = String.format("SELECT HASH,RAWMETA FROM FILE_INDEX");
+          sql = String.format("SELECT HASH,RAWMETA FROM RAWMETA_INDEX");
         }
       }
 
