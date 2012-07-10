@@ -4,6 +4,7 @@ package cloudcmd.common.index;
 import cloudcmd.common.*;
 import cloudcmd.common.config.ConfigStorageService;
 import org.apache.log4j.Logger;
+import org.h2.fulltext.FullText;
 import org.h2.fulltext.FullTextLucene;
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.json.JSONArray;
@@ -144,7 +145,7 @@ public class H2IndexStorage implements IndexStorage
     }
   }
 
-  private void addMeta(Connection db, FileMetaData meta) throws JSONException, SQLException
+  private void addMeta(Connection db, List<FileMetaData> fmds) throws JSONException, SQLException
   {
     String sql;
 
@@ -159,38 +160,50 @@ public class H2IndexStorage implements IndexStorage
       fields.add("HASH");
       fields.add("PATH");
       fields.add("FILENAME");
-      if (meta.getFileExt() != null) fields.add("FILEEXT");
+      fields.add("FILEEXT");
       fields.add("FILESIZE");
       fields.add("FILEDATE");
       fields.add("TAGS");
       fields.add("RAWMETA");
 
-      bind.add(meta.getHash());
-      bind.add(meta.getPath());
-      bind.add(meta.getFilename());
-      if (meta.getFileExt() != null) bind.add(meta.getFileExt());
-      bind.add(meta.getFileSize());
-      bind.add(meta.getFileDate());
-
-      String tags = StringUtil.join(meta.getTags(), " ") + meta.getPath().toString();
-      String filter = " ,:-._" + File.separator;
-      for (int i = 0; i < filter.length(); i++) {
-        tags = tags.replace(filter.charAt(i), ' ');
-      }
-      bind.add(tags);
-
-      bind.add(meta.getDataAsString());
-
-      sql = String.format("MERGE INTO FILE_INDEX (%s) VALUES (%s);", StringUtil.join(fields, ","), StringUtil.joinRepeat(bind.size(), "?", ","));
+      sql = String.format("MERGE INTO FILE_INDEX (%s) VALUES (%s);", StringUtil.join(fields, ","), StringUtil.joinRepeat(fields.size(), "?", ","));
 
       statement = db.prepareStatement(sql);
 
-      for (int i = 0, paramIdx = 1; i < bind.size(); i++, paramIdx++)
-      {
-        bind(statement, paramIdx, bind.get(i));
+      int k = 0;
+      for (FileMetaData meta : fmds) {
+        bind.clear();
+
+        bind.add(meta.getHash());
+        bind.add(meta.getPath());
+        bind.add(meta.getFilename());
+        bind.add(meta.getFileExt());
+        bind.add(meta.getFileSize());
+        bind.add(meta.getFileDate());
+
+        String tags = StringUtil.join(meta.getTags(), " ") + meta.getPath().toString();
+        String filter = " ,:-._" + File.separator;
+        for (int i = 0; i < filter.length(); i++) {
+          tags = tags.replace(filter.charAt(i), ' ');
+        }
+        bind.add(tags);
+        bind.add(meta.getDataAsString());
+
+        for (int i = 0, paramIdx = 1; i < bind.size(); i++, paramIdx++)
+        {
+          bind(statement, paramIdx, bind.get(i));
+        }
+
+        statement.addBatch();
+
+        if (++k > 8192) {
+          System.out.print(".");
+          statement.executeBatch();
+          k = 0;
+        }
       }
 
-      statement.execute();
+      statement.executeBatch();
     }
     catch (Exception e)
     {
@@ -214,6 +227,10 @@ public class H2IndexStorage implements IndexStorage
     {
       statement.setLong(idx, (Long) obj);
     }
+    else if (obj == null)
+    {
+      statement.setString(idx, null);
+    }
     else
     {
       throw new IllegalArgumentException("unknown obj type: " + obj.toString());
@@ -225,18 +242,11 @@ public class H2IndexStorage implements IndexStorage
   {
     if (meta == null) return;
 
-/*
-    _queue.add(meta);
-    if (_queue.size() > MAX_QUEUE_SIZE && !_flushing)
-    {
-      flush();
-    }
-*/
     Connection db = null;
     try
     {
       db = getDbConnection();
-      addMeta(db, meta);
+      addMeta(db, Arrays.asList(meta));
     }
     catch (JSONException e)
     {
@@ -291,12 +301,7 @@ public class H2IndexStorage implements IndexStorage
     {
       db = getDbConnection();
       db.setAutoCommit(false);
-
-      for (FileMetaData fmd : meta)
-      {
-        addMeta(db, fmd);
-      }
-
+      addMeta(db, meta);
       db.commit();
     }
     catch (JSONException e)
