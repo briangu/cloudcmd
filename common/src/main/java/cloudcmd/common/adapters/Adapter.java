@@ -68,4 +68,5 @@ public abstract class Adapter
   public abstract InputStream load(String hash) throws Exception;
 
   public abstract Set<String> describe() throws Exception;
+
 }

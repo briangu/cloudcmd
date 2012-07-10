@@ -14,7 +14,7 @@ class LocalBlockCache extends BlockCache {
 
   def init {
     val adapterUri: URI = new URI("file:///" + ConfigStorageService.instance.getConfigRoot + File.separator + "cache")
-    _cacheAdapter = new FileAdapter
+    _cacheAdapter = new FileAdapter(true)
     val cacheIndex: String = ConfigStorageService.instance.getConfigRoot + File.separator + "adapterCaches" + File.separator + "localCache"
     _cacheAdapter.init(cacheIndex, 0, classOf[FileAdapter].getName, new java.util.HashSet[String], adapterUri)
   }
@@ -25,7 +25,8 @@ class LocalBlockCache extends BlockCache {
 
   def refreshCache(minTier: Int, maxTier: Int) {
     import scala.collection.JavaConversions._
-    ConfigStorageService.instance.getAdapters.filter(available(_, minTier, maxTier)).par.foreach(_.refreshCache())
+    val adapters : List[Adapter] = ConfigStorageService.instance.getAdapters.toList ::: List(BlockCacheService.instance.getBlockCache)
+    adapters.filter(available(_, minTier, maxTier)).par.foreach(_.refreshCache())
   }
 
   def loadCache(minTier: Int, maxTier: Int) {

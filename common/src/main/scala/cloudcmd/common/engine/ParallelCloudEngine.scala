@@ -1,14 +1,16 @@
 package cloudcmd.common.engine
 
-import commands._
-import ops.{Command, OpsFactory, WorkingMemory, OPS}
-import cloudcmd.common.{FileMetaData, MetaUtil, JsonUtil, ResourceUtil}
+import cloudcmd.common.engine.commands._
+import ops._
+import cloudcmd.common._
 import org.json.{JSONArray, JSONException, JSONObject}
-import cloudcmd.common.adapters.Adapter
-import java.io.{ByteArrayInputStream, File}
+import cloudcmd.common.adapters.{FileAdapter, Adapter}
+import java.io.{FileInputStream, ByteArrayInputStream, File}
 import org.apache.log4j.Logger
 import cloudcmd.common.index.IndexStorageService
 import cloudcmd.common.config.ConfigStorageService
+import java.util
+import collection.mutable
 
 class ParallelCloudEngine extends CloudEngine {
 
@@ -85,8 +87,75 @@ class ParallelCloudEngine extends CloudEngine {
     }
   }
 
-  def add(file: File, tags: java.util.Set[String]) {
-    _wm.make("rawFile", "name", file.getName, "file", file, "tags", tags)
+  def add(file: File, tags: java.util.Set[String], adapter: Adapter) {
+    val set = new java.util.HashSet[File]
+    set.add(file)
+    batchAdd(set, tags, adapter)
+  }
+
+  def batchAdd(fileSet: java.util.Set[File], tags: java.util.Set[String], adapter: Adapter) {
+    import collection.JavaConversions._
+
+    val metaSet = new mutable.HashSet[FileMetaData] with mutable.SynchronizedSet[FileMetaData]
+
+    fileSet.par.foreach{ file =>
+
+     var blockHash : String = null
+     var fis : FileInputStream = null
+     var bais :ByteArrayInputStream = null
+
+     try
+     {
+       val startTime = System.currentTimeMillis()
+       try
+       {
+         val fileName = file.getName()
+         val extIndex = fileName.lastIndexOf(".")
+         val ext = if ( extIndex > 0 ) { fileName.substring(extIndex + 1) } else { null }
+         if (!FileTypeUtil.instance().skipExt(ext))
+         {
+           val fileTags : Set[String] = if (ext == null) {
+             tags.toSet
+           } else {
+             val fileType = FileTypeUtil.instance().getTypeFromExtension(ext)
+             if (fileType != null) {
+               tags.toSet + fileType
+             } else {
+               tags.toSet
+             }
+           }
+
+           fis = new FileInputStream(file)
+           blockHash = adapter.store(fis)
+
+           val meta = MetaUtil.createMeta(file, util.Arrays.asList(blockHash), fileTags)
+           if (!adapter.contains(meta.getHash()))
+           {
+             bais = new ByteArrayInputStream(meta.getDataAsString().getBytes("UTF-8"))
+             adapter.store(bais, meta.getHash())
+             metaSet.add(meta)
+           }
+         }
+       }
+       finally
+       {
+         val msg = "took %6d ms to index %s".format((System.currentTimeMillis() - startTime), file.getName())
+         _wm.make(new MemoryElement("msg", "body", msg))
+       }
+     }
+     finally
+     {
+       FileUtil.SafeClose(fis)
+       FileUtil.SafeClose(bais)
+     }
+
+     if (blockHash == null)
+     {
+       throw new RuntimeException("failed to index file: " + file.getAbsolutePath())
+     }
+   }
+
+    IndexStorageService.instance().addAll(metaSet.toList)
   }
 
   def push(minTier: Int, maxTier: Int) {
@@ -127,42 +196,59 @@ class ParallelCloudEngine extends CloudEngine {
     import collection.JavaConversions._
     BlockCacheService.instance.loadCache(minTier, maxTier)
     val hashProviders = BlockCacheService.instance.getHashProviders
-    pull(retrieveBlocks, hashProviders.keySet.toSet)
+    pull(minTier, maxTier, retrieveBlocks, hashProviders.keySet.toSet)
   }
 
   def pull(minTier: Int, maxTier: Int, retrieveBlocks: Boolean, selections: JSONArray) {
     BlockCacheService.instance.loadCache(minTier, maxTier)
     val hashes = (0 until selections.length).map{ i => selections.getJSONObject(i).getString("hash")}
-    pull(retrieveBlocks, hashes.toSet)
+    pull(minTier, maxTier, retrieveBlocks, hashes.toSet)
   }
 
-  private def pull(retrieveBlocks: Boolean, hashes: Set[String]) {
+  private def pull(minTier: Int, maxTier: Int, retrieveBlocks: Boolean, hashes: Set[String]) {
+    import collection.JavaConversions._
+
+    val srcAdapters = ConfigStorageService.instance.getAdapters.filter{ adapter =>
+      adapter.Tier >= minTier && adapter.Tier <= maxTier
+    }.toSet
+
     val localCache = BlockCacheService.instance.getBlockCache
 
-    hashes.foreach{ hash =>
-      if (!hash.endsWith(".meta")) {
-        log.error("unexpected hash type: " + hash)
-      } else if (!localCache.contains(hash)) {
-        _wm.make("pull_block", "hash", hash, "retrieveSubBlocks", retrieveBlocks.asInstanceOf[AnyRef])
-      }
+    val missingHashes = hashes -- localCache.describe()
 
-      if (retrieveBlocks) {
-        try {
+    missingHashes.par.foreach{ hash =>
+      _replicationStrategy.pull(_wm, srcAdapters, hash)
+
+      /*
+             FileMetaData fmd = MetaUtil.loadMeta(hash, JsonUtil.loadJson(BlockCacheService.instance().getBlockCache().load(hash)))
+         // if localcache has block continue
+ //        IndexStorageService.instance().add(fmd)
+      */
+    }
+
+    if (retrieveBlocks) {
+      val localCache = BlockCacheService.instance.getBlockCache
+
+      val blockSet = hashes.par.flatMap{ hash =>
+        if (hash.endsWith(".meta")) {
           val meta = JsonUtil.loadJson(localCache.load(hash))
           val blocks = meta.getJSONArray("blocks")
 
-          (0 until blocks.length).foreach{ i =>
+          (0 until blocks.length).flatMap{ i =>
             val blockHash = blocks.getString(i)
-            if (!localCache.contains(blockHash)) {
-              _wm.make("pull_block", "hash", blockHash)
+            if (localCache.contains(blockHash)) {
+              Nil
+            } else {
+              Set(blockHash)
             }
           }
-        }
-        catch
-        {
-          case e:Exception => e.printStackTrace
+        } else {
+          log.error("unexpected hash type: " + hash)
+          Nil
         }
       }
+
+      blockSet.par.foreach{ hash => _replicationStrategy.pull(_wm, srcAdapters, hash) }
     }
   }
 
@@ -170,26 +256,26 @@ class ParallelCloudEngine extends CloudEngine {
     IndexStorageService.instance.purge
 
     val localCache = BlockCacheService.instance.getBlockCache
-    val localDescription = localCache.describe
 
-    import collection.JavaConversions._
+    val fmds = localCache.asInstanceOf[FileAdapter].describeMeta()
 
-    val fmds = localDescription.par.flatMap{ hash =>
+/*
+//    import collection.JavaConversions._
+    localDescription.par.foreach{ hash =>
       if (!hash.endsWith(".meta")) {
-        Nil
       } else {
         try {
           val fmd = MetaUtil.loadMeta(hash, JsonUtil.loadJson(localCache.load(hash)))
           System.out.println(String.format("reindexing: %s %s", hash, fmd.getFilename))
-          List(fmd)
+          fmds.add(fmd)
         } catch {
           case e:Exception => {
             log.error(hash, e)
-            Nil
           }
         }
       }
-    }.toList
+    }
+*/
 
     IndexStorageService.instance.addAll(fmds)
     IndexStorageService.instance.pruneHistory(fmds)
@@ -233,21 +319,65 @@ class ParallelCloudEngine extends CloudEngine {
     MetaUtil.toJsonArray(fmds)
   }
 
-  def verify(minTier: Int, maxTier: Int, deleteOnInvalid: Boolean) {
+  private def verify(minTier: Int, maxTier: Int, deleteOnInvalid: Boolean, hashes: Set[String]) {
     import collection.JavaConversions._
 
-    BlockCacheService.instance.loadCache(minTier, maxTier)
-    BlockCacheService.instance.getHashProviders.keySet.foreach{ hash =>
-      _wm.make("verify_block", "hash", hash, "deleteOnInvalid", deleteOnInvalid.asInstanceOf[AnyRef])
+    hashes.par.foreach{ hash =>
+      BlockCacheService.instance.getHashProviders.get(hash).par.foreach{ adapter =>
+        try
+        {
+          val isValid = adapter.verify(hash)
+          if (isValid)
+          {
+            // TODO: enable verbose flag
+            //_wm.make(new MemoryElement("msg", "body", String.format("successfully validated block %s is on adapter %s", hash, adapter.URI)))
+          }
+          else
+          {
+            _wm.make(new MemoryElement("msg", "body", String.format("bad block %s found on adapter %s", hash, adapter.URI)))
+            if (deleteOnInvalid) {
+              try
+              {
+                val deleteSuccess = adapter.remove(hash)
+                if (deleteSuccess) {
+                  _wm.make(new MemoryElement("msg", "body", String.format("successfully deleted block %s found on adapter %s", hash, adapter.URI)))
+                }
+                else
+                {
+                  _wm.make(new MemoryElement("msg", "body", String.format("failed to delete block %s found on adapter %s", hash, adapter.URI)))
+                }
+              }
+              catch
+              {
+                case e:Exception => {
+                  _wm.make(new MemoryElement("msg", "body", String.format("failed to delete block %s on adapter %s", hash, adapter.URI)))
+                  log.error(hash, e)
+                }
+              }
+            }
+          }
+        }
+        catch
+        {
+          case e:Exception => {
+            _wm.make(new MemoryElement("msg", "body", String.format("failed to verify block %s on adapter %s", hash, adapter.URI)))
+            log.error(hash, e)
+          }
+        }
+      }
     }
+  }
+
+  def verify(minTier: Int, maxTier: Int, deleteOnInvalid: Boolean) {
+    import collection.JavaConversions._
+    BlockCacheService.instance.loadCache(minTier, maxTier)
+    verify(minTier, maxTier, deleteOnInvalid, BlockCacheService.instance.getHashProviders.keySet.toSet)
   }
 
   def verify(minTier: Int, maxTier: Int, selections: JSONArray, deleteOnInvalid: Boolean) {
     BlockCacheService.instance.loadCache(minTier, maxTier)
-    (0 until selections.length).par.foreach{ i =>
-      val hash = selections.getJSONObject(i).getString("hash")
-      _wm.make("verify_block", "hash", hash, "deleteOnInvalid", deleteOnInvalid.asInstanceOf[AnyRef])
-    }
+    val hashes = (0 until selections.length).map{ i => selections.getJSONObject(i).getString("hash")}
+    verify(minTier, maxTier, deleteOnInvalid, hashes.toSet)
   }
 
   def remove(minTier: Int, maxTier: Int, selections: JSONArray) {

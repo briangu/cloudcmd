@@ -3,14 +3,12 @@ package cloudcmd.common.adapters;
 import cloudcmd.common.*;
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.*;
 import java.net.URI;
 import java.sql.*;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 //     "file:///tmp/storage?tier=1&tags=image,movie,vacation"
@@ -23,9 +21,16 @@ public class FileAdapter extends Adapter
   String _rootPath;
   JdbcConnectionPool _cp = null;
   volatile Set<String> _description = null;
+  Boolean _isCache = false;
 
   public FileAdapter()
   {
+    this(false);
+  }
+
+  public FileAdapter(Boolean isCache)
+  {
+    _isCache = isCache;
   }
 
   @Override
@@ -88,7 +93,7 @@ public class FileAdapter extends Adapter
       st = db.createStatement();
 
       st.execute("DROP TABLE if exists BLOCK_INDEX;");
-      st.execute("CREATE TABLE BLOCK_INDEX ( HASH VARCHAR PRIMARY KEY );");
+      st.execute("CREATE TABLE BLOCK_INDEX ( HASH VARCHAR PRIMARY KEY, RAWMETA VARCHAR );");
 
       db.commit();
     }
@@ -105,6 +110,12 @@ public class FileAdapter extends Adapter
 
   public void purge()
   {
+    File file = new File(getDbFile() + ".h2.db");
+    if (file.exists())
+    {
+      file.delete();
+    }
+
     bootstrapDb();
   }
 
@@ -142,11 +153,12 @@ public class FileAdapter extends Adapter
 
       db.setAutoCommit(false);
 
-      statement = db.prepareStatement("INSERT INTO BLOCK_INDEX VALUES (?)");
+      statement = db.prepareStatement("INSERT INTO BLOCK_INDEX VALUES (?,?)");
 
       for (String hash : rebuildHashIndexFromDisk())
       {
         statement.setString(1, hash);
+        statement.setString(2, _isCache ? hash.endsWith(".meta") ? StringUtil.loadLine(load(hash)) : null : null);
         statement.execute();
         statement.clearParameters();
       }
@@ -289,13 +301,10 @@ public class FileAdapter extends Adapter
     {
       db = getDbConnection();
 
-      db.setAutoCommit(false);
-
-      statement = db.prepareStatement("MERGE INTO BLOCK_INDEX VALUES (?)");
+      statement = db.prepareStatement("INSERT INTO BLOCK_INDEX VALUES (?,?)");
       statement.setString(1, hash);
+      statement.setString(2, _isCache ? (hash.endsWith(".meta")) ? StringUtil.loadLine(load(hash)) : null : null);
       statement.execute();
-
-      db.commit();
 
       getDescription().add(hash);
     }
@@ -360,6 +369,40 @@ public class FileAdapter extends Adapter
     }
 
     return _description;
+  }
+
+  public List<FileMetaData> describeMeta()
+    throws Exception
+  {
+    List<FileMetaData> description = new ArrayList<FileMetaData>();
+
+    Connection db = null;
+    PreparedStatement statement = null;
+
+    try
+    {
+      db = getDbConnection(); //getReadOnlyDbConnection();
+
+      statement = db.prepareStatement("SELECT * FROM BLOCK_INDEX WHERE RAWMETA IS NOT NULL");
+
+      ResultSet resultSet = statement.executeQuery();
+
+      while (resultSet.next())
+      {
+        description.add(MetaUtil.loadMeta(resultSet.getString("HASH"), new JSONObject(resultSet.getString("RAWMETA"))));
+      }
+    }
+    catch (SQLException e)
+    {
+      e.printStackTrace();
+    }
+    finally
+    {
+      SqlUtil.SafeClose(statement);
+      SqlUtil.SafeClose(db);
+    }
+
+    return description;
   }
 
   public Set<String> rebuildHashIndexFromDisk()
