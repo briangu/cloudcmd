@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.log4j.Logger;
 import org.h2.fulltext.FullText;
+import org.h2.fulltext.FullTextLucene;
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -105,7 +106,7 @@ public class H2IndexStorage implements IndexStorage
 
       FullText.init(db);
       FullText.setWhitespaceChars(db, " ,:-._" + File.separator);
-      FullText.createIndex(db, "PUBLIC", "FILE_INDEX", null);
+      FullText.createIndex(db, "PUBLIC", "FILE_INDEX", "PATH,FILENAME,TAGS");
     }
     catch (SQLException e)
     {
