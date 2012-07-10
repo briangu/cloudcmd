@@ -4,7 +4,6 @@ package cloudcmd.common.index;
 import cloudcmd.common.*;
 import cloudcmd.common.config.ConfigStorageService;
 import org.apache.log4j.Logger;
-import org.h2.fulltext.FullText;
 import org.h2.fulltext.FullTextLucene;
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.json.JSONArray;
@@ -150,7 +149,6 @@ public class H2IndexStorage implements IndexStorage
     String sql;
 
     PreparedStatement statement = null;
-    PreparedStatement statementB = null;
 
     try
     {
@@ -166,7 +164,7 @@ public class H2IndexStorage implements IndexStorage
       fields.add("TAGS");
       fields.add("RAWMETA");
 
-      sql = String.format("MERGE INTO FILE_INDEX (%s) VALUES (%s);", StringUtil.join(fields, ","), StringUtil.joinRepeat(fields.size(), "?", ","));
+      sql = String.format("INSERT INTO FILE_INDEX (%s) VALUES (%s);", StringUtil.join(fields, ","), StringUtil.joinRepeat(fields.size(), "?", ","));
 
       statement = db.prepareStatement(sql);
 
@@ -196,9 +194,10 @@ public class H2IndexStorage implements IndexStorage
 
         statement.addBatch();
 
-        if (++k > 8192) {
-          System.out.print(".");
+        if (++k > 1024) {
+          long startTime = System.currentTimeMillis();
           statement.executeBatch();
+          System.out.println(String.format("%d dps", 1024 / ((System.currentTimeMillis() - startTime) / 1000)));
           k = 0;
         }
       }
@@ -213,7 +212,6 @@ public class H2IndexStorage implements IndexStorage
     finally
     {
       SqlUtil.SafeClose(statement);
-      SqlUtil.SafeClose(statementB);
     }
   }
 
