@@ -351,9 +351,9 @@ public class FileAdapter extends Adapter
 
         try
         {
-          db = getDbConnection(); //getReadOnlyDbConnection();
+          db = getReadOnlyDbConnection();
 
-          statement = db.prepareStatement("SELECT * FROM BLOCK_INDEX");
+          statement = db.prepareStatement("SELECT HASH FROM BLOCK_INDEX");
 
           ResultSet resultSet = statement.executeQuery();
 
@@ -389,7 +389,7 @@ public class FileAdapter extends Adapter
 
     try
     {
-      db = getDbConnection(); //getReadOnlyDbConnection();
+      db = getReadOnlyDbConnection();
 
       statement = db.prepareStatement("SELECT * FROM BLOCK_INDEX WHERE RAWMETA IS NOT NULL");
 

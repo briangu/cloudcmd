@@ -373,7 +373,7 @@ public class H2IndexStorage implements IndexStorage
 
     try
     {
-      db = getDbConnection(); //getReadOnlyDbConnection();
+      db = getReadOnlyDbConnection();
 
       String sql;
 
