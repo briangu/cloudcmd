@@ -332,9 +332,24 @@ public class H2IndexStorage implements IndexStorage
     try
     {
       db = getDbConnection();
+
+      FullTextLucene.dropIndex(db, "PUBLIC", "FILE_INDEX");
+      FullTextLucene.dropAll(db);
+      FullTextLucene.closeAll();
+
       db.setAutoCommit(false);
       addMeta(db, meta);
       db.commit();
+
+      try {
+        Class.forName("org.h2.fulltext.FullTextLucene");
+      } catch (ClassNotFoundException e) {
+        e.printStackTrace();
+      }
+
+      FullTextLucene.init(db);
+      FullTextLucene.setWhitespaceChars(db, " ,:-._" + File.separator);
+      FullTextLucene.createIndex(db, "PUBLIC", "FILE_INDEX", "TAGS");
     }
     catch (JSONException e)
     {
