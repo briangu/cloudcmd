@@ -383,7 +383,7 @@ public class H2IndexStorage implements IndexStorage
 //        bind.add(filter.getString("tags"));
         int count = filter.has("count") ? filter.getInt("count") : 0;
         int offset = filter.has("offset") ? filter.getInt("offset") : 0;
-        FullTextLucene.searchData(db, filter.getString("tags"), count, offset);
+        rs = FullTextLucene.searchData(db, filter.getString("tags"), count, offset);
       }
       else
       {

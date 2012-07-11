@@ -32,6 +32,9 @@ public class Find implements Command
   @Opt(opt = "c", longOpt = "count", description = "limit response count", required = false)
   Number _count = 0;
 
+  @Opt(opt = "s", longOpt = "offset", description = "pagination start offset", required = false)
+  Number _offset = 0;
+
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
@@ -48,6 +51,7 @@ public class Find implements Command
     if (_fileext != null) filter.put("fileext", _fileext);
     if (_hash != null) filter.put("hash", _hash);
     if (_count.intValue() > 0) filter.put("count", _count.intValue());
+    if (_offset.intValue() > 0) filter.put("offset", _offset.intValue());
 
     JSONArray selections = IndexStorageService.instance().find(filter);
 
