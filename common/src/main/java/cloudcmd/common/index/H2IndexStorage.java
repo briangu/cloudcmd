@@ -197,7 +197,8 @@ public class H2IndexStorage implements IndexStorage
         if (++k > 1024) {
           long startTime = System.currentTimeMillis();
           statement.executeBatch();
-          System.out.println(String.format("%d dps", 1024 / ((System.currentTimeMillis() - startTime) / 1000)));
+          long delta = ((System.currentTimeMillis() - startTime) / 1000);
+          System.out.println(String.format("%d dps", delta > 0 ? 1024 / delta : 1024));
           k = 0;
         }
       }
