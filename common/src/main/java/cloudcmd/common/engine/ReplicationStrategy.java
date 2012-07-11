@@ -11,5 +11,4 @@ public interface ReplicationStrategy {
   public boolean isReplicated(Set<Adapter> adapters, String hash) throws Exception;
   public void push(WorkingMemory wm, Set<Adapter> adapters, String hash) throws Exception;
   public void pull(WorkingMemory wm, Set<Adapter> adapters, String hash) throws Exception;
-  public void fetch(WorkingMemory wm, FileMetaData meta) throws Exception;
 }

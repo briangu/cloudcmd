@@ -4,12 +4,14 @@ import ops._
 import cloudcmd.common._
 import org.json.{JSONArray, JSONException, JSONObject}
 import cloudcmd.common.adapters.{FileAdapter, Adapter}
-import java.io.{FileInputStream, ByteArrayInputStream, File}
+import java.io.{InputStream, FileInputStream, ByteArrayInputStream, File}
 import org.apache.log4j.Logger
 import cloudcmd.common.index.IndexStorageService
 import cloudcmd.common.config.ConfigStorageService
 import java.util
 import collection.mutable
+import util.{Comparator, Collections}
+import scala.util.Random
 
 class ParallelCloudEngine extends CloudEngine {
 
@@ -241,7 +243,69 @@ class ParallelCloudEngine extends CloudEngine {
 
   def fetch(minTier: Int, maxTier: Int, selections: JSONArray) {
     BlockCacheService.instance.loadCache(minTier, maxTier)
-    (0 until selections.length).par.foreach(i => _replicationStrategy.fetch(_wm, MetaUtil.loadMeta(selections.getJSONObject(i))))
+    (0 until selections.length).par.foreach(i => fetch(minTier, maxTier, MetaUtil.loadMeta(selections.getJSONObject(i))))
+  }
+
+  def fetch(minTier: Int, maxTier: Int, meta: FileMetaData) {
+    import collection.JavaConversions._
+
+    val hashProviders = BlockCacheService.instance.getHashProviders()
+    val blockHashes = (0 until meta.getBlockHashes().length()).map(meta.getBlockHashes().getString)
+
+    val hashAdapterMap: Map[String, List[Adapter]] = blockHashes.flatMap { hash =>
+      if (hashProviders.contains(hash)) {
+        val blockProviders = hashProviders.get(hash).filter{ a => a.Tier >= minTier && a.Tier <= maxTier }.toList
+        if (blockProviders.size == 0) {
+          _wm.make("msg", "body", String.format("could not find block %s in existing storage! no adapters in specified tier range", hash))
+          Nil
+        } else {
+          Map(hash -> Random.shuffle(blockProviders).sortWith(_.Tier < _.Tier))
+        }
+      } else {
+        _wm.make("msg", "body", String.format("could not find block %s in existing storage!", hash))
+        Nil
+      }
+    }.toMap
+
+    if (hashAdapterMap.size == blockHashes.size) {
+      blockHashes.foreach { hash =>
+        val blockProviders = hashAdapterMap.get(hash).get
+        var success = false
+        var i = 0
+        while (!success && i < blockProviders.size) {
+          var remoteData : InputStream = null
+          try {
+            // TODO: only read the file size bytes back (if the file is one block)
+            // TODO: support writing to an offset of the existing file to allow for sub-blocks
+            remoteData = blockProviders(i).load(hash)
+            val destFile = new File(meta.getPath)
+            destFile.getParentFile().mkdirs()
+            val remoteDataHash = CryptoUtil.digestToString(CryptoUtil.writeAndComputeHash(remoteData, destFile))
+            if (remoteDataHash.equals(hash)) {
+              success = true
+            } else {
+              destFile.delete()
+            }
+          } catch {
+            case e:Exception => {
+              _wm.make(new MemoryElement("msg", "body", String.format("failed to pull block %s", hash)))
+              // TODO: We should delete/recover the block from the adapter
+            }
+            log.error(hash, e)
+          } finally {
+            FileUtil.SafeClose(remoteData)
+          }
+          i += 1
+        }
+
+        if (success) {
+          _wm.make(new MemoryElement("msg", "body", String.format("%s pulled block %s", meta.getPath(), hash)))
+        } else {
+          _wm.make(new MemoryElement("msg", "body", String.format("%s failed to pull block %s", meta.getFilename(), hash)))
+          // TODO: attempt to rever the block and write it in the correct target file region
+        }
+      }
+    }
   }
 
   def addTags(selections: JSONArray, tags: java.util.Set[String]) : JSONArray = {

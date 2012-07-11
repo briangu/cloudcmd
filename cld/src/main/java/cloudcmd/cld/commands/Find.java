@@ -30,7 +30,7 @@ public class Find implements Command
   String _fileext;
 
   @Opt(opt = "c", longOpt = "count", description = "limit response count", required = false)
-  Number _count;
+  Number _count = 0;
 
   @Override
   public void exec(CommandContext commandLine) throws Exception
