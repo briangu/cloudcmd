@@ -375,17 +375,21 @@ public class H2IndexStorage implements IndexStorage
     {
       db = getReadOnlyDbConnection();
 
-      String sql;
-
-      List<Object> bind = new ArrayList<Object>();
+      ResultSet rs = null;
 
       if (filter.has("tags"))
       {
-        sql = "SELECT T.HASH,T.RAWMETA FROM FTL_SEARCH_DATA(?, 0, 0) FTL, FILE_INDEX T WHERE FTL.TABLE='FILE_INDEX' AND T.HASH = FTL.KEYS[0]";
-        bind.add(filter.getString("tags"));
+//        sql = "SELECT T.HASH,T.RAWMETA FROM FTL_SEARCH_DATA(?, 0, 0) FTL, FILE_INDEX T WHERE FTL.TABLE='FILE_INDEX' AND T.HASH = FTL.KEYS[0]";
+//        bind.add(filter.getString("tags"));
+        int count = filter.has("count") ? filter.getInt("count") : 0;
+        int offset = filter.has("offset") ? filter.getInt("offset") : 0;
+        FullTextLucene.searchData(db, filter.getString("tags"), count, offset);
       }
       else
       {
+        String sql;
+
+        List<Object> bind = new ArrayList<Object>();
         List<String> list = new ArrayList<String>();
 
         Iterator<String> iter = filter.keys();
@@ -422,20 +426,20 @@ public class H2IndexStorage implements IndexStorage
         {
           sql = String.format("SELECT HASH,RAWMETA FROM FILE_INDEX");
         }
+
+        if (filter.has("count")) {
+          sql += String.format(" LIMIT %d", filter.getInt("count"));
+        }
+
+        statement = db.prepareStatement(sql);
+
+        for (int i = 0, paramIdx = 1; i < bind.size(); i++, paramIdx++)
+        {
+          bind(statement, paramIdx, bind.get(i));
+        }
+
+        rs = statement.executeQuery();
       }
-
-      if (filter.has("count")) {
-        sql += String.format(" LIMIT %d", filter.getInt("count"));
-      }
-
-      statement = db.prepareStatement(sql);
-
-      for (int i = 0, paramIdx = 1; i < bind.size(); i++, paramIdx++)
-      {
-        bind(statement, paramIdx, bind.get(i));
-      }
-
-      ResultSet rs = statement.executeQuery();
 
       while (rs.next())
       {
