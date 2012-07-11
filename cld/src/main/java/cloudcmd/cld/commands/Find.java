@@ -23,6 +23,9 @@ public class Find implements Command
   @Opt(opt = "f", longOpt = "name", description = "filename to find by", required = false)
   String _filename;
 
+  @Opt(opt = "h", longOpt = "hash", description = "hash to find by", required = false)
+  String _hash;
+
   @Opt(opt = "e", longOpt = "ext", description = "file extension to find by", required = false)
   String _fileext;
 
@@ -40,6 +43,7 @@ public class Find implements Command
     if (_path != null) filter.put("path", _path);
     if (_filename != null) filter.put("filename", _filename);
     if (_fileext != null) filter.put("fileext", _fileext);
+    if (_hash != null) filter.put("hash", _hash);
 
     JSONArray selections = IndexStorageService.instance().find(filter);
 
