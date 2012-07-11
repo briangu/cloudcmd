@@ -36,7 +36,7 @@ public class Main
       ConfigStorageService.instance().init(configRoot);
       IndexStorageService.instance().init();
       BlockCacheService.instance().init();
-      CloudEngineService.instance().init(ConfigStorageService.instance().getReplicationStrategy());
+      CloudEngineService.instance().init(ConfigStorageService.instance().getReplicationStrategy(), "index.ops");
 
       cloudCmdServer = CloudCmdServer.create("localhost", 3000, staticFileRoot);
       System.in.read();

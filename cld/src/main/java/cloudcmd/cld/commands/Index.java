@@ -31,8 +31,6 @@ public class Index implements Command
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
-    CloudEngineService.instance().init(ConfigStorageService.instance().getReplicationStrategy(), "index.ops");
-
     if (_path == null)
     {
       _path = FileUtil.getCurrentWorkingDirectory();

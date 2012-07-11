@@ -29,6 +29,9 @@ public class Find implements Command
   @Opt(opt = "e", longOpt = "ext", description = "file extension to find by", required = false)
   String _fileext;
 
+  @Opt(opt = "c", longOpt = "count", description = "limit response count", required = false)
+  Number _count;
+
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
@@ -44,6 +47,7 @@ public class Find implements Command
     if (_filename != null) filter.put("filename", _filename);
     if (_fileext != null) filter.put("fileext", _fileext);
     if (_hash != null) filter.put("hash", _hash);
+    if (_count.intValue() > 0) filter.put("count", _count.intValue());
 
     JSONArray selections = IndexStorageService.instance().find(filter);
 

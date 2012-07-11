@@ -1,5 +1,6 @@
 package cloudcmd.common.engine;
 
+import cloudcmd.common.FileMetaData;
 import cloudcmd.common.adapters.Adapter;
 import ops.WorkingMemory;
 import org.json.JSONArray;
@@ -10,4 +11,5 @@ public interface ReplicationStrategy {
   public boolean isReplicated(Set<Adapter> adapters, String hash) throws Exception;
   public void push(WorkingMemory wm, Set<Adapter> adapters, String hash) throws Exception;
   public void pull(WorkingMemory wm, Set<Adapter> adapters, String hash) throws Exception;
+  public void fetch(WorkingMemory wm, FileMetaData meta) throws Exception;
 }

@@ -1,5 +1,6 @@
 package cloudcmd.common.engine;
 
+import cloudcmd.common.FileMetaData;
 import cloudcmd.common.JsonUtil;
 import cloudcmd.common.StringUtil;
 import cloudcmd.common.adapters.Adapter;
@@ -43,6 +44,11 @@ public class NCopiesReplicationStrategy implements ReplicationStrategy {
 
   @Override
   public void pull(WorkingMemory wm, Set<Adapter> adapters, String hash) throws Exception {
+    //To change body of implemented methods use File | Settings | File Templates.
+  }
+
+  @Override
+  public void fetch(WorkingMemory wm, FileMetaData meta) throws Exception {
     //To change body of implemented methods use File | Settings | File Templates.
   }
 }

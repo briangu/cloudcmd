@@ -1,6 +1,5 @@
 package cloudcmd.common.engine
 
-import cloudcmd.common.engine.commands._
 import ops._
 import cloudcmd.common._
 import org.json.{JSONArray, JSONException, JSONObject}
@@ -21,32 +20,9 @@ class ParallelCloudEngine extends CloudEngine {
   var _opsThread : Thread = null
   var _replicationStrategy : ReplicationStrategy = null
 
-  private def buildRegistry : java.util.Map[String, Command] = {
-    val registry = OpsFactory.getDefaultRegistry
-
-    registry.put("fetch", new basic_fetch)
-    registry.put("add_meta", new add_meta)
-    registry.put("debug", new debug)
-    registry.put("process", new process_raw)
-    registry.put("index_default", new index_default)
-    registry.put("sleep", new sleep)
-    registry.put("pull_block", new pull_block)
-    registry.put("push_block", new push_block)
-    registry.put("push_block_async", new push_block_async)
-    registry.put("verify_block", new verify_block)
-    registry.put("remove_block", new remove_block)
-
-    registry
-  }
-
-  def init(replicationStrategy: ReplicationStrategy) {
-    init(replicationStrategy, "index.ops")
-  }
-
   def init(replicationStrategy: ReplicationStrategy, opsName: String) {
     _replicationStrategy = replicationStrategy
 
-    val registry = buildRegistry
     var indexOps : JSONObject = null
 
     try {
@@ -58,13 +34,8 @@ class ParallelCloudEngine extends CloudEngine {
       }
     }
 
-    _ops = OpsFactory.create(registry, indexOps)
+    _ops = OpsFactory.create(OpsFactory.getDefaultRegistry, indexOps)
     _wm = _ops.getWorkingMemory
-  }
-
-  def prepareFlushToAdapter(adapter: Adapter) {
-    BlockCacheService.instance.loadCache(adapter.Tier, adapter.Tier)
-    _wm.make("flush_to_adapter", "src", BlockCacheService.instance.getBlockCache, "dest", adapter)
   }
 
   def run {
@@ -158,10 +129,6 @@ class ParallelCloudEngine extends CloudEngine {
     IndexStorageService.instance().addAll(metaSet.toList)
   }
 
-  def push(minTier: Int, maxTier: Int) {
-    push(minTier, maxTier, IndexStorageService.instance.find(new JSONObject))
-  }
-
   def push(minTier: Int, maxTier: Int, selections: JSONArray) {
 
     import collection.JavaConversions._
@@ -192,21 +159,11 @@ class ParallelCloudEngine extends CloudEngine {
     pushSet.par.foreach{ hash => _replicationStrategy.push(_wm, destAdapters, hash) }
   }
 
-  def pull(minTier: Int, maxTier: Int, retrieveBlocks: Boolean) {
-    import collection.JavaConversions._
-    BlockCacheService.instance.loadCache(minTier, maxTier)
-    val hashProviders = BlockCacheService.instance.getHashProviders
-    pull(minTier, maxTier, retrieveBlocks, hashProviders.keySet.toSet)
-  }
-
   def pull(minTier: Int, maxTier: Int, retrieveBlocks: Boolean, selections: JSONArray) {
-    BlockCacheService.instance.loadCache(minTier, maxTier)
-    val hashes = (0 until selections.length).map{ i => selections.getJSONObject(i).getString("hash")}
-    pull(minTier, maxTier, retrieveBlocks, hashes.toSet)
-  }
-
-  private def pull(minTier: Int, maxTier: Int, retrieveBlocks: Boolean, hashes: Set[String]) {
     import collection.JavaConversions._
+
+    BlockCacheService.instance.loadCache(minTier, maxTier)
+    val hashes = (0 until selections.length).map{ i => selections.getJSONObject(i).getString("hash")}.toSet
 
     val srcAdapters = ConfigStorageService.instance.getAdapters.filter{ adapter =>
       adapter.Tier >= minTier && adapter.Tier <= maxTier
@@ -283,7 +240,7 @@ class ParallelCloudEngine extends CloudEngine {
 
   def fetch(minTier: Int, maxTier: Int, selections: JSONArray) {
     BlockCacheService.instance.loadCache(minTier, maxTier)
-    (0 until selections.length).par.foreach(i => _wm.make("fetch", "meta", MetaUtil.loadMeta(selections.getJSONObject(i))))
+    (0 until selections.length).par.foreach(i => _replicationStrategy.fetch(_wm, MetaUtil.loadMeta(selections.getJSONObject(i))))
   }
 
   def addTags(selections: JSONArray, tags: java.util.Set[String]) : JSONArray = {
@@ -324,31 +281,22 @@ class ParallelCloudEngine extends CloudEngine {
 
     hashes.par.foreach{ hash =>
       BlockCacheService.instance.getHashProviders.get(hash).par.foreach{ adapter =>
-        try
-        {
+        try {
           val isValid = adapter.verify(hash)
-          if (isValid)
-          {
+          if (isValid) {
             // TODO: enable verbose flag
             //_wm.make(new MemoryElement("msg", "body", String.format("successfully validated block %s is on adapter %s", hash, adapter.URI)))
-          }
-          else
-          {
+          } else {
             _wm.make(new MemoryElement("msg", "body", String.format("bad block %s found on adapter %s", hash, adapter.URI)))
             if (deleteOnInvalid) {
-              try
-              {
+              try {
                 val deleteSuccess = adapter.remove(hash)
                 if (deleteSuccess) {
                   _wm.make(new MemoryElement("msg", "body", String.format("successfully deleted block %s found on adapter %s", hash, adapter.URI)))
-                }
-                else
-                {
+                } else {
                   _wm.make(new MemoryElement("msg", "body", String.format("failed to delete block %s found on adapter %s", hash, adapter.URI)))
                 }
-              }
-              catch
-              {
+              } catch {
                 case e:Exception => {
                   _wm.make(new MemoryElement("msg", "body", String.format("failed to delete block %s on adapter %s", hash, adapter.URI)))
                   log.error(hash, e)
@@ -356,9 +304,7 @@ class ParallelCloudEngine extends CloudEngine {
               }
             }
           }
-        }
-        catch
-        {
+        } catch {
           case e:Exception => {
             _wm.make(new MemoryElement("msg", "body", String.format("failed to verify block %s on adapter %s", hash, adapter.URI)))
             log.error(hash, e)
@@ -366,12 +312,6 @@ class ParallelCloudEngine extends CloudEngine {
         }
       }
     }
-  }
-
-  def verify(minTier: Int, maxTier: Int, deleteOnInvalid: Boolean) {
-    import collection.JavaConversions._
-    BlockCacheService.instance.loadCache(minTier, maxTier)
-    verify(minTier, maxTier, deleteOnInvalid, BlockCacheService.instance.getHashProviders.keySet.toSet)
   }
 
   def verify(minTier: Int, maxTier: Int, selections: JSONArray, deleteOnInvalid: Boolean) {
@@ -409,9 +349,24 @@ class ParallelCloudEngine extends CloudEngine {
   }
 
   private def removeBlock(hashProviders : java.util.Map[String, java.util.List[Adapter]], hash: String) {
+    import collection.JavaConversions._
+
     Option(hashProviders.get(hash)).foreach{ adapters =>
-      import collection.JavaConversions._
-      adapters.foreach(_wm.make("remove_block", "hash", hash, "adapter", _))
+      adapters.par.foreach{ adapter =>
+        try {
+          val deleteSuccess = adapter.remove(hash)
+          if (deleteSuccess) {
+            _wm.make(new MemoryElement("msg", "body", String.format("successfully deleted block %s found on adapter %s", hash, adapter.URI)))
+          } else {
+            _wm.make(new MemoryElement("msg", "body", String.format("failed to delete block %s found on adapter %s", hash, adapter.URI)))
+          }
+        } catch {
+          case e:Exception => {
+            _wm.make(new MemoryElement("msg", "body", String.format("failed to delete block %s on adapter %s", hash, adapter.URI)))
+            log.error(hash, e)
+          }
+        }
+      }
     }
   }
 }

@@ -212,6 +212,7 @@ public class H2IndexStorage implements IndexStorage
         bind.add(meta.getFileSize());
         bind.add(meta.getFileDate());
 
+        // TODO: use regex
         String tags = StringUtil.join(meta.getTags(), " ") + meta.getPath().toString();
         String filter = " ,:-._" + File.separator;
         for (int i = 0; i < filter.length(); i++) {
@@ -228,10 +229,7 @@ public class H2IndexStorage implements IndexStorage
         statement.addBatch();
 
         if (++k > 1024) {
-          long startTime = System.currentTimeMillis();
           statement.executeBatch();
-          long delta = ((System.currentTimeMillis() - startTime) / 1000);
-          System.out.println(String.format("%d dps", delta > 0 ? 1024 / delta : 1024));
           k = 0;
         }
       }
@@ -424,6 +422,10 @@ public class H2IndexStorage implements IndexStorage
         {
           sql = String.format("SELECT HASH,RAWMETA FROM FILE_INDEX");
         }
+      }
+
+      if (filter.has("count")) {
+        sql += String.format(" LIMIT %d", filter.getInt("count"));
       }
 
       statement = db.prepareStatement(sql);

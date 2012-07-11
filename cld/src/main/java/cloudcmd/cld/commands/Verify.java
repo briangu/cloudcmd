@@ -4,11 +4,13 @@ package cloudcmd.cld.commands;
 import cloudcmd.common.JsonUtil;
 import cloudcmd.common.config.ConfigStorageService;
 import cloudcmd.common.engine.CloudEngineService;
+import cloudcmd.common.index.IndexStorageService;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
 import jpbetz.cli.Opt;
 import jpbetz.cli.SubCommand;
 import org.json.JSONArray;
+import org.json.JSONObject;
 
 @SubCommand(name = "verify", description = "Verify storage contents.")
 public class Verify implements Command
@@ -28,16 +30,7 @@ public class Verify implements Command
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
-    CloudEngineService.instance().init(ConfigStorageService.instance().getReplicationStrategy(), "verify.ops");
-
-    if (_verifyAll)
-    {
-      CloudEngineService.instance().verify(_minTier.intValue(), _maxTier.intValue(), _deleteOnInvalid);
-    }
-    else
-    {
-      JSONArray selections = JsonUtil.loadJsonArray(System.in);
-      CloudEngineService.instance().verify(_minTier.intValue(), _maxTier.intValue(), selections, _deleteOnInvalid);
-    }
+    JSONArray selections = _verifyAll ? IndexStorageService.instance().find(new JSONObject()) : JsonUtil.loadJsonArray(System.in);
+    CloudEngineService.instance().verify(_minTier.intValue(), _maxTier.intValue(), selections, _deleteOnInvalid);
   }
 }

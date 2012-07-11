@@ -49,8 +49,6 @@ public class Get implements Command
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
-    CloudEngineService.instance().init(ConfigStorageService.instance().getReplicationStrategy(), "get.ops");
-
     JSONArray selections;
 
     if (_pullAll)

@@ -1,15 +1,15 @@
 package cloudcmd.common.engine;
 
-import cloudcmd.common.*;
+import cloudcmd.common.CryptoUtil;
+import cloudcmd.common.FileMetaData;
+import cloudcmd.common.FileUtil;
 import cloudcmd.common.adapters.Adapter;
-import cloudcmd.common.config.ConfigStorageService;
-import ops.CommandContext;
 import ops.MemoryElement;
 import ops.WorkingMemory;
 import org.apache.log4j.Logger;
 import org.json.JSONArray;
-import org.json.JSONObject;
 
+import java.io.File;
 import java.io.InputStream;
 import java.util.*;
 
@@ -31,8 +31,7 @@ public class MirrorReplicationStrategy implements ReplicationStrategy {
 
     Map<String, List<Adapter>> hashProviders = BlockCacheService.instance().getHashProviders();
 
-    if (!hashProviders.containsKey(hash))
-    {
+    if (!hashProviders.containsKey(hash)) {
       System.err.println();
       System.err.println(String.format("push_block: could not find block %s in existing storage!", hash));
       System.err.println();
@@ -41,47 +40,41 @@ public class MirrorReplicationStrategy implements ReplicationStrategy {
 
     List<Adapter> blockProviders = new ArrayList<Adapter>(hashProviders.get(hash));
     Collections.shuffle(blockProviders);
-    Collections.sort(blockProviders, new Comparator<Adapter>()
-    {
+    Collections.sort(blockProviders, new Comparator<Adapter>() {
       @Override
-      public int compare(Adapter o1, Adapter o2)
-      {
+      public int compare(Adapter o1, Adapter o2) {
         return o1.Tier.compareTo(o2.Tier);
       }
     });
 
-    boolean pushed = false;
+    int pushedCount = 0;
 
     for (Adapter adapter : adapters) {
-      if (!adapter.describe().contains(hash)) {
-        for (Adapter src : blockProviders)
-        {
+      if (adapter.describe().contains(hash)) {
+        pushedCount++;
+      } else {
+        for (Adapter src : blockProviders) {
           if (!src.IsOnLine()) continue;
 
           InputStream is = null;
 
-          try
-          {
+          try {
             is = src.load(hash);
             adapter.store(is, hash);
-            pushed = true;
+            pushedCount++;
             break;
-          }
-          catch (Exception e)
-          {
-            wm.make("error_push_block", "hash", hash);
+          } catch (Exception e) {
+            wm.make("msg", "body", String.format("failed to push block %s from %s to adapter %s", hash, src.URI.toString(), adapter.URI.toString()));
             log.error(hash, e);
-          }
-          finally
-          {
+          } finally {
             FileUtil.SafeClose(is);
           }
         }
       }
     }
 
-    if (!pushed) {
-      wm.make("error_push_block", "hash", hash);
+    if (pushedCount != adapters.size()) {
+      wm.make("msg", "body", "failed to push block: " + hash);
     }
   }
 
@@ -89,8 +82,7 @@ public class MirrorReplicationStrategy implements ReplicationStrategy {
   public void pull(WorkingMemory wm, Set<Adapter> adapters, String hash) throws Exception {
     Map<String, List<Adapter>> hashProviders = BlockCacheService.instance().getHashProviders();
 
-    if (!hashProviders.containsKey(hash))
-    {
+    if (!hashProviders.containsKey(hash)) {
       System.err.println();
       System.err.println(String.format("unexpected: could not find block %s in existing storage!", hash));
       System.err.println();
@@ -99,51 +91,116 @@ public class MirrorReplicationStrategy implements ReplicationStrategy {
 
     List<Adapter> blockProviders = new ArrayList<Adapter>(adapters);
     Collections.shuffle(blockProviders);
-    Collections.sort(blockProviders, new Comparator<Adapter>()
-    {
+    Collections.sort(blockProviders, new Comparator<Adapter>() {
       @Override
-      public int compare(Adapter o1, Adapter o2)
-      {
+      public int compare(Adapter o1, Adapter o2) {
         return o1.Tier.compareTo(o2.Tier);
       }
     });
 
     boolean success = false;
 
-    for (Adapter adapter : adapters)
-    {
+    for (Adapter adapter : adapters) {
       if (!adapter.IsOnLine()) {
         log.info(String.format("adapter %s is offline, skipping", adapter.URI));
         continue;
       }
 
       InputStream remoteData = null;
-      try
-      {
+      try {
         remoteData = adapter.load(hash);
         BlockCacheService.instance().getBlockCache().store(remoteData, hash);
         success = true;
         break;
-      }
-      catch (Exception e)
-      {
+      } catch (Exception e) {
         wm.make("error_pull_block", "hash", hash);
         log.error(hash, e);
-      }
-      finally
-      {
+      } finally {
         FileUtil.SafeClose(remoteData);
       }
     }
 
-    if (success)
-    {
+    if (success) {
       wm.make(new MemoryElement("msg", "body", String.format("successfully pulled block %s", hash)));
-    }
-    else
-    {
+    } else {
       wm.make(new MemoryElement("msg", "body", String.format("failed to pull block %s", hash)));
       wm.make(new MemoryElement("recover_block", "hash", hash));
     }
+  }
+
+  @Override
+  public void fetch(WorkingMemory wm, FileMetaData meta)
+    throws Exception {
+    Map<String, List<Adapter>> hashProviders = BlockCacheService.instance().getHashProviders();
+
+    JSONArray blockHashes = meta.getBlockHashes();
+
+    for (int i = 0; i < blockHashes.length(); i++) {
+      if (!hashProviders.containsKey(blockHashes.getString(i))) {
+        wm.make("msg", "body", String.format("could not find block %s in existing storage!", blockHashes.getString(i)));
+        return;
+      }
+    }
+
+    for (int i = 0; i < blockHashes.length(); i++) {
+      String hash = blockHashes.getString(i);
+
+      List<Adapter> blockProviders = new ArrayList<Adapter>(hashProviders.get(hash));
+      Collections.shuffle(blockProviders);
+      Collections.sort(blockProviders, new Comparator<Adapter>() {
+        @Override
+        public int compare(Adapter o1, Adapter o2) {
+          return o1.Tier.compareTo(o2.Tier);
+        }
+      });
+
+      // TODO: we should be supporting offset writes into the target file for each block
+      boolean success = pullSubBlock(wm, meta.getPath(), blockProviders, hash);
+      if (success) {
+        wm.make(new MemoryElement("msg", "body", String.format("%s pulled block %s", meta.getPath(), hash)));
+      } else {
+        wm.make(new MemoryElement("msg", "body", String.format("%s failed to pull block %s", meta.getFilename(), hash)));
+
+        // attempt to rever the block and write it in the correct target file region
+        // TODO: this is currently a NOP
+        wm.make(new MemoryElement("recover_block", "hash", hash, "meta", meta));
+      }
+    }
+  }
+
+  private boolean pullSubBlock(
+    WorkingMemory wm,
+    String path,
+    List<Adapter> blockProviders,
+    String hash) {
+    boolean success = false;
+
+    for (Adapter adapter : blockProviders) {
+      InputStream remoteData = null;
+      try {
+        // TODO: only read the file size bytes back (if the file is one block)
+        // TODO: support writing to an offset of the existing file to allow for sub-blocks
+        remoteData = adapter.load(hash);
+        File destFile = new File(path);
+        destFile.getParentFile().mkdirs();
+        String remoteDataHash = CryptoUtil.digestToString(CryptoUtil.writeAndComputeHash(remoteData, destFile));
+        if (remoteDataHash.equals(hash)) {
+          success = true;
+          break;
+        } else {
+          destFile.delete();
+        }
+      } catch (Exception e) {
+        wm.make(new MemoryElement("msg", "body", String.format("failed to pull block %s", hash)));
+
+        // TODO: We should delete/recover the block from the adapter
+//        wm.make(new MemoryElement("recover_block", "hash", hash));
+        log.error(hash, e);
+      } finally {
+        FileUtil.SafeClose(remoteData);
+      }
+    }
+
+    return success;
   }
 }

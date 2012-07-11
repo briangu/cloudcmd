@@ -40,6 +40,7 @@ class LocalBlockCache extends BlockCache {
 
     val hashProviders = new java.util.HashMap[String, java.util.List[Adapter]]
 
+//    *** fix me ***
     adapters.filter(available(_, minTier, maxTier)).par.foreach{ p =>
       p.describe.foreach{ hash =>
         if (!hashProviders.containsKey(hash)) {

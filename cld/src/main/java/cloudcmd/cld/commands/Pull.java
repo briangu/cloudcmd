@@ -4,11 +4,13 @@ package cloudcmd.cld.commands;
 import cloudcmd.common.JsonUtil;
 import cloudcmd.common.config.ConfigStorageService;
 import cloudcmd.common.engine.CloudEngineService;
+import cloudcmd.common.index.IndexStorageService;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
 import jpbetz.cli.Opt;
 import jpbetz.cli.SubCommand;
 import org.json.JSONArray;
+import org.json.JSONObject;
 
 @SubCommand(name = "pull", description = "Pull the meta data from storage endpoints.")
 public class Pull implements Command
@@ -28,18 +30,8 @@ public class Pull implements Command
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
-    CloudEngineService.instance().init(ConfigStorageService.instance().getReplicationStrategy(), "pull.ops");
-
-    // TODO: purgeHistory/reindex after successful pull     false
-
-    if (_pullAll)
-    {
-      CloudEngineService.instance().pull(_minTier.intValue(), _maxTier.intValue(), _retrieveBlocks);
-    }
-    else
-    {
-      JSONArray selections = JsonUtil.loadJsonArray(System.in);
-      CloudEngineService.instance().pull(_minTier.intValue(), _maxTier.intValue(), _retrieveBlocks, selections);
-    }
+    JSONArray selections = _pullAll ? IndexStorageService.instance().find(new JSONObject()) : JsonUtil.loadJsonArray(System.in);
+    CloudEngineService.instance().pull(_minTier.intValue(), _maxTier.intValue(), _retrieveBlocks, selections);
+    // TODO: purgeHistory/reindex after successful pull
   }
 }

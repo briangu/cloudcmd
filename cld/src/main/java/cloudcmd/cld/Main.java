@@ -28,6 +28,8 @@ public class Main
       ConfigStorageService.instance().init(configRoot);
       IndexStorageService.instance().init();
       BlockCacheService.instance().init();
+      CloudEngineService.instance().init(ConfigStorageService.instance().getReplicationStrategy(), "index.ops");
+      CloudEngineService.instance().run();
 
       CommandSet app = new CommandSet("cld");
       app.addSubCommands(Adapter.class);
@@ -45,8 +47,6 @@ public class Main
       app.addSubCommands(Remove.class);
       app.addSubCommands(Update.class);
       app.invoke(args);
-
-      CloudEngineService.instance().run();
     }
     finally
     {

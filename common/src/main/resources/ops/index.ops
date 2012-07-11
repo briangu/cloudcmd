@@ -4,72 +4,13 @@
   "format": "compact",
   "ops":
     [
-      ["literalize", "flush_to_adapter", "src", "dest"],
-      ["literalize", "new_block", "type", "hash"],
-      ["literalize", "rawFile", "file"],
-      ["literalize", "index", "name", "type", "ext", "file", "tags"],
       ["literalize", "msg", "body"],
-      ["literalize", "push_block", "dest", "hash"],
-      ["literalize", "error_push_block", "hash"],
-      ["literalize", "recover_block", "hash"],
-      ["literalize", "remove_block", "hash", "adapter"],
-      ["p", "scan",
-        [
-          ["rawFile", "name", "$name", "file", "$file", "tags", "$tags"]
-        ],
-        [
-          ["write", "processing {0}", "$name"],
-          ["process", "$file", "$tags"],
-          ["remove", 0]
-        ]
-      ],
-      ["p", "index_default",
-        [
-          ["index", "name", "$name", "type", "$type", "ext", "$ext", "file", "$file", "tags", "$tags"]
-        ],
-        [
-          ["write", "indexing (default) {0}", "$name"],
-          ["index_default", "$file", "$type", "$tags"],
-          ["remove", 0]
-        ]
-      ],
       ["p", "msg",
         [
           ["msg", "body", "$body" ]
         ],
         [
           ["write", "$body"],
-          ["remove", 0]
-        ]
-      ],
-      ["p", "skip_cache_and_flush_to_adapter",
-        [
-          ["flush_to_adapter", "src", "$src", "dest", "$dest"],
-          ["new_block", "type", "subblock", "hash", "$hash"]
-        ],
-        [
-          ["write", "flushing {0}", "$hash"],
-          ["push_block", "$dest", "$hash"],
-          ["remove_block", "$hash", "$src"],
-          ["remove", 1]
-        ]
-      ],
-      ["p", "skip_cache_and_flush_to_adapter",
-        [
-          ["flush_to_adapter", "src", "$src", "dest", "$dest"],
-          ["new_block", "type", "meta", "hash", "$hash"]
-        ],
-        [
-          ["write", "flushing {0}", "$hash"],
-          ["push_block", "$dest", "$hash"],
-          ["remove", 1]
-        ]
-      ],
-      ["p", "remove_new_block_element",
-        [
-          ["new_block", "type", "$type", "hash", "$hash"]
-        ],
-        [
           ["remove", 0]
         ]
       ]
