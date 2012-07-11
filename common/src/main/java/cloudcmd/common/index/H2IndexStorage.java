@@ -15,39 +15,33 @@ import java.io.IOException;
 import java.sql.*;
 import java.util.*;
 
-public class H2IndexStorage implements IndexStorage
-{
+public class H2IndexStorage implements IndexStorage {
   private static Logger log = Logger.getLogger(H2IndexStorage.class);
 
   private static String _configRoot;
 
   JdbcConnectionPool _cp;
 
-  private String getDbFile()
-  {
+  private String getDbFile() {
     return String.format("%s%sindex", _configRoot, File.separator);
   }
 
-  private String createConnectionString()
-  {
+  private String createConnectionString() {
     return String.format("jdbc:h2:%s", getDbFile());
   }
 
-  private Connection getDbConnection() throws SQLException
-  {
+  private Connection getDbConnection() throws SQLException {
     return _cp.getConnection();
   }
 
-  private Connection getReadOnlyDbConnection() throws SQLException
-  {
+  private Connection getReadOnlyDbConnection() throws SQLException {
     Connection conn = getDbConnection();
     conn.setReadOnly(true);
     return conn;
   }
 
   @Override
-  public void init() throws Exception
-  {
+  public void init() throws Exception {
     Class.forName("org.h2.Driver");
     Class.forName("org.h2.fulltext.FullTextLucene");
 
@@ -56,30 +50,25 @@ public class H2IndexStorage implements IndexStorage
     _cp = JdbcConnectionPool.create(createConnectionString(), "sa", "sa");
 
     File file = new File(getDbFile() + ".h2.db");
-    if (!file.exists())
-    {
+    if (!file.exists()) {
       purge();
       bootstrapDb();
     }
   }
 
   @Override
-  public void shutdown()
-  {
+  public void shutdown() {
     flush();
 
-    if (_cp != null)
-    {
+    if (_cp != null) {
       _cp.dispose();
     }
   }
 
-  private void bootstrapDb()
-  {
+  private void bootstrapDb() {
     Connection db = null;
     Statement st = null;
-    try
-    {
+    try {
       db = getDbConnection();
       st = db.createStatement();
 
@@ -91,21 +80,16 @@ public class H2IndexStorage implements IndexStorage
       FullTextLucene.init(db);
       FullTextLucene.setWhitespaceChars(db, " ,:-._" + File.separator);
       FullTextLucene.createIndex(db, "PUBLIC", "FILE_INDEX", "TAGS");
-    }
-    catch (SQLException e)
-    {
+    } catch (SQLException e) {
       log.error(e);
-    }
-    finally
-    {
+    } finally {
       SqlUtil.SafeClose(st);
       SqlUtil.SafeClose(db);
     }
   }
 
   @Override
-  public void purge()
-  {
+  public void purge() {
     Connection db = null;
 
     try {
@@ -128,8 +112,7 @@ public class H2IndexStorage implements IndexStorage
     }
 
     File file = new File(getDbFile() + ".h2.db");
-    if (file.exists())
-    {
+    if (file.exists()) {
       try {
         FileUtil.delete(file);
       } catch (IOException e) {
@@ -138,8 +121,7 @@ public class H2IndexStorage implements IndexStorage
     }
 
     file = new File(getDbFile());
-    if (file.exists())
-    {
+    if (file.exists()) {
       try {
         FileUtil.delete(file);
       } catch (IOException e) {
@@ -153,38 +135,29 @@ public class H2IndexStorage implements IndexStorage
   }
 
   @Override
-  public synchronized void flush()
-  {
+  public synchronized void flush() {
   }
 
-  private void removeMeta(Connection db, String hash) throws JSONException, SQLException
-  {
+  private void removeMeta(Connection db, String hash) throws JSONException, SQLException {
     PreparedStatement statement = null;
 
-    try
-    {
+    try {
       statement = db.prepareStatement("DELETE FROM FILE_INDEX WHERE HASH = ?;");
       bind(statement, 1, hash);
       statement.execute();
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       log.error(e);
-    }
-    finally
-    {
+    } finally {
       SqlUtil.SafeClose(statement);
     }
   }
 
-  private void addMeta(Connection db, List<FileMetaData> fmds) throws JSONException, SQLException
-  {
+  private void addMeta(Connection db, List<FileMetaData> fmds) throws JSONException, SQLException {
     String sql;
 
     PreparedStatement statement = null;
 
-    try
-    {
+    try {
       List<Object> bind = new ArrayList<Object>();
       List<String> fields = new ArrayList<String>();
 
@@ -221,8 +194,7 @@ public class H2IndexStorage implements IndexStorage
         bind.add(tags);
         bind.add(meta.getDataAsString());
 
-        for (int i = 0, paramIdx = 1; i < bind.size(); i++, paramIdx++)
-        {
+        for (int i = 0, paramIdx = 1; i < bind.size(); i++, paramIdx++) {
           bind(statement, paramIdx, bind.get(i));
         }
 
@@ -235,100 +207,70 @@ public class H2IndexStorage implements IndexStorage
       }
 
       statement.executeBatch();
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       e.printStackTrace();
       log.error(e);
-    }
-    finally
-    {
+    } finally {
       SqlUtil.SafeClose(statement);
     }
   }
 
-  private void bind(PreparedStatement statement, int idx, Object obj) throws SQLException
-  {
-    if (obj instanceof String)
-    {
+  private void bind(PreparedStatement statement, int idx, Object obj) throws SQLException {
+    if (obj instanceof String) {
       statement.setString(idx, (String) obj);
-    }
-    else if (obj instanceof Long)
-    {
+    } else if (obj instanceof Long) {
       statement.setLong(idx, (Long) obj);
-    }
-    else if (obj == null)
-    {
+    } else if (obj == null) {
       statement.setString(idx, null);
-    }
-    else
-    {
+    } else {
       throw new IllegalArgumentException("unknown obj type: " + obj.toString());
     }
   }
 
   @Override
-  public void add(FileMetaData meta)
-  {
+  public void add(FileMetaData meta) {
     if (meta == null) return;
 
     Connection db = null;
-    try
-    {
+    try {
       db = getDbConnection();
       addMeta(db, Arrays.asList(meta));
-    }
-    catch (JSONException e)
-    {
+    } catch (JSONException e) {
       e.printStackTrace();
       log.error(e);
-    }
-    catch (SQLException e)
-    {
+    } catch (SQLException e) {
       log.error(e);
-    }
-    finally
-    {
+    } finally {
       SqlUtil.SafeClose(db);
     }
   }
 
   @Override
-  public void remove(FileMetaData meta)
-  {
+  public void remove(FileMetaData meta) {
     Connection db = null;
-    try
-    {
+    try {
       db = getDbConnection();
       db.setAutoCommit(false);
 
       removeMeta(db, meta.getHash());
 
       db.commit();
-    }
-    catch (JSONException e)
-    {
+    } catch (JSONException e) {
       e.printStackTrace();
       log.error(e);
-    }
-    catch (SQLException e)
-    {
+    } catch (SQLException e) {
       log.error(e);
-    }
-    finally
-    {
+    } finally {
       SqlUtil.SafeClose(db);
     }
   }
 
   @Override
-  public void addAll(List<FileMetaData> meta)
-  {
+  public void addAll(List<FileMetaData> meta) {
     if (meta == null) return;
 
     Connection db = null;
-    try
-    {
+    try {
       db = getDbConnection();
 
       FullTextLucene.dropIndex(db, "PUBLIC", "FILE_INDEX");
@@ -348,115 +290,81 @@ public class H2IndexStorage implements IndexStorage
       FullTextLucene.init(db);
       FullTextLucene.setWhitespaceChars(db, " ,:-._" + File.separator);
       FullTextLucene.createIndex(db, "PUBLIC", "FILE_INDEX", "TAGS");
-    }
-    catch (JSONException e)
-    {
+    } catch (JSONException e) {
       log.error(e);
-    }
-    catch (SQLException e)
-    {
+    } catch (SQLException e) {
       log.error(e);
-    }
-    finally
-    {
+    } finally {
       SqlUtil.SafeClose(db);
     }
   }
 
   @Override
-  public JSONArray find(JSONObject filter)
-  {
+  public JSONArray find(JSONObject filter) {
     JSONArray results = new JSONArray();
 
     Connection db = null;
     PreparedStatement statement = null;
 
-    try
-    {
+    try {
       db = getReadOnlyDbConnection();
 
-      ResultSet rs = null;
+      String sql;
 
-      if (filter.has("tags"))
-      {
-//        sql = "SELECT T.HASH,T.RAWMETA FROM FTL_SEARCH_DATA(?, 0, 0) FTL, FILE_INDEX T WHERE FTL.TABLE='FILE_INDEX' AND T.HASH = FTL.KEYS[0]";
-//        bind.add(filter.getString("tags"));
-        int count = filter.has("count") ? filter.getInt("count") : 0;
-        int offset = filter.has("offset") ? filter.getInt("offset") : 0;
-        rs = FullTextLucene.searchData(db, filter.getString("tags"), count, offset);
-      }
-      else
-      {
-        String sql;
+      List<Object> bind = new ArrayList<Object>();
 
-        List<Object> bind = new ArrayList<Object>();
+      if (filter.has("tags")) {
+        sql = "SELECT T.HASH,T.RAWMETA FROM FTL_SEARCH_DATA(?, 0, 0) FTL, FILE_INDEX T WHERE FTL.TABLE='FILE_INDEX' AND T.HASH = FTL.KEYS[0]";
+        bind.add(filter.getString("tags"));
+      } else {
         List<String> list = new ArrayList<String>();
 
         Iterator<String> iter = filter.keys();
 
-        while (iter.hasNext())
-        {
+        while (iter.hasNext()) {
           String key = iter.next();
           Object obj = filter.get(key);
-          if (obj instanceof String[] || obj instanceof Long[])
-          {
+          if (obj instanceof String[] || obj instanceof Long[]) {
             Collection<Object> foo = Arrays.asList(obj);
             list.add(String.format("%s In (%s)", key.toUpperCase(), StringUtil.joinRepeat(foo.size(), "?", ",")));
             bind.addAll(foo);
-          }
-          else
-          {
-            if (obj.toString().contains("%"))
-            {
+          } else {
+            if (obj.toString().contains("%")) {
               list.add(String.format("%s LIKE ?", key));
-            }
-            else
-            {
+            } else {
               list.add(String.format("%s IN (?)", key));
             }
             bind.add(obj);
           }
         }
 
-        if (list.size() > 0)
-        {
+        if (list.size() > 0) {
           sql = String.format("SELECT HASH,RAWMETA FROM FILE_INDEX WHERE %s", StringUtil.join(list, " AND "));
-        }
-        else
-        {
+        } else {
           sql = String.format("SELECT HASH,RAWMETA FROM FILE_INDEX");
         }
-
-        if (filter.has("count")) {
-          sql += String.format(" LIMIT %d", filter.getInt("count"));
-        }
-
-        statement = db.prepareStatement(sql);
-
-        for (int i = 0, paramIdx = 1; i < bind.size(); i++, paramIdx++)
-        {
-          bind(statement, paramIdx, bind.get(i));
-        }
-
-        rs = statement.executeQuery();
       }
 
-      while (rs.next())
-      {
+      if (filter.has("count")) sql += String.format(" LIMIT %d", filter.getInt("count"));
+      if (filter.has("offset")) sql += String.format(" OFFSET %d", filter.getInt("offset"));
+
+      statement = db.prepareStatement(sql);
+
+      for (int i = 0, paramIdx = 1; i < bind.size(); i++, paramIdx++) {
+        bind(statement, paramIdx, bind.get(i));
+      }
+
+      ResultSet rs = statement.executeQuery();
+
+      while (rs.next()) {
         results.put(MetaUtil.loadMeta(rs.getString("HASH"), new JSONObject(rs.getString("RAWMETA"))).toJson());
       }
-    }
-    catch (JSONException e)
-    {
+    } catch (JSONException e) {
       e.printStackTrace();
       log.error(e);
-    }
-    catch (SQLException e)
-    {
+    } catch (SQLException e) {
       log.error(e);
-    }
-    finally
-    {
+    } finally {
       SqlUtil.SafeClose(statement);
       SqlUtil.SafeClose(db);
     }
@@ -465,36 +373,26 @@ public class H2IndexStorage implements IndexStorage
   }
 
   @Override
-  public void pruneHistory(List<FileMetaData> selections)
-  {
+  public void pruneHistory(List<FileMetaData> selections) {
     Connection db = null;
-    try
-    {
+    try {
       db = getDbConnection();
       db.setAutoCommit(false);
 
-      for (FileMetaData meta : selections)
-      {
+      for (FileMetaData meta : selections) {
         String parent = meta.getParent();
-        if (parent != null)
-        {
+        if (parent != null) {
           removeMeta(db, parent);
         }
       }
 
       db.commit();
-    }
-    catch (JSONException e)
-    {
+    } catch (JSONException e) {
       e.printStackTrace();
       log.error(e);
-    }
-    catch (SQLException e)
-    {
+    } catch (SQLException e) {
       log.error(e);
-    }
-    finally
-    {
+    } finally {
       SqlUtil.SafeClose(db);
     }
   }
