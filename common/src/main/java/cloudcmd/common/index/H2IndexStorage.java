@@ -58,6 +58,7 @@ public class H2IndexStorage implements IndexStorage
     File file = new File(getDbFile() + ".h2.db");
     if (!file.exists())
     {
+      purge();
       bootstrapDb();
     }
   }
@@ -105,16 +106,48 @@ public class H2IndexStorage implements IndexStorage
   @Override
   public void purge()
   {
+    Connection db = null;
+
+    try {
+      db = getDbConnection();
+      FullTextLucene.dropIndex(db, "PUBLIC", "FILE_INDEX");
+      FullTextLucene.dropAll(db);
+      FullTextLucene.closeAll();
+    } catch (SQLException e) {
+      e.printStackTrace();
+    } finally {
+      SqlUtil.SafeClose(db);
+    }
+
+    shutdown();
+
+    try {
+      Class.forName("org.h2.fulltext.FullTextLucene");
+    } catch (ClassNotFoundException e) {
+      e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+    }
+
     File file = new File(getDbFile() + ".h2.db");
     if (file.exists())
     {
       try {
         FileUtil.delete(file);
-        FileUtil.delete(new File(getDbFile()));
       } catch (IOException e) {
         e.printStackTrace();
       }
     }
+
+    file = new File(getDbFile());
+    if (file.exists())
+    {
+      try {
+        FileUtil.delete(file);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+
+    _cp = JdbcConnectionPool.create(createConnectionString(), "sa", "sa");
 
     bootstrapDb();
   }
