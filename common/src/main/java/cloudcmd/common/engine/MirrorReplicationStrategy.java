@@ -128,6 +128,7 @@ public class MirrorReplicationStrategy implements ReplicationStrategy {
     }
   }
 
+  // TODO: most of this logic should bein the parallelcloudengine
   @Override
   public void fetch(WorkingMemory wm, FileMetaData meta)
     throws Exception {

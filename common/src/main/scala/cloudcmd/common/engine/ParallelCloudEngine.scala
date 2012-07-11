@@ -210,29 +210,30 @@ class ParallelCloudEngine extends CloudEngine {
   }
 
   def reindex {
+    import collection.JavaConversions._
+
     IndexStorageService.instance.purge
 
     val localCache = BlockCacheService.instance.getBlockCache
 
-    val fmds = localCache.asInstanceOf[FileAdapter].describeMeta()
-
-/*
-//    import collection.JavaConversions._
-    localDescription.par.foreach{ hash =>
-      if (!hash.endsWith(".meta")) {
-      } else {
-        try {
-          val fmd = MetaUtil.loadMeta(hash, JsonUtil.loadJson(localCache.load(hash)))
-          System.out.println(String.format("reindexing: %s %s", hash, fmd.getFilename))
-          fmds.add(fmd)
-        } catch {
-          case e:Exception => {
-            log.error(hash, e)
+    val fmds = if (localCache.isInstanceOf[FileAdapter]) {
+      localCache.asInstanceOf[FileAdapter].describeMeta().toList
+    } else {
+      localCache.describe().par.flatMap{ hash =>
+        if (hash.endsWith(".meta")) {
+          try {
+            List(MetaUtil.loadMeta(hash, JsonUtil.loadJson(localCache.load(hash))))
+          } catch {
+            case e:Exception => {
+              log.error(hash, e)
+              Nil
+            }
           }
+        } else {
+          Nil
         }
       }
-    }
-*/
+    }.toList
 
     IndexStorageService.instance.addAll(fmds)
     IndexStorageService.instance.pruneHistory(fmds)
