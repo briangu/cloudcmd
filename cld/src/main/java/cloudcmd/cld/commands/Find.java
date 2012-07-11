@@ -32,7 +32,7 @@ public class Find implements Command
   @Opt(opt = "c", longOpt = "count", description = "limit response count", required = false)
   Number _count = 0;
 
-  @Opt(opt = "s", longOpt = "offset", description = "pagination start offset", required = false)
+  @Opt(opt = "o", longOpt = "offset", description = "pagination start offset", required = false)
   Number _offset = 0;
 
   @Override
