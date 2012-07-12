@@ -13,8 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 //     "file:///tmp/storage?tier=1&tags=image,movie,vacation"
 
-public class FileAdapter extends Adapter
-{
+public class FileAdapter extends Adapter {
   private final static int MIN_FREE_STORAGE_SIZE = 1024 * 1024;
   private final static int LARGE_FILE_CUTOFF = 128 * 1024 * 1024;
 
@@ -23,19 +22,16 @@ public class FileAdapter extends Adapter
   volatile Set<String> _description = null;
   Boolean _isCache = false;
 
-  public FileAdapter()
-  {
+  public FileAdapter() {
     this(false);
   }
 
-  public FileAdapter(Boolean isCache)
-  {
+  public FileAdapter(Boolean isCache) {
     _isCache = isCache;
   }
 
   @Override
-  public void init(String configDir, Integer tier, String type, Set<String> tags, URI config) throws Exception
-  {
+  public void init(String configDir, Integer tier, String type, Set<String> tags, URI config) throws Exception {
     super.init(configDir, tier, type, tags, config);
 
     _rootPath = URI.getPath();
@@ -48,47 +44,39 @@ public class FileAdapter extends Adapter
     if (_isOnline) bootstrap(_rootPath);
   }
 
-  private String getDbFile()
-  {
+  private String getDbFile() {
     return String.format("%s%sindex", ConfigDir, File.separator);
   }
 
-  private String createConnectionString()
-  {
+  private String createConnectionString() {
     return String.format("jdbc:h2:%s", getDbFile());
   }
 
-  private Connection getDbConnection() throws SQLException
-  {
+  private Connection getDbConnection() throws SQLException {
     return _cp.getConnection();
   }
 
-  private Connection getReadOnlyDbConnection() throws SQLException
-  {
+  private Connection getReadOnlyDbConnection() throws SQLException {
     Connection conn = getDbConnection();
     conn.setReadOnly(true);
     return conn;
   }
 
   private void bootstrap(String rootPath)
-    throws Exception
-  {
+    throws Exception {
     Class.forName("org.h2.Driver");
     _cp = JdbcConnectionPool.create(createConnectionString(), "sa", "sa");
     File file = new File(getDbFile() + ".h2.db");
-    if (!file.exists())
-    {
+    if (!file.exists()) {
       bootstrapDb();
       initSubDirs(rootPath);
     }
   }
 
-  private void bootstrapDb()
-  {
+  private void bootstrapDb() {
     Connection db = null;
     Statement st = null;
-    try
-    {
+    try {
       db = getDbConnection();
       st = db.createStatement();
 
@@ -96,23 +84,17 @@ public class FileAdapter extends Adapter
       st.execute("CREATE TABLE BLOCK_INDEX ( HASH VARCHAR PRIMARY KEY, RAWMETA VARCHAR );");
 
       db.commit();
-    }
-    catch (SQLException e)
-    {
+    } catch (SQLException e) {
       e.printStackTrace();
-    }
-    finally
-    {
+    } finally {
       SqlUtil.SafeClose(st);
       SqlUtil.SafeClose(db);
     }
   }
 
-  public void purge()
-  {
+  public void purge() {
     File file = new File(getDbFile() + ".h2.db");
-    if (file.exists())
-    {
+    if (file.exists()) {
       file.delete();
     }
 
@@ -120,35 +102,42 @@ public class FileAdapter extends Adapter
   }
 
   @Override
-  public boolean IsOnLine()
-  {
+  public boolean IsOnLine() {
     return _isOnline;
   }
 
   @Override
-  public boolean IsFull()
-  {
+  public boolean IsFull() {
     return new File(_rootPath).getUsableSpace() < MIN_FREE_STORAGE_SIZE;
   }
 
-  private static void initSubDirs(String rootPath)
-  {
-    for (int i = 0; i < 0x100; i++)
-    {
+  private static void initSubDirs(String rootPath) {
+    for (int i = 0; i < 0x100; i++) {
       File tmpFile = new File(rootPath + File.separator + String.format("%02x", i));
       tmpFile.mkdirs();
     }
   }
 
   @Override
-  public void refreshCache() throws Exception
-  {
-    purge();
+  public void refreshCache() throws Exception {
+    // TODO: there must be a more efficient sequence of set operations
+    Set<String> foundHashes = rebuildHashIndexFromDisk();
+    Set<String> copyFoundHashes = new HashSet<String>(foundHashes);
+    Set<String> description = getDescription();
 
+    // find missing by removing intersection
+    foundHashes.removeAll(description);
+    addToDb(foundHashes);
+
+    // delete description entries not in the found hashes
+    description.removeAll(copyFoundHashes);
+    deleteFromDb(description);
+  }
+
+  private void addToDb(Collection<String> hashes) {
     Connection db = null;
     PreparedStatement statement = null;
-    try
-    {
+    try {
       db = getDbConnection();
 
       db.setAutoCommit(false);
@@ -157,8 +146,7 @@ public class FileAdapter extends Adapter
 
       int k = 0;
 
-      for (String hash : rebuildHashIndexFromDisk())
-      {
+      for (String hash : hashes) {
         statement.setString(1, hash);
         statement.setString(2, _isCache ? hash.endsWith(".meta") ? StringUtil.loadLine(load(hash)) : null : null);
         statement.addBatch();
@@ -172,49 +160,79 @@ public class FileAdapter extends Adapter
       statement.executeBatch();
 
       db.commit();
-    }
-    catch (SQLException e)
-    {
+    } catch (SQLException e) {
       e.printStackTrace();
-    }
-    finally
-    {
+    } catch (JSONException e) {
+      e.printStackTrace();
+    } catch (IOException e) {
+      e.printStackTrace();
+    } catch (Exception e) {
+      e.printStackTrace();
+    } finally {
       SqlUtil.SafeClose(statement);
       SqlUtil.SafeClose(db);
     }
   }
 
   @Override
-  public boolean contains(String hash) throws Exception
-  {
+  public boolean contains(String hash) throws Exception {
     return getDescription().contains(hash);
   }
 
   @Override
-  public void shutdown()
-  {
-    if (_cp != null)
-    {
+  public void shutdown() {
+    if (_cp != null) {
       _cp.dispose();
     }
   }
 
   @Override
-  public boolean remove(String hash) throws Exception
-  {
+  public boolean remove(String hash) throws Exception {
     File file = new File(getDataFileFromHash(hash));
     if (file.exists()) file.delete();
+    deleteFromDb(Arrays.asList(hash));
     return true;
   }
 
+  private void deleteFromDb(Collection<String> hashes) {
+    Connection db = null;
+    PreparedStatement statement = null;
+    try {
+      db = getDbConnection();
+
+      db.setAutoCommit(false);
+
+      statement = db.prepareStatement("DELETE FROM BLOCK_INDEX WHERE HASH = ?");
+
+      int k = 0;
+
+      for (String hash : hashes) {
+        statement.setString(1, hash);
+        statement.addBatch();
+
+        if (++k > 1024) {
+          statement.executeBatch();
+          k = 0;
+        }
+      }
+
+      statement.executeBatch();
+
+      db.commit();
+    } catch (SQLException e) {
+      e.printStackTrace();
+    } finally {
+      SqlUtil.SafeClose(statement);
+      SqlUtil.SafeClose(db);
+    }
+  }
+
   @Override
-  public boolean verify(String hash) throws Exception
-  {
+  public boolean verify(String hash) throws Exception {
     File file = new File(getDataFileFromHash(hash));
     if (!file.exists()) return false;
     int idx = hash.lastIndexOf(".");
-    if (idx >= 0)
-    {
+    if (idx >= 0) {
       hash = hash.substring(0, idx);
     }
     return (CryptoUtil.computeHashAsString(file).equals(hash));
@@ -225,19 +243,16 @@ public class FileAdapter extends Adapter
     return (idx >= 0) ? hash.substring(0, idx) : hash;
   }
 
-  private String getPathFromHash(String hash) throws JSONException
-  {
+  private String getPathFromHash(String hash) throws JSONException {
     return _rootPath + File.separator + hash.substring(0, 2);
   }
 
-  private String getDataFileFromHash(String hash) throws JSONException
-  {
+  private String getDataFileFromHash(String hash) throws JSONException {
     return getPathFromHash(hash) + File.separator + hash;
   }
 
   @Override
-  public void store(InputStream is, String hash) throws Exception
-  {
+  public void store(InputStream is, String hash) throws Exception {
     String writeHash = FileUtil.writeFileAndComputeHash(is, new File(getDataFileFromHash(hash)));
     if (!writeHash.equals(getHashFromDataFile(hash))) {
       throw new RuntimeException(String.format("failed to store data: expected %s got %s", hash, writeHash));
@@ -246,8 +261,7 @@ public class FileAdapter extends Adapter
   }
 
   @Override
-  public String store(InputStream is) throws Exception
-  {
+  public String store(InputStream is) throws Exception {
     if (is.available() > LARGE_FILE_CUTOFF) {
       return storeLargeFile(is);
     }
@@ -268,21 +282,16 @@ public class FileAdapter extends Adapter
     return hash;
   }
 
-  private String storeLargeFile(InputStream is) throws Exception
-  {
+  private String storeLargeFile(InputStream is) throws Exception {
     File tmpFile = new File(_rootPath + File.separator + UUID.randomUUID().toString() + ".tmp");
     tmpFile.createNewFile();
     String hash = FileUtil.writeFileAndComputeHash(is, tmpFile);
     File newFile = new File(getDataFileFromHash(hash));
-    if (newFile.exists() && newFile.length() == tmpFile.length())
-    {
+    if (newFile.exists() && newFile.length() == tmpFile.length()) {
       tmpFile.delete();
-    }
-    else
-    {
+    } else {
       Boolean success = tmpFile.renameTo(newFile);
-      if (!success)
-      {
+      if (!success) {
         tmpFile.delete();
         throw new IOException("failed to move file: " + tmpFile.getAbsolutePath());
       }
@@ -292,21 +301,18 @@ public class FileAdapter extends Adapter
   }
 
   @Override
-  public InputStream load(String hash) throws Exception
-  {
+  public InputStream load(String hash) throws Exception {
     File file = new File(getDataFileFromHash(hash));
     if (!file.exists()) throw new DataNotFoundException(hash);
     return new FileInputStream(file);
   }
 
-  private void insertHash(String hash) throws Exception
-  {
+  private void insertHash(String hash) throws Exception {
     if (getDescription().contains(hash)) return;
 
     Connection db = null;
     PreparedStatement statement = null;
-    try
-    {
+    try {
       db = getDbConnection();
 
       statement = db.prepareStatement("INSERT INTO BLOCK_INDEX VALUES (?,?)");
@@ -315,13 +321,9 @@ public class FileAdapter extends Adapter
       statement.execute();
 
       getDescription().add(hash);
-    }
-    catch (SQLException e)
-    {
+    } catch (SQLException e) {
       e.printStackTrace();
-    }
-    finally
-    {
+    } finally {
       SqlUtil.SafeClose(statement);
       SqlUtil.SafeClose(db);
     }
@@ -329,16 +331,13 @@ public class FileAdapter extends Adapter
 
   @Override
   public Set<String> describe()
-    throws Exception
-  {
+    throws Exception {
     return Collections.unmodifiableSet(getDescription());
   }
 
   private Set<String> getDescription()
-    throws Exception
-  {
-    if (_description != null)
-    {
+    throws Exception {
+    if (_description != null) {
       return _description;
     }
 
@@ -349,27 +348,21 @@ public class FileAdapter extends Adapter
         Connection db = null;
         PreparedStatement statement = null;
 
-        try
-        {
+        try {
           db = getReadOnlyDbConnection();
 
           statement = db.prepareStatement("SELECT HASH FROM BLOCK_INDEX");
 
           ResultSet resultSet = statement.executeQuery();
 
-          while (resultSet.next())
-          {
+          while (resultSet.next()) {
             description.add(resultSet.getString("HASH"));
           }
 
           _description = description;
-        }
-        catch (SQLException e)
-        {
+        } catch (SQLException e) {
           e.printStackTrace();
-        }
-        finally
-        {
+        } finally {
           SqlUtil.SafeClose(statement);
           SqlUtil.SafeClose(db);
         }
@@ -380,32 +373,25 @@ public class FileAdapter extends Adapter
   }
 
   public List<FileMetaData> describeMeta()
-    throws Exception
-  {
+    throws Exception {
     List<FileMetaData> description = new ArrayList<FileMetaData>();
 
     Connection db = null;
     PreparedStatement statement = null;
 
-    try
-    {
+    try {
       db = getReadOnlyDbConnection();
 
       statement = db.prepareStatement("SELECT * FROM BLOCK_INDEX WHERE RAWMETA IS NOT NULL");
 
       ResultSet resultSet = statement.executeQuery();
 
-      while (resultSet.next())
-      {
+      while (resultSet.next()) {
         description.add(MetaUtil.loadMeta(resultSet.getString("HASH"), new JSONObject(resultSet.getString("RAWMETA"))));
       }
-    }
-    catch (SQLException e)
-    {
+    } catch (SQLException e) {
       e.printStackTrace();
-    }
-    finally
-    {
+    } finally {
       SqlUtil.SafeClose(statement);
       SqlUtil.SafeClose(db);
     }
@@ -413,24 +399,18 @@ public class FileAdapter extends Adapter
     return description;
   }
 
-  public Set<String> rebuildHashIndexFromDisk()
-  {
+  public Set<String> rebuildHashIndexFromDisk() {
     final Set<String> hashes = new HashSet<String>();
 
-    FileWalker.enumerateFolders(_rootPath, new FileHandler()
-    {
+    FileWalker.enumerateFolders(_rootPath, new FileHandler() {
       @Override
-      public boolean skipDir(File file)
-      {
+      public boolean skipDir(File file) {
         return false;
       }
 
       @Override
-      public void process(File file)
-      {
-        String fileName = file.getName();
-        if (fileName.endsWith(".tmp") || fileName.endsWith(".db")) return;
-        hashes.add(fileName);
+      public void process(File file) {
+        hashes.add( file.getName());
       }
     });
 

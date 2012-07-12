@@ -164,7 +164,7 @@ class ParallelCloudEngine extends CloudEngine {
     import collection.JavaConversions._
     BlockCacheService.instance.loadCache(minTier, maxTier)
     val hashProviders = BlockCacheService.instance.getHashProviders
-    pull(minTier, maxTier, retrieveBlocks, hashProviders.keySet.toSet)
+    pull(minTier, maxTier, retrieveBlocks, hashProviders.keySet.filter(n => n.endsWith(".meta")).toSet)
   }
 
   def pull(minTier: Int, maxTier: Int, retrieveBlocks: Boolean, selections: JSONArray) {
@@ -176,12 +176,8 @@ class ParallelCloudEngine extends CloudEngine {
   private def pull(minTier: Int, maxTier: Int, retrieveBlocks: Boolean, hashes: Set[String]) {
     import collection.JavaConversions._
 
-    val srcAdapters = ConfigStorageService.instance.getAdapters.filter{ adapter =>
-      adapter.Tier >= minTier && adapter.Tier <= maxTier
-    }.toSet
-
+    val srcAdapters = ConfigStorageService.instance.getAdapters.filter{ a => a.Tier >= minTier && a.Tier <= maxTier }.toSet
     val localCache = BlockCacheService.instance.getBlockCache
-
     val missingHashes = hashes -- localCache.describe()
 
     missingHashes.par.foreach{ hash =>
