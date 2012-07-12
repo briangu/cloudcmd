@@ -303,7 +303,10 @@ public class FileAdapter extends Adapter {
   @Override
   public InputStream load(String hash) throws Exception {
     File file = new File(getDataFileFromHash(hash));
-    if (!file.exists()) throw new DataNotFoundException(hash);
+    if (!file.exists()) {
+      System.err.println(String.format("could not find hash %s on %s.", hash, URI.toString()));
+      throw new DataNotFoundException(hash);
+    }
     return new FileInputStream(file);
   }
 
