@@ -109,7 +109,8 @@ public class MirrorReplicationStrategy implements ReplicationStrategy {
         success = true;
         break;
       } catch (Exception e) {
-        wm.make("error_pull_block", "hash", hash);
+        wm.make(new MemoryElement("msg", "body", String.format("failed to pull block %s on adapter %s", hash, adapter.URI)));
+        e.printStackTrace();
         log.error(hash, e);
       } finally {
         FileUtil.SafeClose(remoteData);
@@ -120,7 +121,6 @@ public class MirrorReplicationStrategy implements ReplicationStrategy {
       wm.make(new MemoryElement("msg", "body", String.format("successfully pulled block %s", hash)));
     } else {
       wm.make(new MemoryElement("msg", "body", String.format("failed to pull block %s", hash)));
-      wm.make(new MemoryElement("recover_block", "hash", hash));
     }
   }
 }
