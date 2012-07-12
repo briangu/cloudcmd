@@ -176,11 +176,13 @@ class ParallelCloudEngine extends CloudEngine {
   private def pull(minTier: Int, maxTier: Int, retrieveBlocks: Boolean, hashes: Set[String]) {
     import collection.JavaConversions._
 
-    val srcAdapters = ConfigStorageService.instance.getAdapters.filter{ a => a.Tier >= minTier && a.Tier <= maxTier }.toSet
+    val hashProviders = BlockCacheService.instance.getHashProviders
+
     val localCache = BlockCacheService.instance.getBlockCache
     val missingHashes = hashes -- localCache.describe()
 
     missingHashes.par.foreach{ hash =>
+      val srcAdapters = hashProviders.get(hash).filter{ a => a.Tier >= minTier && a.Tier <= maxTier }.toSet
       _replicationStrategy.pull(_wm, srcAdapters, hash)
 
       /*
@@ -212,7 +214,10 @@ class ParallelCloudEngine extends CloudEngine {
         }
       }
 
-      blockSet.par.foreach{ hash => _replicationStrategy.pull(_wm, srcAdapters, hash) }
+      blockSet.par.foreach{ hash =>
+        val srcAdapters = hashProviders.get(hash).filter{ a => a.Tier >= minTier && a.Tier <= maxTier }.toSet
+        _replicationStrategy.pull(_wm, srcAdapters, hash)
+      }
     }
   }
 
