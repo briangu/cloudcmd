@@ -10,7 +10,6 @@ import cloudcmd.common.index.IndexStorageService
 import cloudcmd.common.config.ConfigStorageService
 import java.util
 import collection.mutable
-import util.{Comparator, Collections}
 import scala.util.Random
 
 class ParallelCloudEngine extends CloudEngine {
@@ -161,11 +160,21 @@ class ParallelCloudEngine extends CloudEngine {
     pushSet.par.foreach{ hash => _replicationStrategy.push(_wm, destAdapters, hash) }
   }
 
-  def pull(minTier: Int, maxTier: Int, retrieveBlocks: Boolean, selections: JSONArray) {
+  def pull(minTier: Int, maxTier: Int, retrieveBlocks: Boolean) {
     import collection.JavaConversions._
-
     BlockCacheService.instance.loadCache(minTier, maxTier)
-    val hashes = (0 until selections.length).map{ i => selections.getJSONObject(i).getString("hash")}.toSet
+    val hashProviders = BlockCacheService.instance.getHashProviders
+    pull(minTier, maxTier, retrieveBlocks, hashProviders.keySet.toSet)
+  }
+
+  def pull(minTier: Int, maxTier: Int, retrieveBlocks: Boolean, selections: JSONArray) {
+    BlockCacheService.instance.loadCache(minTier, maxTier)
+    val hashes = (0 until selections.length).map{ i => selections.getJSONObject(i).getString("hash")}
+    pull(minTier, maxTier, retrieveBlocks, hashes.toSet)
+  }
+
+  private def pull(minTier: Int, maxTier: Int, retrieveBlocks: Boolean, hashes: Set[String]) {
+    import collection.JavaConversions._
 
     val srcAdapters = ConfigStorageService.instance.getAdapters.filter{ adapter =>
       adapter.Tier >= minTier && adapter.Tier <= maxTier

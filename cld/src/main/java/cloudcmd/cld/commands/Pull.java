@@ -30,8 +30,12 @@ public class Pull implements Command
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
-    JSONArray selections = _pullAll ? IndexStorageService.instance().find(new JSONObject()) : JsonUtil.loadJsonArray(System.in);
-    CloudEngineService.instance().pull(_minTier.intValue(), _maxTier.intValue(), _retrieveBlocks, selections);
+    if (_pullAll) {
+      CloudEngineService.instance().pull(_minTier.intValue(), _maxTier.intValue(), _retrieveBlocks);
+    } else {
+      JSONArray selections = JsonUtil.loadJsonArray(System.in);
+      CloudEngineService.instance().pull(_minTier.intValue(), _maxTier.intValue(), _retrieveBlocks, selections);
+    }
     // TODO: purgeHistory/reindex after successful pull
   }
 }

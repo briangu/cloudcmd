@@ -20,6 +20,7 @@ public interface CloudEngine
   void batchAdd(Set<File> file, Set<String> tags, Adapter adapter);
 
   void push(int minTier, int maxTier, JSONArray selections) throws Exception;
+  void pull(int minTier, int maxTier, boolean retrieveBlocks) throws Exception;
   void pull(int minTier, int maxTier, boolean retrieveBlocks, JSONArray selections) throws Exception;
   void fetch(int minTier, int maxTier, JSONArray selections) throws Exception;
   void verify(int minTier, int maxTier, JSONArray selections, boolean deleteOnInvalid) throws Exception;
