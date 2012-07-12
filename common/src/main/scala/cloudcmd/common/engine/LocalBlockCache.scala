@@ -5,6 +5,10 @@ import cloudcmd.common.adapters.FileAdapter
 import cloudcmd.common.config.ConfigStorageService
 import java.io.File
 import java.net.URI
+import collection.parallel.mutable
+import scala.collection
+import scala.collection
+import java.util
 
 class LocalBlockCache extends BlockCache {
   private var _cacheAdapter: Adapter = null
@@ -38,21 +42,16 @@ class LocalBlockCache extends BlockCache {
 
     val adapters : List[Adapter] = ConfigStorageService.instance.getAdapters.toList ::: List(BlockCacheService.instance.getBlockCache)
 
+    val filteredAdapters = adapters.filter(available(_, minTier, maxTier))
+    val am = filteredAdapters.par.flatMap(p => p.describe).toSet
+
     val hashProviders = new java.util.HashMap[String, java.util.List[Adapter]]
 
-//    *** fix me ***
-    adapters.filter(available(_, minTier, maxTier)).par.foreach{ p =>
-      p.describe.foreach{ hash =>
-        if (!hashProviders.containsKey(hash)) {
-          hashProviders.synchronized {
-            if (!hashProviders.containsKey(hash)) {
-              hashProviders.put(hash, new java.util.ArrayList[Adapter])
-            }
-          }
-        }
-        hashProviders.get(hash).synchronized {
-          hashProviders.get(hash).add(p)
-        }
+    am.par.foreach{ hash =>
+      val res = new util.ArrayList[Adapter]
+      filteredAdapters.foreach(adapter => if (adapter.describe().contains(hash)) res.add(adapter))
+      hashProviders.synchronized {
+        hashProviders.put(hash, res)
       }
     }
 
