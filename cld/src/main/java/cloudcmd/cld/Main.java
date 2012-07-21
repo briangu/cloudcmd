@@ -3,7 +3,6 @@ package cloudcmd.cld;
 import cloudcmd.cld.commands.*;
 import cloudcmd.common.FileUtil;
 import cloudcmd.common.config.ConfigStorageService;
-import cloudcmd.common.engine.BlockCacheService;
 import cloudcmd.common.engine.CloudEngineService;
 import cloudcmd.common.index.IndexStorageService;
 import jpbetz.cli.CommandSet;
@@ -27,8 +26,10 @@ public class Main
     {
       ConfigStorageService.instance().init(configRoot);
       IndexStorageService.instance().init();
-      BlockCacheService.instance().init();
-      CloudEngineService.instance().init(ConfigStorageService.instance().getReplicationStrategy(), "index.ops");
+      CloudEngineService.instance().init(
+        ConfigStorageService.instance().getBlockCache(),
+        ConfigStorageService.instance().getReplicationStrategy(),
+        "index.ops");
 
       CommandSet app = new CommandSet("cld");
       app.addSubCommands(Adapter.class);
@@ -52,7 +53,6 @@ public class Main
     finally
     {
       CloudEngineService.instance().shutdown();
-      BlockCacheService.instance().shutdown();
       IndexStorageService.instance().shutdown();
       ConfigStorageService.instance().shutdown();
     }

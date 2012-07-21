@@ -2,14 +2,12 @@ package cloudcmd.cld.commands;
 
 
 import cloudcmd.common.config.ConfigStorageService;
-import cloudcmd.common.engine.BlockCacheService;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
 import jpbetz.cli.Opt;
 import jpbetz.cli.SubCommand;
 
 import java.net.URI;
-import java.util.List;
 
 @SubCommand(name = "update", description = "update cached adapter information.")
 public class Update implements Command
@@ -29,7 +27,7 @@ public class Update implements Command
   {
     if (_uri == null) {
       System.err.println("updating all adapters");
-      BlockCacheService.instance().refreshCache(_minTier.intValue(), _maxTier.intValue());
+      ConfigStorageService.instance().getBlockCache().refreshCache(_minTier.intValue(), _maxTier.intValue());
     } else {
       URI adapterURI = new URI(_uri);
       for (cloudcmd.common.adapters.Adapter adapter : ConfigStorageService.instance().getAdapters()) {

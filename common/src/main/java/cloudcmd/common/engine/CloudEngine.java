@@ -9,7 +9,7 @@ import java.util.Set;
 
 public interface CloudEngine
 {
-  void init(ReplicationStrategy replicationStrategy, String opsName) throws Exception;
+  void init(BlockCache blockCache, ReplicationStrategy replicationStrategy, String opsName) throws Exception;
 
   void run() throws Exception;
   void shutdown();

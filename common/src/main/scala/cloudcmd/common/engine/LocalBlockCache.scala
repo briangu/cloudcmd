@@ -2,15 +2,12 @@ package cloudcmd.common.engine
 
 import cloudcmd.common.adapters.Adapter
 import cloudcmd.common.adapters.FileAdapter
-import cloudcmd.common.config.ConfigStorageService
+import cloudcmd.common.config.{ConfigStorage, ConfigStorageService}
 import java.io.File
 import java.net.URI
-import collection.parallel.mutable
-import scala.collection
-import scala.collection
 import java.util
 
-class LocalBlockCache extends BlockCache {
+class LocalBlockCache(configStorage : ConfigStorage) extends BlockCache {
   private var _cacheAdapter: Adapter = null
   private var _hashProviders: java.util.Map[String, java.util.List[Adapter]] = null
 
@@ -19,17 +16,16 @@ class LocalBlockCache extends BlockCache {
   def init {
     val adapterUri: URI = new URI("file:///" + ConfigStorageService.instance.getConfigRoot + File.separator + "cache")
     _cacheAdapter = new FileAdapter(true)
-    val cacheIndex: String = ConfigStorageService.instance.getConfigRoot + File.separator + "adapterCaches" + File.separator + "localCache"
-    _cacheAdapter.init(cacheIndex, 0, classOf[FileAdapter].getName, new java.util.HashSet[String], adapterUri)
+    _cacheAdapter.init(null, 0, classOf[FileAdapter].getName, new java.util.HashSet[String], adapterUri)
   }
 
   def shutdown {}
 
-  def getBlockCache: Adapter = _cacheAdapter
+  def getCacheAdapter: Adapter = _cacheAdapter
 
   def refreshCache(minTier: Int, maxTier: Int) {
     import scala.collection.JavaConversions._
-    val adapters : List[Adapter] = ConfigStorageService.instance.getAdapters.toList ::: List(BlockCacheService.instance.getBlockCache)
+    val adapters : List[Adapter] = ConfigStorageService.instance.getAdapters.toList ::: List(_cacheAdapter)
     adapters.filter(available(_, minTier, maxTier)).par.foreach(_.refreshCache())
   }
 
@@ -40,7 +36,7 @@ class LocalBlockCache extends BlockCache {
   private def buildHashProviders(minTier: Int, maxTier: Int) : java.util.Map[String, java.util.List[Adapter]] = {
     import scala.collection.JavaConversions._
 
-    val adapters : List[Adapter] = ConfigStorageService.instance.getAdapters.toList ::: List(BlockCacheService.instance.getBlockCache)
+    val adapters : List[Adapter] = ConfigStorageService.instance.getAdapters.toList ::: List(_cacheAdapter)
 
     val filteredAdapters = adapters.filter(available(_, minTier, maxTier))
     val am = filteredAdapters.par.flatMap(p => p.describe).toSet

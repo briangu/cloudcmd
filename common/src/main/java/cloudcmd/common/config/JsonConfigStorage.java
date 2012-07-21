@@ -2,6 +2,8 @@ package cloudcmd.common.config;
 
 import cloudcmd.common.*;
 import cloudcmd.common.adapters.Adapter;
+import cloudcmd.common.engine.BlockCache;
+import cloudcmd.common.engine.LocalBlockCache;
 import cloudcmd.common.engine.MirrorReplicationStrategy;
 import cloudcmd.common.engine.ReplicationStrategy;
 import org.json.JSONArray;
@@ -28,6 +30,8 @@ public class JsonConfigStorage implements ConfigStorage
 
   private List<Adapter> _adapters;
   private Map<String, String> _adapterHandlers;
+
+  private BlockCache _blockCache;
 
   private static String getConfigFile(String path)
   {
@@ -63,6 +67,12 @@ public class JsonConfigStorage implements ConfigStorage
     }
 
     return config;
+  }
+
+  private BlockCache loadBlockCache(JSONObject config) throws Exception {
+    BlockCache blockCache = new LocalBlockCache(this);
+    blockCache.init();
+    return blockCache;
   }
 
   private List<Adapter> loadAdapters(JSONObject config)
@@ -181,6 +191,7 @@ public class JsonConfigStorage implements ConfigStorage
     _adapterHandlers = loadAdapterHandlers(_config);
     _adapters = loadAdapters(_config);
     _isDebug = loadDebug(_config);
+    _blockCache = loadBlockCache(_config);
   }
 
   @Override
@@ -201,6 +212,8 @@ public class JsonConfigStorage implements ConfigStorage
         e.printStackTrace();
       }
     }
+
+
   }
 
   @Override
@@ -295,8 +308,13 @@ public class JsonConfigStorage implements ConfigStorage
   }
 
   @Override
+  public BlockCache getBlockCache() {
+    return _blockCache;
+  }
+
+  @Override
   public ReplicationStrategy getReplicationStrategy() {
-    return new MirrorReplicationStrategy();
+    return new MirrorReplicationStrategy(_blockCache);
   }
 
   @Override

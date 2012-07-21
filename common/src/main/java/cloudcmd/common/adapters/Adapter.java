@@ -27,6 +27,8 @@ public abstract class Adapter
     return false;
   }
 
+  // TODO: get tier from the URI
+
   public void init(String configDir, Integer tier, String type, Set<String> tags, URI uri) throws Exception
   {
     ConfigDir = configDir;

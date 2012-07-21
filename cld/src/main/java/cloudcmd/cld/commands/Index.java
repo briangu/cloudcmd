@@ -7,7 +7,6 @@ import cloudcmd.common.FileUtil;
 import cloudcmd.common.FileWalker;
 import cloudcmd.common.adapters.Adapter;
 import cloudcmd.common.config.ConfigStorageService;
-import cloudcmd.common.engine.BlockCacheService;
 import cloudcmd.common.engine.CloudEngineService;
 import jpbetz.cli.*;
 
@@ -36,7 +35,7 @@ public class Index implements Command
       _path = FileUtil.getCurrentWorkingDirectory();
     }
 
-    Adapter adapter = BlockCacheService.instance().getBlockCache();
+    Adapter adapter = ConfigStorageService.instance().getBlockCache().getCacheAdapter();
 
     if (_skipCache)
     {

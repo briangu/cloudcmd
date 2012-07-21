@@ -1,16 +1,11 @@
 package cloudcmd.srv;
 
 
-import java.io.File;
-import java.io.IOException;
-
 import cloudcmd.common.FileUtil;
 import cloudcmd.common.config.ConfigStorageService;
-import cloudcmd.common.engine.BlockCacheService;
 import cloudcmd.common.engine.CloudEngineService;
 import cloudcmd.common.index.IndexStorageService;
 import io.viper.core.server.Util;
-import org.json.JSONException;
 
 
 public class Main
@@ -35,8 +30,10 @@ public class Main
 
       ConfigStorageService.instance().init(configRoot);
       IndexStorageService.instance().init();
-      BlockCacheService.instance().init();
-      CloudEngineService.instance().init(ConfigStorageService.instance().getReplicationStrategy(), "index.ops");
+      CloudEngineService.instance().init(
+        ConfigStorageService.instance().getBlockCache(),
+        ConfigStorageService.instance().getReplicationStrategy(),
+        "index.ops");
 
       cloudCmdServer = CloudCmdServer.create("localhost", 3000, staticFileRoot);
       System.in.read();
@@ -48,7 +45,6 @@ public class Main
     finally
     {
       CloudEngineService.instance().shutdown();
-      BlockCacheService.instance().shutdown();
       IndexStorageService.instance().shutdown();
       ConfigStorageService.instance().shutdown();
 

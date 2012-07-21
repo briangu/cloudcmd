@@ -21,6 +21,8 @@ public class FileAdapter extends Adapter {
   JdbcConnectionPool _cp = null;
   volatile Set<String> _description = null;
   Boolean _isCache = false;
+  String _dbDir = null;
+  String _dataDir = null;
 
   public FileAdapter() {
     this(false);
@@ -35,21 +37,23 @@ public class FileAdapter extends Adapter {
     super.init(configDir, tier, type, tags, config);
 
     _rootPath = URI.getPath();
+    _dbDir = _rootPath + File.separator + "db";
+    ConfigDir = _dbDir;
+    _dataDir = _rootPath + File.separator + "data";
 
     File rootPathDir = new File(_rootPath);
     rootPathDir.mkdirs();
-
     _isOnline = rootPathDir.exists();
 
-    if (_isOnline) bootstrap(_rootPath);
+    if (_isOnline) bootstrap(_dataDir, _dbDir);
   }
 
-  private String getDbFile() {
-    return String.format("%s%sindex", ConfigDir, File.separator);
+  private String getDbFileName(String dbPath) {
+    return String.format("%s%sindex", dbPath, File.separator);
   }
 
-  private String createConnectionString() {
-    return String.format("jdbc:h2:%s", getDbFile());
+  private String createConnectionString(String dbPath) {
+    return String.format("jdbc:h2:%s", getDbFileName(dbPath));
   }
 
   private Connection getDbConnection() throws SQLException {
@@ -62,14 +66,14 @@ public class FileAdapter extends Adapter {
     return conn;
   }
 
-  private void bootstrap(String rootPath)
+  private void bootstrap(String dataPath, String dbPath)
     throws Exception {
     Class.forName("org.h2.Driver");
-    _cp = JdbcConnectionPool.create(createConnectionString(), "sa", "sa");
-    File file = new File(getDbFile() + ".h2.db");
+    _cp = JdbcConnectionPool.create(createConnectionString(dbPath), "sa", "sa");
+    File file = new File(getDbFileName(dbPath) + ".h2.db");
     if (!file.exists()) {
       bootstrapDb();
-      initSubDirs(rootPath);
+      initSubDirs(dataPath);
     }
   }
 
@@ -90,15 +94,6 @@ public class FileAdapter extends Adapter {
       SqlUtil.SafeClose(st);
       SqlUtil.SafeClose(db);
     }
-  }
-
-  public void purge() {
-    File file = new File(getDbFile() + ".h2.db");
-    if (file.exists()) {
-      file.delete();
-    }
-
-    bootstrapDb();
   }
 
   @Override

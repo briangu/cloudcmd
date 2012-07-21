@@ -20,8 +20,10 @@ class ParallelCloudEngine extends CloudEngine {
   var _wm : WorkingMemory = null
   var _opsThread : Thread = null
   var _replicationStrategy : ReplicationStrategy = null
+  var _blockCache : BlockCache = null
 
-  def init(replicationStrategy: ReplicationStrategy, opsName: String) {
+  def init(blockCache: BlockCache, replicationStrategy: ReplicationStrategy, opsName: String) {
+    _blockCache = blockCache
     _replicationStrategy = replicationStrategy
 
     var indexOps : JSONObject = null
@@ -138,8 +140,8 @@ class ParallelCloudEngine extends CloudEngine {
       adapter.Tier >= minTier && adapter.Tier <= maxTier
     }.toSet
 
-    BlockCacheService.instance.loadCache(minTier, maxTier)
-    val localDescription = BlockCacheService.instance.getBlockCache.describe
+    _blockCache.loadCache(minTier, maxTier)
+    val localDescription = _blockCache.getCacheAdapter.describe
 
     val pushSet = (0 until selections.length).par.flatMap{ i =>
       val hash = selections.getJSONObject(i).getString("hash")
@@ -162,13 +164,13 @@ class ParallelCloudEngine extends CloudEngine {
 
   def pull(minTier: Int, maxTier: Int, retrieveBlocks: Boolean) {
     import collection.JavaConversions._
-    BlockCacheService.instance.loadCache(minTier, maxTier)
-    val hashProviders = BlockCacheService.instance.getHashProviders
+    _blockCache.loadCache(minTier, maxTier)
+    val hashProviders = _blockCache.getHashProviders
     pull(minTier, maxTier, retrieveBlocks, hashProviders.keySet.filter(n => n.endsWith(".meta")).toSet)
   }
 
   def pull(minTier: Int, maxTier: Int, retrieveBlocks: Boolean, selections: JSONArray) {
-    BlockCacheService.instance.loadCache(minTier, maxTier)
+    _blockCache.loadCache(minTier, maxTier)
     val hashes = (0 until selections.length).map{ i => selections.getJSONObject(i).getString("hash")}
     pull(minTier, maxTier, retrieveBlocks, hashes.toSet)
   }
@@ -176,9 +178,9 @@ class ParallelCloudEngine extends CloudEngine {
   private def pull(minTier: Int, maxTier: Int, retrieveBlocks: Boolean, hashes: Set[String]) {
     import collection.JavaConversions._
 
-    val hashProviders = BlockCacheService.instance.getHashProviders
+    val hashProviders = _blockCache.getHashProviders
 
-    val localCache = BlockCacheService.instance.getBlockCache
+    val localCache = _blockCache.getCacheAdapter
     val missingHashes = hashes -- localCache.describe()
 
     missingHashes.par.foreach{ hash =>
@@ -186,14 +188,14 @@ class ParallelCloudEngine extends CloudEngine {
       _replicationStrategy.pull(_wm, srcAdapters, hash)
 
       /*
-             FileMetaData fmd = MetaUtil.loadMeta(hash, JsonUtil.loadJson(BlockCacheService.instance().getBlockCache().load(hash)))
+             FileMetaData fmd = MetaUtil.loadMeta(hash, JsonUtil.loadJson(_blockCache().getCacheAdapter().load(hash)))
          // if localcache has block continue
  //        IndexStorageService.instance().add(fmd)
       */
     }
 
     if (retrieveBlocks) {
-      val localCache = BlockCacheService.instance.getBlockCache
+      val localCache = _blockCache.getCacheAdapter
 
       val blockSet = hashes.par.flatMap{ hash =>
         if (hash.endsWith(".meta")) {
@@ -226,7 +228,7 @@ class ParallelCloudEngine extends CloudEngine {
 
     IndexStorageService.instance.purge
 
-    val localCache = BlockCacheService.instance.getBlockCache
+    val localCache = _blockCache.getCacheAdapter
 
     val fmds = if (localCache.isInstanceOf[FileAdapter]) {
       localCache.asInstanceOf[FileAdapter].describeMeta().toList
@@ -252,14 +254,14 @@ class ParallelCloudEngine extends CloudEngine {
   }
 
   def fetch(minTier: Int, maxTier: Int, selections: JSONArray) {
-    BlockCacheService.instance.loadCache(minTier, maxTier)
+    _blockCache.loadCache(minTier, maxTier)
     (0 until selections.length).par.foreach(i => fetch(minTier, maxTier, MetaUtil.loadMeta(selections.getJSONObject(i))))
   }
 
   def fetch(minTier: Int, maxTier: Int, meta: FileMetaData) {
     import collection.JavaConversions._
 
-    val hashProviders = BlockCacheService.instance.getHashProviders()
+    val hashProviders = _blockCache.getHashProviders()
     val blockHashes = (0 until meta.getBlockHashes().length()).map(meta.getBlockHashes().getString)
 
     val hashAdapterMap: Map[String, List[Adapter]] = blockHashes.flatMap { hash =>
@@ -319,7 +321,7 @@ class ParallelCloudEngine extends CloudEngine {
   }
 
   def addTags(selections: JSONArray, tags: java.util.Set[String]) : JSONArray = {
-    val localCache = BlockCacheService.instance.getBlockCache
+    val localCache = _blockCache.getCacheAdapter
     val localDescription = localCache.describe
 
     val fmds = (0 until selections.length).par.flatMap{ i =>
@@ -355,7 +357,7 @@ class ParallelCloudEngine extends CloudEngine {
     import collection.JavaConversions._
 
     hashes.par.foreach{ hash =>
-      BlockCacheService.instance.getHashProviders.get(hash).par.foreach{ adapter =>
+      _blockCache.getHashProviders.get(hash).par.foreach{ adapter =>
         try {
           val isValid = adapter.verify(hash)
           if (isValid) {
@@ -390,16 +392,16 @@ class ParallelCloudEngine extends CloudEngine {
   }
 
   def verify(minTier: Int, maxTier: Int, selections: JSONArray, deleteOnInvalid: Boolean) {
-    BlockCacheService.instance.loadCache(minTier, maxTier)
+    _blockCache.loadCache(minTier, maxTier)
     val hashes = (0 until selections.length).map{ i => selections.getJSONObject(i).getString("hash")}
     verify(minTier, maxTier, deleteOnInvalid, hashes.toSet)
   }
 
   def remove(minTier: Int, maxTier: Int, selections: JSONArray) {
-    BlockCacheService.instance.loadCache(minTier, maxTier)
+    _blockCache.loadCache(minTier, maxTier)
 
-    val hashProviders = BlockCacheService.instance.getHashProviders
-    val localCache = BlockCacheService.instance.getBlockCache
+    val hashProviders = _blockCache.getHashProviders
+    val localCache = _blockCache.getCacheAdapter
 
     (0 until selections.length).par.foreach{ i =>
       val hash = selections.getJSONObject(i).getString("hash")

@@ -12,6 +12,12 @@ import java.util.*;
 public class MirrorReplicationStrategy implements ReplicationStrategy {
   Logger log = Logger.getLogger(NCopiesReplicationStrategy.class);
 
+  private BlockCache _blockCache;
+
+  public MirrorReplicationStrategy(BlockCache blockCache) {
+    _blockCache = blockCache;
+  }
+
   @Override
   public boolean isReplicated(Set<Adapter> adapters, String hash) throws Exception {
     for (Adapter adapter : adapters) {
@@ -25,7 +31,7 @@ public class MirrorReplicationStrategy implements ReplicationStrategy {
   @Override
   public void push(WorkingMemory wm, Set<Adapter> adapters, String hash) throws Exception {
 
-    Map<String, List<Adapter>> hashProviders = BlockCacheService.instance().getHashProviders();
+    Map<String, List<Adapter>> hashProviders = _blockCache.getHashProviders();
 
     if (!hashProviders.containsKey(hash)) {
       System.err.println();
@@ -76,7 +82,7 @@ public class MirrorReplicationStrategy implements ReplicationStrategy {
 
   @Override
   public void pull(WorkingMemory wm, Set<Adapter> adapters, String hash) throws Exception {
-    Map<String, List<Adapter>> hashProviders = BlockCacheService.instance().getHashProviders();
+    Map<String, List<Adapter>> hashProviders = _blockCache.getHashProviders();
 
     if (!hashProviders.containsKey(hash)) {
       System.err.println();
@@ -105,7 +111,7 @@ public class MirrorReplicationStrategy implements ReplicationStrategy {
       InputStream remoteData = null;
       try {
         remoteData = adapter.load(hash);
-        BlockCacheService.instance().getBlockCache().store(remoteData, hash);
+        _blockCache.getCacheAdapter().store(remoteData, hash);
         success = true;
         break;
       } catch (Exception e) {

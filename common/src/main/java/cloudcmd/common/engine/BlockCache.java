@@ -17,6 +17,6 @@ public interface BlockCache
 
   void shutdown();
 
-  Adapter getBlockCache();
+  Adapter getCacheAdapter();
 
 }
