@@ -1,5 +1,7 @@
 package cloudcmd.common.adapters;
 
+import org.jboss.netty.buffer.ChannelBuffer;
+
 import java.io.InputStream;
 import java.net.URI;
 import java.util.Set;
@@ -68,6 +70,9 @@ public abstract class Adapter
   public abstract String store(InputStream data) throws Exception;
 
   public abstract InputStream load(String hash) throws Exception;
+
+  // TODO: this is a total hack until load is converted to use channels uniformally
+  public abstract ChannelBuffer loadChannel(String hash) throws Exception;
 
   public abstract Set<String> describe() throws Exception;
 

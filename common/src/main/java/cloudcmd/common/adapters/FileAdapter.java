@@ -2,6 +2,7 @@ package cloudcmd.common.adapters;
 
 import cloudcmd.common.*;
 import org.h2.jdbcx.JdbcConnectionPool;
+import org.jboss.netty.buffer.ChannelBuffer;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -303,6 +304,16 @@ public class FileAdapter extends Adapter {
       throw new DataNotFoundException(hash);
     }
     return new FileInputStream(file);
+  }
+
+  @Override
+  public ChannelBuffer loadChannel(String hash) throws Exception {
+    File file = new File(getDataFileFromHash(hash));
+    if (!file.exists()) {
+      System.err.println(String.format("could not find hash %s on %s.", hash, URI.toString()));
+      throw new DataNotFoundException(hash);
+    }
+    return new FileChannelBuffer(file);
   }
 
   private void insertHash(String hash) throws Exception {

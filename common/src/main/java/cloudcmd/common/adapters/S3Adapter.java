@@ -6,6 +6,7 @@ import cloudcmd.common.SqlUtil;
 import cloudcmd.common.UriUtil;
 import org.apache.commons.io.IOUtils;
 import org.h2.jdbcx.JdbcConnectionPool;
+import org.jboss.netty.buffer.ChannelBuffer;
 import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.model.S3Object;
@@ -263,6 +264,13 @@ public class S3Adapter extends Adapter
   {
     if (!contains(hash)) throw new DataNotFoundException(hash);
     return _s3Service.getObject(_bucketName, hash).getDataInputStream();
+  }
+
+  @Override
+  public ChannelBuffer loadChannel(String hash)
+    throws Exception
+  {
+    throw new NotImplementedException();
   }
 
   @Override
