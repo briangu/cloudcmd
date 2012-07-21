@@ -240,7 +240,7 @@ public class FileAdapter extends Adapter {
   }
 
   private String getPathFromHash(String hash) throws JSONException {
-    return _rootPath + File.separator + hash.substring(0, 2);
+    return _dataDir + File.separator + hash.substring(0, 2);
   }
 
   private String getDataFileFromHash(String hash) throws JSONException {
@@ -279,7 +279,7 @@ public class FileAdapter extends Adapter {
   }
 
   private String storeLargeFile(InputStream is) throws Exception {
-    File tmpFile = new File(_rootPath + File.separator + UUID.randomUUID().toString() + ".tmp");
+    File tmpFile = new File(_dataDir + File.separator + UUID.randomUUID().toString() + ".tmp");
     tmpFile.createNewFile();
     String hash = FileUtil.writeFileAndComputeHash(is, tmpFile);
     File newFile = new File(getDataFileFromHash(hash));
@@ -411,7 +411,7 @@ public class FileAdapter extends Adapter {
   public Set<String> rebuildHashIndexFromDisk() {
     final Set<String> hashes = new HashSet<String>();
 
-    FileWalker.enumerateFolders(_rootPath, new FileHandler() {
+    FileWalker.enumerateFolders(_dataDir, new FileHandler() {
       @Override
       public boolean skipDir(File file) {
         return false;

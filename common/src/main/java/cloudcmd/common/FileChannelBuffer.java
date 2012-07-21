@@ -24,6 +24,7 @@ public class FileChannelBuffer extends AbstractChannelBuffer implements WrappedC
     }
     try {
       this.is = new FileInputStream(file);
+      this.writerIndex(new Long(file.length()).intValue());
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -43,7 +44,7 @@ public class FileChannelBuffer extends AbstractChannelBuffer implements WrappedC
   }
 
   public ByteOrder order() {
-    throw new RuntimeException();
+    return ByteOrder.BIG_ENDIAN;
   }
 
   public boolean isDirect() {
@@ -173,7 +174,22 @@ public class FileChannelBuffer extends AbstractChannelBuffer implements WrappedC
   }
 
   public ChannelBuffer slice(int index, int length) {
-    throw new RuntimeException();
+/*
+    ByteBuffer byteBuffer = ByteBuffer.allocate(length);
+    try {
+      is.getChannel().read(byteBuffer, index);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    return ChannelBuffers.wrappedBuffer(byteBuffer);
+*/
+    byte[] buff = new byte[length];
+    try {
+      is.read(buff, index, length);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    return ChannelBuffers.wrappedBuffer(buff);
   }
 
   public byte getByte(int index) {
