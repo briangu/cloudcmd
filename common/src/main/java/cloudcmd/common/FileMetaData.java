@@ -102,6 +102,11 @@ public class FileMetaData
     return _data.getLong("filesize");
   }
 
+  public JSONObject getRawData()
+  {
+    return _data;
+  }
+
   public String getDataAsString()
   {
     return _data.toString();
