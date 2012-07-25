@@ -16,7 +16,7 @@ import java.nio.channels.ScatteringByteChannel;
  */
 public class FileChannelBuffer extends AbstractChannelBuffer implements WrappedChannelBuffer {
 
-  private final FileInputStream is;
+  private final InputStream is;
 
   public FileChannelBuffer(File file) {
     if (file == null) {
@@ -30,6 +30,10 @@ public class FileChannelBuffer extends AbstractChannelBuffer implements WrappedC
     }
   }
 
+  public FileChannelBuffer(InputStream is, int size) {
+    this.is = is;
+    this.writerIndex(size);
+  }
 
   public InputStream getInputStream() {
     return is;

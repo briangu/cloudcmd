@@ -2,6 +2,7 @@ package cloudcmd.common.adapters;
 
 
 import cloudcmd.common.CryptoUtil;
+import cloudcmd.common.FileChannelBuffer;
 import cloudcmd.common.SqlUtil;
 import cloudcmd.common.UriUtil;
 import org.apache.commons.io.IOUtils;
@@ -13,10 +14,9 @@ import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.AWSCredentials;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.sql.*;
 import java.util.*;
 
@@ -146,12 +146,20 @@ public class S3Adapter extends Adapter
 
       statement = db.prepareStatement("INSERT INTO BLOCK_INDEX VALUES (?)");
 
+      int k = 0;
+
       for (S3Object s3Object : s3Objects)
       {
         statement.setString(1, s3Object.getName());
-        statement.execute();
-        statement.clearParameters();
+        statement.addBatch();
+
+        if (++k > 1024) {
+          statement.executeBatch();
+          k = 0;
+        }
       }
+
+      statement.executeBatch();
 
       db.commit();
     }
@@ -270,52 +278,63 @@ public class S3Adapter extends Adapter
   public ChannelBuffer loadChannel(String hash)
     throws Exception
   {
-    throw new NotImplementedException();
+    if (!contains(hash)) throw new DataNotFoundException(hash);
+    S3Object s3Object = _s3Service.getObject(_bucketName, hash);
+    DataInputStream dis = new DataInputStream(s3Object.getDataInputStream());
+    int length = new Long(s3Object.getContentLength()).intValue();
+    byte[] buffer = new byte[length];
+    dis.readFully(buffer);
+    return new FileChannelBuffer(new ByteArrayInputStream(buffer), new Long(s3Object.getContentLength()).intValue());
   }
 
   @Override
   public Set<String> describe()
       throws Exception
   {
-    if (_description == null)
-    {
-      _description = _describe();
+    return Collections.unmodifiableSet(getDescription());
+  }
+
+  private Set<String> getDescription()
+      throws Exception
+  {
+    if (_description != null) {
+      return _description;
+    }
+
+    synchronized (this) {
+      if (_description == null) {
+        Set<String> description = new HashSet<String>();
+
+        Connection db = null;
+        PreparedStatement statement = null;
+
+        try
+        {
+          db = getReadOnlyDbConnection();
+
+          statement = db.prepareStatement("SELECT HASH FROM BLOCK_INDEX");
+
+          ResultSet resultSet = statement.executeQuery();
+
+          while (resultSet.next())
+          {
+            description.add(resultSet.getString("HASH"));
+          }
+        }
+        catch (SQLException e)
+        {
+          e.printStackTrace();
+        }
+        finally
+        {
+          SqlUtil.SafeClose(statement);
+          SqlUtil.SafeClose(db);
+        }
+
+        _description = description;
+      }
     }
 
     return _description;
-  }
-
-  private Set<String> _describe()
-      throws Exception
-  {
-    Set<String> description = new HashSet<String>();
-
-    Connection db = null;
-    PreparedStatement statement = null;
-
-    try
-    {
-      db = getReadOnlyDbConnection();
-
-      statement = db.prepareStatement("SELECT * FROM BLOCK_INDEX");
-
-      ResultSet resultSet = statement.executeQuery();
-
-      while (resultSet.next())
-      {
-        description.add(resultSet.getString("HASH"));
-      }
-    }
-    catch (SQLException e)
-    {
-      e.printStackTrace();
-    }
-    finally
-    {
-      SqlUtil.SafeClose(statement);
-      SqlUtil.SafeClose(db);
-    }
-
-    return Collections.unmodifiableSet(description);
   }
 }
