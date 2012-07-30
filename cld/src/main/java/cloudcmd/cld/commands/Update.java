@@ -1,7 +1,6 @@
 package cloudcmd.cld.commands;
 
 
-import cloudcmd.cld.CloudEngineService;
 import cloudcmd.cld.ConfigStorageService;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
@@ -38,7 +37,5 @@ public class Update implements Command
         }
       }
     }
-
-    CloudEngineService.instance().reindex();
   }
 }
