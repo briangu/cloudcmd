@@ -369,7 +369,7 @@ public class FileAdapter extends Adapter implements InlineStorable {
   }
 
   public Set<String> rebuildHashIndexFromDisk() {
-    final Set<String> hashes = new HashSet<String>();
+    final Set<String> hashes = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
     FileWalker.enumerateFolders(_dataDir, new FileWalker.FileHandler() {
       @Override
