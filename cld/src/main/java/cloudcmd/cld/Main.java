@@ -35,7 +35,6 @@ public class Main
       app.addSubCommands(Init.class);
       app.addSubCommands(Listing.class);
       app.addSubCommands(Print.class);
-      app.addSubCommands(Reindex.class);
       app.addSubCommands(Remove.class);
       app.addSubCommands(Sync.class);
       app.addSubCommands(Tag.class);
