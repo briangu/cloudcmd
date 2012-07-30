@@ -1,6 +1,7 @@
 package cloudcmd.cld.commands;
 
 
+import cloudcmd.cld.CloudEngineService;
 import cloudcmd.cld.ConfigStorageService;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
@@ -37,5 +38,8 @@ public class Update implements Command
         }
       }
     }
+
+    System.err.println("rebuilding index available adapters");
+    CloudEngineService.instance().reindex();
   }
 }
