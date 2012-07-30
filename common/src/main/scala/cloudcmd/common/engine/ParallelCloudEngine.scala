@@ -164,7 +164,7 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
 
     _indexStorage.purge
 
-    val fmds = _blockCache.getHashProviders.keySet().par.filter(_.endsWith(".meta")).par.flatMap {
+    val fmds = _blockCache.getHashProviders.keySet.par.filter(_.endsWith(".meta")).par.flatMap {
       hash =>
         try {
           List(MetaUtil.loadMeta(hash, JsonUtil.loadJson(_replicationStrategy.load(hash))))
@@ -194,7 +194,7 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
     val hashAdapterMap: Map[String, List[Adapter]] = blockHashes.flatMap {
       hash =>
         if (hashProviders.contains(hash)) {
-          val blockProviders = hashProviders.get(hash).filter {
+          val blockProviders = hashProviders.get(hash).get.filter {
             a => a.Tier >= minTier && a.Tier <= maxTier
           }.toList
           if (blockProviders.size == 0) {
@@ -267,7 +267,7 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
           data.put("tags", new JSONArray(newTags))
 
           val derivedMeta = MetaUtil.deriveMeta(hash, data)
-          if (hashProviders.containsKey(derivedMeta.getHash)) {
+          if (hashProviders.contains(derivedMeta.getHash)) {
             Nil
           } else {
 //            localCache.store(new ByteArrayInputStream(derivedMeta.getDataAsString.getBytes("UTF-8")), derivedMeta.getHash)
@@ -289,7 +289,7 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
 
     hashes.par.foreach {
       hash =>
-        _blockCache.getHashProviders.get(hash).par.foreach {
+        _blockCache.getHashProviders.get(hash).get.par.foreach {
           adapter =>
             try {
               val isValid = adapter.verify(hash)
@@ -359,10 +359,10 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
     }
   }
 
-  private def removeBlock(hashProviders: java.util.Map[String, java.util.List[Adapter]], hash: String) {
+  private def removeBlock(hashProviders: Map[String, List[Adapter]], hash: String) {
     import collection.JavaConversions._
 
-    Option(hashProviders.get(hash)).foreach {
+    Option(hashProviders.get(hash).get).foreach {
       adapters =>
         adapters.par.foreach {
           adapter =>
