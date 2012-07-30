@@ -4,7 +4,7 @@ package cloudcmd.cld.commands;
 import cloudcmd.cld.CloudEngineService;
 import cloudcmd.common.FileTypeUtil;
 import cloudcmd.common.FileUtil;
-import cloudcmd.common.FileWalker;
+import cloudcmd.common.engine.FileWalker;
 import cloudcmd.common.adapters.Adapter;
 import cloudcmd.cld.ConfigStorageService;
 import jpbetz.cli.*;

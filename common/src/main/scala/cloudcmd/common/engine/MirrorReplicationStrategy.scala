@@ -33,8 +33,12 @@ class MirrorReplicationStrategy(blockCache: BlockCache) extends ReplicationStrat
         var is: InputStream = null
         try {
           is = load(hash)
-          adapter.store(is, hash)
-          pushedCount.incrementAndGet()
+          if (is != null) {
+            adapter.store(is, hash)
+            pushedCount.incrementAndGet()
+          } else {
+            listener.onMessage(String.format("no adapter has block %s"))
+          }
         }
         catch {
           case e: Exception => {
@@ -53,6 +57,7 @@ class MirrorReplicationStrategy(blockCache: BlockCache) extends ReplicationStrat
     }
   }
 
+  // TODO: this should provide an iterator over a list of streams that we can interrupt once we succeed
   def load(hash: String): InputStream = {
     val hashProviders: Map[String, List[Adapter]] = blockCache.getHashProviders
     if (hashProviders.contains(hash)) {

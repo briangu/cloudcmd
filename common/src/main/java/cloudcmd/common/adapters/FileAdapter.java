@@ -1,6 +1,7 @@
 package cloudcmd.common.adapters;
 
 import cloudcmd.common.*;
+import cloudcmd.common.engine.FileWalker;
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.json.JSONException;
@@ -378,7 +379,7 @@ public class FileAdapter extends Adapter implements InlineStorable {
 
       @Override
       public void process(File file) {
-        hashes.add( file.getName());
+        hashes.add(file.getName());
       }
     });
 
