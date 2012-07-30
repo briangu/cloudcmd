@@ -38,13 +38,37 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
     _listeners.foreach(_.onMessage(msg))
   }
 
-  def add(file: File, tags: java.util.Set[String], adapter: Adapter) {
-    val set = new java.util.HashSet[File]
-    set.add(file)
-    batchAdd(set, tags, adapter)
+  private def available(p: Adapter, minTier: Int, maxTier: Int) = (p.IsOnLine && p.Tier >= minTier && p.Tier <= maxTier)
+
+  def refreshAdapterCaches(minTier: Int, maxTier: Int) {
+    import scala.collection.JavaConversions._
+    _configService.getAdapters.filter(available(_, minTier, maxTier)).par.foreach(_.refreshCache())
   }
 
-  def batchAdd(fileSet: java.util.Set[File], tags: java.util.Set[String], adapter: Adapter) {
+  def getMetaHashSet(minTier: Int, maxTier: Int) : Set[String] = {
+    import scala.collection.JavaConversions._
+    val adapters = _configService.getAdapters.filter(available(_, minTier, maxTier))
+    Set() ++ adapters.flatMap(p => p.describe.toSet).par.filter(hash => hash.endsWith(".meta"))
+  }
+
+  def getHashProviders(minTier: Int, maxTier: Int): Map[String, List[Adapter]] = {
+    import scala.collection.JavaConversions._
+    val adapters = _configService.getAdapters.filter(available(_, minTier, maxTier))
+    Map() ++ adapters.flatMap(p => p.describe.toSet).par.flatMap {
+      hash => Map(hash -> adapters.filter(_.describe().contains(hash)).toList)
+    }
+  }
+
+  def getHashAdapters(minTier: Int, maxTier: Int, hash: String) : List[Adapter] = {
+    import scala.collection.JavaConversions._
+    _configService.getAdapters.filter(available(_, minTier, maxTier)).filter(_.describe().contains(hash)).toList
+  }
+
+  def add(file: File, tags: Set[String], adapter: Adapter) {
+    batchAdd(Set(file), tags, adapter)
+  }
+
+  def batchAdd(fileSet: Set[File], tags: Set[String], adapter: Adapter) {
     import collection.JavaConversions._
 
     val metaSet = new mutable.HashSet[FileMetaData] with mutable.SynchronizedSet[FileMetaData]
@@ -251,7 +275,7 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
     }
   }
 
-  def addTags(selections: JSONArray, tags: java.util.Set[String]): JSONArray = {
+  def addTags(selections: JSONArray, tags: Set[String]): JSONArray = {
     val hashProviders = _blockCache.getHashProviders
 
     val fmds = (0 until selections.length).par.flatMap {
@@ -260,6 +284,7 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
         val data = selections.getJSONObject(i).getJSONObject("data")
         val oldMeta = FileMetaData.create(hash, data)
 
+        import collection.JavaConversions._
         val newTags = MetaUtil.applyTags(oldMeta.getTags, tags)
         if (newTags.equals(oldMeta.getTags)) {
           Nil
@@ -285,8 +310,6 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
   }
 
   private def verify(minTier: Int, maxTier: Int, deleteOnInvalid: Boolean, hashes: Set[String]) {
-    import collection.JavaConversions._
-
     hashes.par.foreach {
       hash =>
         _blockCache.getHashProviders.get(hash).get.par.foreach {

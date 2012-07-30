@@ -16,7 +16,7 @@ class MirrorReplicationStrategy(blockCache: BlockCache) extends ReplicationStrat
   }
 
   def push(listener: CloudEngineListener, adapters: Set[Adapter], hash: String) {
-    val hashProviders: Map[String, List[Adapter]] = blockCache.getHashProviders
+    val hashProviders = blockCache.getHashProviders
     if (!hashProviders.contains(hash)) {
       listener.onMessage(String.format("push_block: could not find block %s in existing storage!", hash))
       return
@@ -59,7 +59,7 @@ class MirrorReplicationStrategy(blockCache: BlockCache) extends ReplicationStrat
 
   // TODO: this should provide an iterator over a list of streams that we can interrupt once we succeed
   def load(hash: String): InputStream = {
-    val hashProviders: Map[String, List[Adapter]] = blockCache.getHashProviders
+    val hashProviders = blockCache.getHashProviders
     if (hashProviders.contains(hash)) {
       val adapters = Random.shuffle(hashProviders.get(hash).get.filter(_.IsOnLine())).sortBy(x => x.Tier)
       if (adapters.size > 0) {

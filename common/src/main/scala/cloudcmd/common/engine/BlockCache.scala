@@ -8,8 +8,4 @@ trait BlockCache {
   def loadCache(minTier: Int, maxTier: Int): Map[String, List[Adapter]]
 
   def refreshCache(minTier: Int, maxTier: Int)
-
-  def init()
-
-  def shutdown()
 }
