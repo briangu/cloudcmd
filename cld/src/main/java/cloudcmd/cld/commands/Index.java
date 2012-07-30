@@ -1,13 +1,12 @@
 package cloudcmd.cld.commands;
 
 
-import cloudcmd.common.FileHandler;
+import cloudcmd.cld.CloudEngineService;
 import cloudcmd.common.FileTypeUtil;
 import cloudcmd.common.FileUtil;
 import cloudcmd.common.FileWalker;
 import cloudcmd.common.adapters.Adapter;
-import cloudcmd.common.config.ConfigStorageService;
-import cloudcmd.common.engine.CloudEngineService;
+import cloudcmd.cld.ConfigStorageService;
 import jpbetz.cli.*;
 
 import java.io.File;
@@ -24,9 +23,6 @@ public class Index implements Command
   @Arg(name = "tags", optional = true, isVararg = true)
   public List<String> _tags = null;
 
-  @Opt(opt = "s", longOpt = "skipcache", description = "skip the cache and index directly to an adapter", required = false)
-  boolean _skipCache = false;
-
   @Override
   public void exec(CommandContext commandLine) throws Exception
   {
@@ -35,24 +31,26 @@ public class Index implements Command
       _path = FileUtil.getCurrentWorkingDirectory();
     }
 
-    Adapter adapter = ConfigStorageService.instance().getBlockCache().getCacheAdapter();
+    // TODO: allow selectable adapters
+    Adapter adapter = null;
 
-    if (_skipCache)
+    for (Adapter a : ConfigStorageService.instance().getAdapters())
     {
-      List<Adapter> adapters = ConfigStorageService.instance().getAdapters();
-
-      if (adapters.size() == 0)
+      if (a.IsOnLine() && !a.IsFull())
       {
-        throw new IllegalArgumentException("there are no adapters to flush to");
+        adapter = a;
+        break;
       }
+    }
 
-      // TODO: make selectable
-      adapter = adapters.get(0);
+    if (adapter == null)
+    {
+      throw new IllegalArgumentException("there are no adapters to flush to");
     }
 
     final Set<File> fileSet = new HashSet<File>();
 
-    FileWalker.enumerateFolders(_path, new FileHandler()
+    FileWalker.enumerateFolders(_path, new FileWalker.FileHandler()
     {
       @Override
       public boolean skipDir(File file)

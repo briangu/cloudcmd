@@ -2,7 +2,7 @@ package cloudcmd.cld.commands;
 
 
 import cloudcmd.common.FileUtil;
-import cloudcmd.common.config.ConfigStorageService;
+import cloudcmd.cld.ConfigStorageService;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
 import jpbetz.cli.SubCommand;

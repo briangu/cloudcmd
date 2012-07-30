@@ -12,31 +12,29 @@ import org.jets3t.service.S3ServiceException;
 import org.jets3t.service.impl.rest.httpclient.RestS3Service;
 import org.jets3t.service.model.S3Object;
 import org.jets3t.service.security.AWSCredentials;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.net.URI;
-import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
 import java.sql.*;
 import java.util.*;
 
-//     "s3://<aws id>:<aws secret>@<bucket>?tier=2&tags=s3"
+//     "s3://<aws id>@<bucket>?tier=2&tags=s3&secret=<aws secret>"
 
 // http://www.jets3t.org/toolkit/code-samples.html#connecting
-public class S3Adapter extends Adapter
-{
+public class S3Adapter extends Adapter implements MD5Storable {
   String _bucketName;
   RestS3Service _s3Service;
   JdbcConnectionPool _cp = null;
   Set<String> _description = null;
 
-  public S3Adapter()
-  {
-  }
+  public S3Adapter() {}
 
   @Override
-  public void init(String configDir, Integer tier, String type, Set<String> tags, URI uri) throws Exception
-  {
+  public void init(String configDir, Integer tier, String type, Set<String> tags, URI uri) throws Exception {
     super.init(configDir, tier, type, tags, uri);
 
     List<String> awsInfo = parseAwsInfo(uri);
@@ -47,53 +45,44 @@ public class S3Adapter extends Adapter
     bootstrap();
   }
 
-  private String getDbFile()
-  {
+  private String getDbFile() {
     return String.format("%s%s%s", ConfigDir, File.separator, _bucketName);
   }
 
-  private String createConnectionString()
-  {
+  private String createConnectionString() {
     return String.format("jdbc:h2:%s", getDbFile());
   }
 
-  private Connection getDbConnection() throws SQLException
-  {
+  private Connection getDbConnection() throws SQLException {
     return _cp.getConnection();
   }
 
-  private Connection getReadOnlyDbConnection() throws SQLException
-  {
+  private Connection getReadOnlyDbConnection() throws SQLException {
     Connection conn = getDbConnection();
     conn.setReadOnly(true);
     return conn;
   }
 
   private void bootstrap()
-      throws Exception
-  {
+    throws Exception {
     Class.forName("org.h2.Driver");
     _cp = JdbcConnectionPool.create(createConnectionString(), "sa", "sa");
     File file = new File(getDbFile() + ".h2.db");
-    if (!file.exists())
-    {
+    if (!file.exists()) {
       bootstrapDb();
       bootstrapS3();
     }
   }
 
   private void bootstrapS3()
-      throws S3ServiceException
-  {
+    throws S3ServiceException {
     _s3Service.getOrCreateBucket(_bucketName);
   }
 
-  private void bootstrapDb()
-  {
+  private void bootstrapDb() {
     Connection db = null;
     Statement st = null;
-    try
-    {
+    try {
       db = getDbConnection();
       st = db.createStatement();
 
@@ -101,25 +90,19 @@ public class S3Adapter extends Adapter
       st.execute("CREATE TABLE BLOCK_INDEX ( HASH VARCHAR PRIMARY KEY );");
 
       db.commit();
-    }
-    catch (SQLException e)
-    {
+    } catch (SQLException e) {
       e.printStackTrace();
-    }
-    finally
-    {
+    } finally {
       SqlUtil.SafeClose(st);
       SqlUtil.SafeClose(db);
     }
   }
 
-  public void purge()
-  {
+  public void purge() {
     bootstrapDb();
   }
 
-  private static List<String> parseAwsInfo(URI adapterUri)
-  {
+  private static List<String> parseAwsInfo(URI adapterUri) {
     String[] parts = adapterUri.getAuthority().split("@");
     if (parts.length != 2) throw new IllegalArgumentException("authority format: awsKey@bucketname");
 
@@ -130,16 +113,14 @@ public class S3Adapter extends Adapter
   }
 
   @Override
-  public void refreshCache() throws Exception
-  {
+  public void refreshCache() throws Exception {
     S3Object[] s3Objects = _s3Service.listObjects(_bucketName);
 
     purge();
 
     Connection db = null;
     PreparedStatement statement = null;
-    try
-    {
+    try {
       db = getDbConnection();
 
       db.setAutoCommit(false);
@@ -148,8 +129,7 @@ public class S3Adapter extends Adapter
 
       int k = 0;
 
-      for (S3Object s3Object : s3Objects)
-      {
+      for (S3Object s3Object : s3Objects) {
         statement.setString(1, s3Object.getName());
         statement.addBatch();
 
@@ -162,24 +142,18 @@ public class S3Adapter extends Adapter
       statement.executeBatch();
 
       db.commit();
-    }
-    catch (SQLException e)
-    {
+    } catch (SQLException e) {
       e.printStackTrace();
-    }
-    finally
-    {
+    } finally {
       SqlUtil.SafeClose(statement);
       SqlUtil.SafeClose(db);
     }
   }
 
-  private void insertHash(String hash) throws Exception
-  {
+  private void insertHash(String hash) throws Exception {
     Connection db = null;
     PreparedStatement statement = null;
-    try
-    {
+    try {
       db = getDbConnection();
 
       db.setAutoCommit(false);
@@ -191,65 +165,69 @@ public class S3Adapter extends Adapter
       db.commit();
 
       _description.add(hash);
-    }
-    catch (SQLException e)
-    {
+    } catch (SQLException e) {
       e.printStackTrace();
-    }
-    finally
-    {
+    } finally {
       SqlUtil.SafeClose(statement);
       SqlUtil.SafeClose(db);
     }
   }
 
   @Override
-  public boolean contains(String hash) throws Exception
-  {
+  public boolean contains(String hash) throws Exception {
     return describe().contains(hash);
   }
 
   @Override
-  public void shutdown()
-  {
-    if (_cp != null)
-    {
+  public void shutdown() {
+    if (_cp != null) {
       _cp.dispose();
     }
   }
 
   @Override
-  public boolean remove(String hash) throws Exception
-  {
+  public boolean remove(String hash) throws Exception {
     _s3Service.deleteObject(_bucketName, hash);
     _description.remove(hash);
     return true;
   }
 
   @Override
-  public boolean verify(String hash) throws Exception
-  {
+  public boolean verify(String hash) throws Exception {
     // we rely on S3 md5 integrity check that we used on push
     return true;
   }
 
   @Override
   public void store(InputStream data, String hash)
-      throws Exception
-  {
+    throws Exception {
+
+    if (data instanceof ByteArrayInputStream) {
+      ByteArrayInputStream buffer = (ByteArrayInputStream)data;
+      byte[] md5Hash = CryptoUtil.computeMD5Hash(Channels.newChannel(buffer));
+      buffer.reset();
+      store(buffer, hash, md5Hash, buffer.available());
+    } else if (data instanceof FileInputStream) {
+      FileInputStream buffer = (FileInputStream)data;
+      byte[] md5Hash = CryptoUtil.computeMD5Hash(buffer.getChannel());
+      buffer.reset();
+      store(buffer, hash, md5Hash, buffer.available());
+    } else {
+      byte[] buffer = IOUtils.toByteArray(data);
+      byte[] md5Hash = CryptoUtil.computeMD5Hash(Channels.newChannel(new ByteArrayInputStream(buffer)));
+      store(new ByteArrayInputStream(buffer), hash, md5Hash, buffer.length);
+    }
+  }
+
+  @Override
+  public void store(InputStream data, String hash, byte[] md5Digest, long length)
+    throws Exception {
     if (contains(hash)) return;
 
-    // TODO: this is really bad for big files.
-    // TODO: we should really/ideally be getting the md5 hash as an argument
-
-    byte[] buffer = IOUtils.toByteArray(data);
-
-    byte[] md5Hash = CryptoUtil.computeMD5Hash(new ByteArrayInputStream(buffer));
-
     S3Object s3Object = new S3Object(hash);
-    s3Object.setDataInputStream(new ByteArrayInputStream(buffer));
-    s3Object.setContentLength(buffer.length);
-    s3Object.setMd5Hash(md5Hash);
+    s3Object.setDataInputStream(data);
+    s3Object.setContentLength(length);
+    s3Object.setMd5Hash(md5Digest);
     s3Object.setBucketName(_bucketName);
 
     _s3Service.putObject(_bucketName, s3Object);
@@ -258,22 +236,21 @@ public class S3Adapter extends Adapter
   }
 
   @Override
-  public String store(InputStream data) throws Exception
-  {
-    throw new NotImplementedException();
-    // TODO: cache locally and compute hash
-    //       chech cache for presence
-    //       if not present, then push and update cache
-  }
-
-  @Override
   public InputStream load(String hash)
-      throws Exception
-  {
+    throws Exception {
     if (!contains(hash)) throw new DataNotFoundException(hash);
     return _s3Service.getObject(_bucketName, hash).getDataInputStream();
   }
 
+  @Override
+  public ChannelBuffer loadChannel(String hash) throws Exception {
+    if (!contains(hash)) throw new DataNotFoundException(hash);
+    S3Object s3Object = _s3Service.getObject(_bucketName, hash);
+    int length = new Long(s3Object.getContentLength()).intValue();
+    return new FileChannelBuffer(s3Object.getDataInputStream(), length);
+  }
+
+/*
   @Override
   public ChannelBuffer loadChannel(String hash)
     throws Exception
@@ -286,17 +263,16 @@ public class S3Adapter extends Adapter
     dis.readFully(buffer);
     return new FileChannelBuffer(new ByteArrayInputStream(buffer), new Long(s3Object.getContentLength()).intValue());
   }
+*/
 
   @Override
   public Set<String> describe()
-      throws Exception
-  {
+    throws Exception {
     return Collections.unmodifiableSet(getDescription());
   }
 
   private Set<String> getDescription()
-      throws Exception
-  {
+    throws Exception {
     if (_description != null) {
       return _description;
     }
@@ -308,25 +284,19 @@ public class S3Adapter extends Adapter
         Connection db = null;
         PreparedStatement statement = null;
 
-        try
-        {
+        try {
           db = getReadOnlyDbConnection();
 
           statement = db.prepareStatement("SELECT HASH FROM BLOCK_INDEX");
 
           ResultSet resultSet = statement.executeQuery();
 
-          while (resultSet.next())
-          {
+          while (resultSet.next()) {
             description.add(resultSet.getString("HASH"));
           }
-        }
-        catch (SQLException e)
-        {
+        } catch (SQLException e) {
           e.printStackTrace();
-        }
-        finally
-        {
+        } finally {
           SqlUtil.SafeClose(statement);
           SqlUtil.SafeClose(db);
         }

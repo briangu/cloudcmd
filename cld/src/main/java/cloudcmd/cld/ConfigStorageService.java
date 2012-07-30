@@ -1,4 +1,7 @@
-package cloudcmd.common.config;
+package cloudcmd.cld;
+
+import cloudcmd.common.config.ConfigStorage;
+import cloudcmd.common.config.JsonConfigStorage;
 
 public class ConfigStorageService
 {

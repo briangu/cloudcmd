@@ -1,7 +1,7 @@
 package cloudcmd.cld.commands;
 
 
-import cloudcmd.common.engine.CloudEngineService;
+import cloudcmd.cld.CloudEngineService;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
 import jpbetz.cli.SubCommand;

@@ -1,7 +1,7 @@
 package cloudcmd.cld.commands;
 
 
-import cloudcmd.common.config.ConfigStorageService;
+import cloudcmd.cld.ConfigStorageService;
 import jpbetz.cli.*;
 
 import java.net.URI;

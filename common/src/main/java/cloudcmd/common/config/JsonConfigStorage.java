@@ -15,6 +15,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.channels.Channels;
 import java.util.*;
 
 public class JsonConfigStorage implements ConfigStorage
@@ -145,7 +146,7 @@ public class JsonConfigStorage implements ConfigStorage
     try
     {
       adapter = (Adapter) clazz.newInstance();
-      String adapterIdHash = CryptoUtil.digestToString(CryptoUtil.computeMD5Hash(new ByteArrayInputStream(adapterUri.toASCIIString().getBytes("UTF-8"))));
+      String adapterIdHash = CryptoUtil.digestToString(CryptoUtil.computeMD5Hash(Channels.newChannel(new ByteArrayInputStream(adapterUri.toASCIIString().getBytes("UTF-8")))));
       adapter.init(_configRoot + File.separator + "adapterCaches" + File.separator + adapterIdHash, tier, handlerType, tags, adapterUri);
     }
     catch (Exception e)

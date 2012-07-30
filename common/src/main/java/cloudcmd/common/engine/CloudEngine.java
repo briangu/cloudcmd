@@ -1,6 +1,7 @@
 package cloudcmd.common.engine;
 
 import cloudcmd.common.adapters.Adapter;
+import cloudcmd.common.config.ConfigStorage;
 import org.json.JSONArray;
 
 import java.io.File;
@@ -9,7 +10,7 @@ import java.util.Set;
 
 public interface CloudEngine
 {
-  void init(BlockCache blockCache, ReplicationStrategy replicationStrategy, String opsName) throws Exception;
+  void init(ConfigStorage configService) throws Exception;
 
   void run() throws Exception;
   void shutdown();
@@ -19,9 +20,8 @@ public interface CloudEngine
   void add(File file, Set<String> tags, Adapter adapter);
   void batchAdd(Set<File> file, Set<String> tags, Adapter adapter);
 
-  void push(int minTier, int maxTier, JSONArray selections) throws Exception;
-  void pull(int minTier, int maxTier, boolean retrieveBlocks) throws Exception;
-  void pull(int minTier, int maxTier, boolean retrieveBlocks, JSONArray selections) throws Exception;
+  void sync(int minTier, int maxTier, JSONArray selections) throws Exception;
+
   void fetch(int minTier, int maxTier, JSONArray selections) throws Exception;
   void verify(int minTier, int maxTier, JSONArray selections, boolean deleteOnInvalid) throws Exception;
   void remove(int minTier, int maxTier, JSONArray selections) throws Exception;

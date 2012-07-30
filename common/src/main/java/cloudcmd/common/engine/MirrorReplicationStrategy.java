@@ -2,15 +2,13 @@ package cloudcmd.common.engine;
 
 import cloudcmd.common.FileUtil;
 import cloudcmd.common.adapters.Adapter;
-import ops.MemoryElement;
-import ops.WorkingMemory;
 import org.apache.log4j.Logger;
 
 import java.io.InputStream;
 import java.util.*;
 
 public class MirrorReplicationStrategy implements ReplicationStrategy {
-  Logger log = Logger.getLogger(NCopiesReplicationStrategy.class);
+  Logger log = Logger.getLogger(MirrorReplicationStrategy.class);
 
   private BlockCache _blockCache;
 
@@ -29,7 +27,7 @@ public class MirrorReplicationStrategy implements ReplicationStrategy {
   }
 
   @Override
-  public void push(WorkingMemory wm, Set<Adapter> adapters, String hash) throws Exception {
+  public void push(CloudEngineListener listener, Set<Adapter> adapters, String hash) throws Exception {
 
     Map<String, List<Adapter>> hashProviders = _blockCache.getHashProviders();
 
@@ -66,7 +64,7 @@ public class MirrorReplicationStrategy implements ReplicationStrategy {
             pushedCount++;
             break;
           } catch (Exception e) {
-            wm.make("msg", "body", String.format("failed to push block %s from %s to adapter %s", hash, src.URI.toString(), adapter.URI.toString()));
+            listener.onMessage(String.format("failed to push block %s from %s to adapter %s", hash, src.URI.toString(), adapter.URI.toString()));
             log.error(hash, e);
           } finally {
             FileUtil.SafeClose(is);
@@ -76,22 +74,19 @@ public class MirrorReplicationStrategy implements ReplicationStrategy {
     }
 
     if (pushedCount != adapters.size()) {
-      wm.make("msg", "body", "failed to push block: " + hash);
+      listener.onMessage("failed to push block: " + hash);
     }
   }
 
   @Override
-  public void pull(WorkingMemory wm, Set<Adapter> adapters, String hash) throws Exception {
+  public InputStream load(String hash) throws Exception {
     Map<String, List<Adapter>> hashProviders = _blockCache.getHashProviders();
 
-    if (!hashProviders.containsKey(hash)) {
-      System.err.println();
-      System.err.println(String.format("unexpected: could not find block %s in existing storage!", hash));
-      System.err.println();
-      return;
+    List<Adapter> blockProviders = hashProviders.get(hash);
+    if (blockProviders == null) {
+      return null;
     }
-
-    List<Adapter> blockProviders = new ArrayList<Adapter>(adapters);
+    blockProviders = new ArrayList<Adapter>(blockProviders);
     Collections.shuffle(blockProviders);
     Collections.sort(blockProviders, new Comparator<Adapter>() {
       @Override
@@ -100,33 +95,18 @@ public class MirrorReplicationStrategy implements ReplicationStrategy {
       }
     });
 
-    boolean success = false;
+    InputStream is = null;
 
-    for (Adapter adapter : adapters) {
+    for (Adapter adapter : blockProviders) {
       if (!adapter.IsOnLine()) {
         log.info(String.format("adapter %s is offline, skipping", adapter.URI));
         continue;
       }
 
-      InputStream remoteData = null;
-      try {
-        remoteData = adapter.load(hash);
-        _blockCache.getCacheAdapter().store(remoteData, hash);
-        success = true;
-        break;
-      } catch (Exception e) {
-        wm.make(new MemoryElement("msg", "body", String.format("failed to pull block %s on adapter %s", hash, adapter.URI)));
-        e.printStackTrace();
-        log.error(hash, e);
-      } finally {
-        FileUtil.SafeClose(remoteData);
-      }
+      is = adapter.load(hash);
+      break;
     }
 
-    if (success) {
-      wm.make(new MemoryElement("msg", "body", String.format("successfully pulled block %s", hash)));
-    } else {
-      wm.make(new MemoryElement("msg", "body", String.format("failed to pull block %s", hash)));
-    }
+    return is;
   }
 }

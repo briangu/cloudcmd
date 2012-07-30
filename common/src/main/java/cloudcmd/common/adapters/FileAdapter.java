@@ -4,7 +4,6 @@ import cloudcmd.common.*;
 import org.h2.jdbcx.JdbcConnectionPool;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.*;
 import java.net.URI;
@@ -14,24 +13,17 @@ import java.util.concurrent.ConcurrentHashMap;
 
 //     "file:///tmp/storage?tier=1&tags=image,movie,vacation"
 
-public class FileAdapter extends Adapter {
+public class FileAdapter extends Adapter implements InlineStorable {
   private final static int MIN_FREE_STORAGE_SIZE = 1024 * 1024;
   private final static int LARGE_FILE_CUTOFF = 128 * 1024 * 1024;
 
   String _rootPath;
   JdbcConnectionPool _cp = null;
   volatile Set<String> _description = null;
-  Boolean _isCache = false;
   String _dbDir = null;
   String _dataDir = null;
 
-  public FileAdapter() {
-    this(false);
-  }
-
-  public FileAdapter(Boolean isCache) {
-    _isCache = isCache;
-  }
+  public FileAdapter() {}
 
   @Override
   public void init(String configDir, Integer tier, String type, Set<String> tags, URI config) throws Exception {
@@ -86,7 +78,7 @@ public class FileAdapter extends Adapter {
       st = db.createStatement();
 
       st.execute("DROP TABLE if exists BLOCK_INDEX;");
-      st.execute("CREATE TABLE BLOCK_INDEX ( HASH VARCHAR PRIMARY KEY, RAWMETA VARCHAR );");
+      st.execute("CREATE TABLE BLOCK_INDEX ( HASH VARCHAR PRIMARY KEY );");
 
       db.commit();
     } catch (SQLException e) {
@@ -138,13 +130,12 @@ public class FileAdapter extends Adapter {
 
       db.setAutoCommit(false);
 
-      statement = db.prepareStatement("INSERT INTO BLOCK_INDEX VALUES (?,?)");
+      statement = db.prepareStatement("INSERT INTO BLOCK_INDEX VALUES (?)");
 
       int k = 0;
 
       for (String hash : hashes) {
         statement.setString(1, hash);
-        statement.setString(2, _isCache ? hash.endsWith(".meta") ? StringUtil.loadLine(load(hash)) : null : null);
         statement.addBatch();
 
         if (++k > 1024) {
@@ -157,10 +148,6 @@ public class FileAdapter extends Adapter {
 
       db.commit();
     } catch (SQLException e) {
-      e.printStackTrace();
-    } catch (JSONException e) {
-      e.printStackTrace();
-    } catch (IOException e) {
       e.printStackTrace();
     } catch (Exception e) {
       e.printStackTrace();
@@ -324,9 +311,8 @@ public class FileAdapter extends Adapter {
     try {
       db = getDbConnection();
 
-      statement = db.prepareStatement("INSERT INTO BLOCK_INDEX VALUES (?,?)");
+      statement = db.prepareStatement("INSERT INTO BLOCK_INDEX VALUES (?)");
       statement.setString(1, hash);
-      statement.setString(2, _isCache ? (hash.endsWith(".meta")) ? StringUtil.loadLine(load(hash)) : null : null);
       statement.execute();
 
       getDescription().add(hash);
@@ -381,37 +367,10 @@ public class FileAdapter extends Adapter {
     return _description;
   }
 
-  public List<FileMetaData> describeMeta()
-    throws Exception {
-    List<FileMetaData> description = new ArrayList<FileMetaData>();
-
-    Connection db = null;
-    PreparedStatement statement = null;
-
-    try {
-      db = getReadOnlyDbConnection();
-
-      statement = db.prepareStatement("SELECT * FROM BLOCK_INDEX WHERE RAWMETA IS NOT NULL");
-
-      ResultSet resultSet = statement.executeQuery();
-
-      while (resultSet.next()) {
-        description.add(MetaUtil.loadMeta(resultSet.getString("HASH"), new JSONObject(resultSet.getString("RAWMETA"))));
-      }
-    } catch (SQLException e) {
-      e.printStackTrace();
-    } finally {
-      SqlUtil.SafeClose(statement);
-      SqlUtil.SafeClose(db);
-    }
-
-    return description;
-  }
-
   public Set<String> rebuildHashIndexFromDisk() {
     final Set<String> hashes = new HashSet<String>();
 
-    FileWalker.enumerateFolders(_dataDir, new FileHandler() {
+    FileWalker.enumerateFolders(_dataDir, new FileWalker.FileHandler() {
       @Override
       public boolean skipDir(File file) {
         return false;

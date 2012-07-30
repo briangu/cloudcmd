@@ -2,7 +2,6 @@ package cloudcmd.common.index;
 
 
 import cloudcmd.common.*;
-import cloudcmd.common.config.ConfigStorageService;
 import org.apache.log4j.Logger;
 import org.h2.fulltext.FullTextLucene;
 import org.h2.jdbcx.JdbcConnectionPool;
@@ -41,11 +40,11 @@ public class H2IndexStorage implements IndexStorage {
   }
 
   @Override
-  public void init() throws Exception {
+  public void init(String configRoot) throws Exception {
     Class.forName("org.h2.Driver");
     Class.forName("org.h2.fulltext.FullTextLucene");
 
-    _configRoot = ConfigStorageService.instance().getConfigRoot();
+    _configRoot = configRoot;
 
     _cp = JdbcConnectionPool.create(createConnectionString(), "sa", "sa");
 

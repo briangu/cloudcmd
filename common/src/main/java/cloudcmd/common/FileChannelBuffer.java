@@ -1,14 +1,13 @@
 package cloudcmd.common;
 
-// https://raw.github.com/playframework/play/master/framework/src/play/server/FileChannelBuffer.java.java
+// https://raw.github.com/playframework/play/master/framework/src/play/server/FileChannelBuffer.java
 
 import org.jboss.netty.buffer.*;
 
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.channels.GatheringByteChannel;
-import java.nio.channels.ScatteringByteChannel;
+import java.nio.channels.*;
 
 
 /**
@@ -17,22 +16,29 @@ import java.nio.channels.ScatteringByteChannel;
 public class FileChannelBuffer extends AbstractChannelBuffer implements WrappedChannelBuffer {
 
   private final InputStream is;
+  private final Integer _capacity;
+  private final ReadableByteChannel _channel;
 
   public FileChannelBuffer(File file) {
     if (file == null) {
       throw new NullPointerException("file");
     }
     try {
-      this.is = new FileInputStream(file);
+      FileInputStream fis = new FileInputStream(file);
+      this.is = fis;
       this.writerIndex(new Long(file.length()).intValue());
+      _capacity = null;
+      _channel = fis.getChannel();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
 
-  public FileChannelBuffer(InputStream is, int size) {
+  public FileChannelBuffer(InputStream is, int capacity) {
     this.is = is;
-    this.writerIndex(size);
+    _capacity = capacity;
+    _channel = Channels.newChannel(is);
+    this.writerIndex(capacity);
   }
 
   public InputStream getInputStream() {
@@ -161,8 +167,8 @@ public class FileChannelBuffer extends AbstractChannelBuffer implements WrappedC
 
   public void getBytes(int index, ByteBuffer dst) {
     try {
-      byte[] b = new byte[is.available() - index];
-      is.read(b, index, is.available() - index);
+      byte[] b = new byte[capacity() - index];
+      is.read(b, index, b.length);
       dst.put(b);
     } catch (IOException e) {
       throw new RuntimeException(e);
@@ -178,15 +184,14 @@ public class FileChannelBuffer extends AbstractChannelBuffer implements WrappedC
   }
 
   public ChannelBuffer slice(int index, int length) {
-/*
     ByteBuffer byteBuffer = ByteBuffer.allocate(length);
     try {
-      is.getChannel().read(byteBuffer, index);
+      _channel.read(byteBuffer);
     } catch (IOException e) {
       e.printStackTrace();
     }
     return ChannelBuffers.wrappedBuffer(byteBuffer);
-*/
+/*
     byte[] buff = new byte[length];
     try {
       is.read(buff, index, length);
@@ -194,6 +199,7 @@ public class FileChannelBuffer extends AbstractChannelBuffer implements WrappedC
       e.printStackTrace();
     }
     return ChannelBuffers.wrappedBuffer(buff);
+*/
   }
 
   public byte getByte(int index) {
@@ -230,7 +236,7 @@ public class FileChannelBuffer extends AbstractChannelBuffer implements WrappedC
 
   public int capacity() {
     try {
-      return is.available();
+      return _capacity == null ? is.available() : _capacity;
     } catch (IOException e) {
       throw new RuntimeException(e);
     }

@@ -9,14 +9,12 @@ public interface BlockCache
 {
   Map<String, List<Adapter>> getHashProviders();
 
-  void loadCache(int minTier, int maxTier) throws Exception;
+  Map<String, List<Adapter>> loadCache(int minTier, int maxTier) throws Exception;
 
   void refreshCache(int minTier, int maxTier) throws Exception;
 
   void init() throws Exception;
 
   void shutdown();
-
-  Adapter getCacheAdapter();
 
 }

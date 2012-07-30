@@ -5,6 +5,11 @@ import java.util.Stack;
 
 public class FileWalker
 {
+  public static interface FileHandler
+  {
+    boolean skipDir(File file);
+    void process(File file);
+  }
 
   public static void enumerateFolders(String startFolder, FileHandler handler)
   {

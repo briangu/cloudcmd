@@ -29,8 +29,6 @@ public abstract class Adapter
     return false;
   }
 
-  // TODO: get tier from the URI
-
   public void init(String configDir, Integer tier, String type, Set<String> tags, URI uri) throws Exception
   {
     ConfigDir = configDir;
@@ -64,16 +62,9 @@ public abstract class Adapter
 
   public abstract void store(InputStream data, String hash) throws Exception;
 
-  // store the file and compute the hash at runtime
-  // TODO: remove this function as it's only used for internal use
-  @Deprecated
-  public abstract String store(InputStream data) throws Exception;
-
   public abstract InputStream load(String hash) throws Exception;
 
-  // TODO: this is a total hack until load is converted to use channels uniformally
   public abstract ChannelBuffer loadChannel(String hash) throws Exception;
 
   public abstract Set<String> describe() throws Exception;
-
 }

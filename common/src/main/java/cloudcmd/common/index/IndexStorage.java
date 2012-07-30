@@ -9,7 +9,7 @@ import java.util.Set;
 
 public interface IndexStorage
 {
-  void init() throws Exception;
+  void init(String configRoot) throws Exception;
 
   void purge();
 

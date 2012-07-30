@@ -2,24 +2,16 @@ package cloudcmd.common;
 
 import java.io.*;
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-public class CryptoUtil
-{
-  public static String computeHashAsString(File targetFile)
-  {
-    return digestToString(computeHash(targetFile));
-  }
-
-  public static String computeHashAsString(InputStream is)
-  {
-    return digestToString(computeHash(is));
-  }
-
-  public static String digestToString(byte[] digest)
-  {
+public class CryptoUtil {
+  public static String digestToString(byte[] digest) {
     if (digest == null) return null;
     BigInteger bigInt = new BigInteger(1, digest);
     String hash = bigInt.toString(16);
@@ -27,169 +19,90 @@ public class CryptoUtil
     return hash;
   }
 
-  public static byte[] computeHash(File targetFile)
-  {
-    byte[] digest = null;
-
-    FileInputStream fis = null;
-    DigestInputStream dis = null;
-    final int buff = 1024 * 1024;
-    try
-    {
-      fis = new FileInputStream(targetFile);
-      MessageDigest hash = MessageDigest.getInstance("SHA-256");
-      dis = new DigestInputStream(fis, hash);
-      byte[] buffer = new byte[buff];
-      while (dis.read(buffer) != -1) {}
-      digest = hash.digest();
-    }
-    catch (FileNotFoundException e)
-    {
-      e.printStackTrace();
-    }
-    catch (NoSuchAlgorithmException e)
-    {
-      e.printStackTrace();
-    }
-    catch (IOException e)
-    {
-      e.printStackTrace();
-    }
-    finally
-    {
-      if (dis != null)
-      {
-        try
-        {
-          dis.close();
-        }
-        catch (IOException e)
-        {
-          e.printStackTrace();
-        }
-      }
-      if (fis != null)
-      {
-        try
-        {
-          fis.close();
-        }
-        catch (IOException e)
-        {
-          e.printStackTrace();
-        }
-      }
-    }
-
-    return digest;
+  public static String computeHashAsString(File targetFile) throws IOException {
+    return digestToString(computeHash(targetFile));
   }
 
-  public static byte[] writeAndComputeHash(InputStream srcData, File destFile)
-  {
-    FileOutputStream fos = null;
+  public static byte[] computeHash(File targetFile) throws IOException {
+    FileInputStream fis = null;
+    try {
+      return computeDigest(Channels.newChannel(fis = new FileInputStream(targetFile)), "SHA-256");
+    } catch (NoSuchAlgorithmException e) {
+      throw new RuntimeException("SHA-256 is not supported");
+    } finally {
+      FileUtil.SafeClose(fis);
+    }
+  }
 
-    try
-    {
+  public static byte[] computeMD5Hash(File targetFile) throws IOException {
+    FileInputStream fis = null;
+    try {
+      return computeDigest(Channels.newChannel(fis = new FileInputStream(targetFile)), "MD5");
+    } catch (NoSuchAlgorithmException e) {
+      throw new RuntimeException("SHA-256 is not supported");
+    } finally {
+      FileUtil.SafeClose(fis);
+    }
+  }
+
+  public static byte[] writeAndComputeHash(InputStream srcData, File destFile) throws IOException {
+    FileOutputStream fos = null;
+    try {
       return writeAndComputeHash(srcData, fos = new FileOutputStream(destFile));
-    }
-    catch (FileNotFoundException e)
-    {
-      e.printStackTrace();
-    }
-    catch (IOException e)
-    {
-      e.printStackTrace();
-    }
-    finally
-    {
+    } finally {
       FileUtil.SafeClose(fos);
     }
-
-    return null;
   }
 
-  public static byte[] writeAndComputeHash(InputStream is, OutputStream os)
-  {
-    byte[] digest = null;
-
-    DigestInputStream dis = null;
-
-    final int buff = 1024 * 1024;
-    try
-    {
-      MessageDigest hash = MessageDigest.getInstance("SHA-256");
-      dis = new DigestInputStream(is, hash);
-      byte[] buffer = new byte[buff];
-      int read;
-      while ((read = dis.read(buffer)) != -1) {
-        os.write(buffer, 0, read);
-      }
-      digest = hash.digest();
+  public static byte[] writeAndComputeHash(InputStream is, OutputStream os) throws IOException {
+    try {
+      return writeAndComputeHash(Channels.newChannel(is), Channels.newChannel(os), "SHA-256");
+    } catch (NoSuchAlgorithmException e) {
+      throw new RuntimeException("SHA-256 is not supported");
     }
-    catch (NoSuchAlgorithmException e)
-    {
-      e.printStackTrace();
-    }
-    catch (IOException e)
-    {
-      e.printStackTrace();
-    }
-    finally
-    {
-      FileUtil.SafeClose(dis);
-      FileUtil.SafeClose(os);
-    }
-
-    return digest;
   }
 
-  public static byte[] computeHash(InputStream is)
-  {
-    byte[] digest = null;
-
-    int buff = 1024*1024;
-    try
-    {
-      MessageDigest hash = MessageDigest.getInstance("SHA-256");
-
-      byte[] buffer = new byte[buff];
-      long read = 0;
-      long offset = is.available();
-      int unitsize;
-
-      while (read < offset)
-      {
-        unitsize = (int) (((offset - read) >= buff) ? buff : (offset - read));
-        is.read(buffer, 0, unitsize);
-        hash.update(buffer, 0, unitsize);
-        read += unitsize;
-      }
-
-      digest = hash.digest();
+  public static byte[] writeAndComputeHash(ReadableByteChannel in, WritableByteChannel out, String digestId) throws IOException, NoSuchAlgorithmException {
+    MessageDigest md = MessageDigest.getInstance(digestId);
+    ByteBuffer buff = ByteBuffer.allocate(1024 * 1024);
+    while (in.read(buff) != -1) {
+      buff.flip();
+      md.update(buff);
+      out.write(buff);
+      buff.clear();
     }
-    catch (FileNotFoundException e)
-    {
-      e.printStackTrace();
-    }
-    catch (NoSuchAlgorithmException e)
-    {
-      e.printStackTrace();
-    }
-    catch (IOException e)
-    {
-      e.printStackTrace();
-    }
-
-    return digest;
+    return md.digest();
   }
 
-  public static byte[] computeMD5Hash(InputStream is) throws NoSuchAlgorithmException, IOException {
-    MessageDigest messageDigest = MessageDigest.getInstance("MD5");
-    byte[] buffer = new byte[1024*1024];
-    int bytesRead;
-    while ((bytesRead = is.read(buffer, 0, buffer.length)) != -1) {
-      messageDigest.update(buffer, 0, bytesRead);
+  public static String computeHashAsString(InputStream is) throws IOException {
+    return digestToString(computeHash(is));
+  }
+
+  public static byte[] computeHash(InputStream is) throws IOException {
+    try {
+      return computeDigest(Channels.newChannel(is), "SHA-256");
+    } catch (NoSuchAlgorithmException e) {
+      throw new RuntimeException("SHA-256 is not supported");
     }
-    return messageDigest.digest();
+  }
+
+  // http://stackoverflow.com/questions/9321912/very-slow-when-generaing-md5-using-java-with-large-file
+  public static byte[] computeMD5Hash(ReadableByteChannel channel) throws IOException {
+    try {
+      return computeDigest(channel, "MD5");
+    } catch (NoSuchAlgorithmException e) {
+      throw new RuntimeException("MD5 is not supported");
+    }
+  }
+
+  private static byte[] computeDigest(ReadableByteChannel channel, String digestId) throws IOException, NoSuchAlgorithmException {
+    MessageDigest md = MessageDigest.getInstance(digestId);
+    ByteBuffer buff = ByteBuffer.allocate(1024 * 1024);
+    while (channel.read(buff) != -1) {
+      buff.flip();
+      md.update(buff);
+      buff.clear();
+    }
+    return md.digest();
   }
 }
