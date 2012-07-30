@@ -2,6 +2,7 @@ package cloudcmd.common.engine;
 
 import cloudcmd.common.adapters.Adapter;
 import cloudcmd.common.config.ConfigStorage;
+import cloudcmd.common.index.IndexStorage;
 import org.json.JSONArray;
 
 import java.io.File;
@@ -10,7 +11,7 @@ import java.util.Set;
 
 public interface CloudEngine
 {
-  void init(ConfigStorage configService) throws Exception;
+  void init(ConfigStorage configService, IndexStorage indexStorage) throws Exception;
 
   void run() throws Exception;
   void shutdown();

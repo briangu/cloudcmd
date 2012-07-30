@@ -5,7 +5,7 @@ import org.json.{JSONArray, JSONObject}
 import adapters.{MD5Storable, InlineStorable, Adapter}
 import java.io.{InputStream, FileInputStream, ByteArrayInputStream, File}
 import org.apache.log4j.Logger
-import cloudcmd.common.index.IndexStorageService
+import index.IndexStorage
 import config.ConfigStorage
 import collection.mutable
 import scala.util.Random
@@ -18,9 +18,10 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
   var _replicationStrategy: ReplicationStrategy = null
   var _blockCache: BlockCache = null
   var _configService: ConfigStorage = null
+  var _indexStorage: IndexStorage = null
   var _listeners : List[CloudEngineListener] = List()
 
-  def init(configService: ConfigStorage) {
+  def init(configService: ConfigStorage, indexStorage: IndexStorage) {
     _configService = configService
     _blockCache = _configService.getBlockCache
     _replicationStrategy = _configService.getReplicationStrategy
@@ -113,7 +114,7 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
         }
     }
 
-    IndexStorageService.instance().addAll(metaSet.toList)
+    _indexStorage.addAll(metaSet.toList)
   }
 
   def sync(minTier: Int, maxTier: Int, selections: JSONArray) {
@@ -161,7 +162,7 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
   def reindex {
     import collection.JavaConversions._
 
-    IndexStorageService.instance.purge
+    _indexStorage.purge
 
     val fmds = _blockCache.getHashProviders.keySet().par.filter(_.endsWith(".meta")).par.flatMap {
       hash =>
@@ -175,8 +176,8 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
         }
     }.toList
 
-    IndexStorageService.instance.addAll(fmds)
-    IndexStorageService.instance.pruneHistory(fmds)
+    _indexStorage.addAll(fmds)
+    _indexStorage.pruneHistory(fmds)
   }
 
   def fetch(minTier: Int, maxTier: Int, selections: JSONArray) {
@@ -277,8 +278,8 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
 
     import collection.JavaConversions._
 
-    IndexStorageService.instance.addAll(fmds)
-    IndexStorageService.instance.pruneHistory(fmds)
+    _indexStorage.addAll(fmds)
+    _indexStorage.pruneHistory(fmds)
 
     MetaUtil.toJsonArray(fmds)
   }
@@ -354,7 +355,7 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
         indexMeta.put("data", meta)
 
         // TODO: we should only do this if we are sure the rest happened correctly (although at worst we could reindex)
-        IndexStorageService.instance.remove(MetaUtil.loadMeta(indexMeta))
+        _indexStorage.remove(MetaUtil.loadMeta(indexMeta))
     }
   }
 

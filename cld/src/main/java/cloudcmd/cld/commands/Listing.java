@@ -1,7 +1,7 @@
 package cloudcmd.cld.commands;
 
 
-import cloudcmd.common.index.IndexStorageService;
+import cloudcmd.cld.IndexStorageService;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
 import jpbetz.cli.SubCommand;

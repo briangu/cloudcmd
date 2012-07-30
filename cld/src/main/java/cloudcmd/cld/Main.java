@@ -2,8 +2,6 @@ package cloudcmd.cld;
 
 import cloudcmd.cld.commands.*;
 import cloudcmd.common.FileUtil;
-import cloudcmd.cld.ConfigStorageService;
-import cloudcmd.common.index.IndexStorageService;
 import jpbetz.cli.CommandSet;
 
 import java.io.File;
@@ -25,7 +23,7 @@ public class Main
     {
       ConfigStorageService.instance().init(configRoot);
       IndexStorageService.instance().init(configRoot);
-      CloudEngineService.instance().init(ConfigStorageService.instance());
+      CloudEngineService.instance().init(ConfigStorageService.instance(), IndexStorageService.instance());
 
       CommandSet app = new CommandSet("cld");
       app.addSubCommands(Adapter.class);

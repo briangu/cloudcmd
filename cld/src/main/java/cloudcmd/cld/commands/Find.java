@@ -3,7 +3,7 @@ package cloudcmd.cld.commands;
 
 import cloudcmd.common.MetaUtil;
 import cloudcmd.common.StringUtil;
-import cloudcmd.common.index.IndexStorageService;
+import cloudcmd.cld.IndexStorageService;
 import jpbetz.cli.*;
 import org.json.JSONArray;
 import org.json.JSONObject;

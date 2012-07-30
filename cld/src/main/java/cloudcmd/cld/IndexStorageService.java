@@ -1,4 +1,7 @@
-package cloudcmd.common.index;
+package cloudcmd.cld;
+
+import cloudcmd.common.index.H2IndexStorage;
+import cloudcmd.common.index.IndexStorage;
 
 public class IndexStorageService
 {
