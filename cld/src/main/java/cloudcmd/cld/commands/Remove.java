@@ -2,6 +2,7 @@ package cloudcmd.cld.commands;
 
 
 import cloudcmd.cld.CloudEngineService;
+import cloudcmd.cld.ConfigStorageService;
 import cloudcmd.common.JsonUtil;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
@@ -22,6 +23,7 @@ public class Remove implements Command
   public void exec(CommandContext commandLine) throws Exception
   {
     JSONArray selections = JsonUtil.loadJsonArray(System.in);
-    CloudEngineService.instance().remove(_minTier.intValue(), _maxTier.intValue(), selections);
+    ConfigStorageService.instance().filterAdapters(_minTier.intValue(), _maxTier.intValue());
+    CloudEngineService.instance().remove(selections);
   }
 }

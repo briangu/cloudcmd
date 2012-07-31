@@ -17,14 +17,12 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
 
   var _opsThread: Thread = null
   var _replicationStrategy: ReplicationStrategy = null
-  var _blockCache: BlockCache = null
   var _configService: ConfigStorage = null
   var _indexStorage: IndexStorage = null
   var _listeners : List[CloudEngineListener] = List()
 
   def init(configService: ConfigStorage, indexStorage: IndexStorage) {
     _configService = configService
-    _blockCache = _configService.getBlockCache
     _replicationStrategy = _configService.getReplicationStrategy
   }
 
@@ -39,30 +37,27 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
     _listeners.foreach(_.onMessage(msg))
   }
 
-  private def available(p: Adapter, minTier: Int, maxTier: Int) = (p.IsOnLine && p.Tier >= minTier && p.Tier <= maxTier)
-
-  def refreshAdapterCaches(minTier: Int, maxTier: Int) {
+  def refreshAdapterCaches() {
     import scala.collection.JavaConversions._
-    _configService.getAdapters.filter(available(_, minTier, maxTier)).par.foreach(_.refreshCache())
+    _configService.getAdapters.par.foreach(_.refreshCache())
   }
 
-  def getMetaHashSet(minTier: Int, maxTier: Int) : Set[String] = {
+  def getMetaHashSet() : Set[String] = {
     import scala.collection.JavaConversions._
-    val adapters = _configService.getAdapters.filter(available(_, minTier, maxTier))
-    Set() ++ adapters.flatMap(p => p.describe.toSet).par.filter(hash => hash.endsWith(".meta"))
+    Set() ++ _configService.getAdapters.flatMap(p => p.describe.toSet).par.filter(hash => hash.endsWith(".meta"))
   }
 
-  def getHashProviders(minTier: Int, maxTier: Int): Map[String, List[Adapter]] = {
+  def getHashProviders(): Map[String, List[Adapter]] = {
     import scala.collection.JavaConversions._
-    val adapters = _configService.getAdapters.filter(available(_, minTier, maxTier))
+    val adapters = _configService.getAdapters
     Map() ++ adapters.flatMap(p => p.describe.toSet).par.flatMap {
       hash => Map(hash -> adapters.filter(_.describe().contains(hash)).toList)
     }
   }
 
-  def getHashAdapters(minTier: Int, maxTier: Int, hash: String) : List[Adapter] = {
+  def getHashProviders(hash: String) : List[Adapter] = {
     import scala.collection.JavaConversions._
-    _configService.getAdapters.filter(available(_, minTier, maxTier)).filter(_.describe().contains(hash)).toList
+    _configService.getAdapters.par.filter(_.describe().contains(hash)).toList
   }
 
   def add(file: File, tags: java.util.Set[String], adapter: Adapter) {
@@ -93,7 +88,7 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
               null
             }
             if (!FileTypeUtil.instance().skipExt(ext)) {
-              val fileTags: Set[String] = if (ext == null) {
+              val fileTags = if (ext == null) {
                 tags.toSet
               } else {
                 val fileType = FileTypeUtil.instance().getTypeFromExtension(ext)
@@ -142,17 +137,11 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
     _indexStorage.addAll(metaSet.toList)
   }
 
-  def sync(minTier: Int, maxTier: Int, selections: JSONArray) {
-
+  def sync(selections: JSONArray) {
     import collection.JavaConversions._
 
-    val destAdapters = _configService.getAdapters.filter {
-      adapter => adapter.Tier >= minTier && adapter.Tier <= maxTier
-    }.toSet
-
+    val destAdapters = _configService.getAdapters.toSet
     if (destAdapters.size == 1) return
-
-    val hashProviders = _blockCache.loadCache(minTier, maxTier)
 
     val pushSet = (0 until selections.length).par.flatMap {
       i =>
@@ -161,7 +150,8 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
           val blocks = selections.getJSONObject(i).getJSONObject("data").getJSONArray("blocks")
           val allHashes = Set(hash) ++ (0 until blocks.length).flatMap(idx => Set(blocks.getString(idx)))
           allHashes.flatMap{ h =>
-            if (hashProviders.containsKey(hash)) {
+            val providers = getHashProviders(hash)
+            if (providers.size > 0) {
               if (_replicationStrategy.isReplicated(destAdapters, h)) {
                 Nil
               } else {
@@ -180,7 +170,7 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
     }
 
     pushSet.par.foreach {
-      hash => _replicationStrategy.push(this, destAdapters, hash)
+      hash => _replicationStrategy.push(this, destAdapters, hash, getHashProviders(hash))
     }
   }
 
@@ -189,10 +179,10 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
 
     _indexStorage.purge
 
-    val fmds = _blockCache.getHashProviders.keySet.par.filter(_.endsWith(".meta")).par.flatMap {
+    val fmds = getMetaHashSet().par.flatMap {
       hash =>
         try {
-          List(MetaUtil.loadMeta(hash, JsonUtil.loadJson(_replicationStrategy.load(hash))))
+          List(MetaUtil.loadMeta(hash, JsonUtil.loadJson(_replicationStrategy.load(hash, getHashProviders(hash)))))
         } catch {
           case e: Exception => {
             log.error(hash, e)
@@ -205,26 +195,23 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
     _indexStorage.pruneHistory(fmds)
   }
 
-  def fetch(minTier: Int, maxTier: Int, selections: JSONArray) {
-    _blockCache.loadCache(minTier, maxTier)
-    (0 until selections.length).par.foreach(i => fetch(minTier, maxTier, MetaUtil.loadMeta(selections.getJSONObject(i))))
+  def fetch(selections: JSONArray) {
+    (0 until selections.length).par.foreach(i => fetch(MetaUtil.loadMeta(selections.getJSONObject(i))))
   }
 
-  def fetch(minTier: Int, maxTier: Int, meta: FileMetaData) {
-    val hashProviders = _blockCache.getHashProviders()
+  def fetch(meta: FileMetaData) {
+    val hashProviders = getHashProviders()
     val blockHashes = (0 until meta.getBlockHashes().length()).map(meta.getBlockHashes().getString)
 
     val hashAdapterMap: Map[String, List[Adapter]] = blockHashes.flatMap {
       hash =>
         if (hashProviders.contains(hash)) {
-          val blockProviders = hashProviders.get(hash).get.filter {
-            a => a.Tier >= minTier && a.Tier <= maxTier
-          }.toList
-          if (blockProviders.size == 0) {
+          val blockProviders = hashProviders.get(hash).get
+          if (blockProviders.size > 0) {
+            Map(hash -> Random.shuffle(blockProviders).sortWith(_.Tier < _.Tier))
+          } else {
             onMessage(String.format("could not find block %s in existing storage! no adapters in specified tier range", hash))
             Nil
-          } else {
-            Map(hash -> Random.shuffle(blockProviders).sortWith(_.Tier < _.Tier))
           }
         } else {
           onMessage(String.format("could not find block %s in existing storage!", hash))
@@ -275,7 +262,7 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
   }
 
   def addTags(selections: JSONArray, tags: java.util.Set[String]): JSONArray = {
-    val hashProviders = _blockCache.getHashProviders
+    val hashProviders = getHashProviders
 
     val fmds = (0 until selections.length).par.flatMap {
       i =>
@@ -283,7 +270,6 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
         val data = selections.getJSONObject(i).getJSONObject("data")
         val oldMeta = FileMetaData.create(hash, data)
 
-        import collection.JavaConversions._
         val newTags = MetaUtil.applyTags(oldMeta.getTags, tags)
         if (newTags.equals(oldMeta.getTags)) {
           Nil
@@ -308,10 +294,10 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
     MetaUtil.toJsonArray(fmds)
   }
 
-  private def verify(minTier: Int, maxTier: Int, deleteOnInvalid: Boolean, hashes: Set[String]) {
+  private def verify(deleteOnInvalid: Boolean, hashes: Set[String]) {
     hashes.par.foreach {
       hash =>
-        _blockCache.getHashProviders.get(hash).get.par.foreach {
+        getHashProviders(hash).par.foreach {
           adapter =>
             try {
               val isValid = adapter.verify(hash)
@@ -346,30 +332,25 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
     }
   }
 
-  def verify(minTier: Int, maxTier: Int, selections: JSONArray, deleteOnInvalid: Boolean) {
-    _blockCache.loadCache(minTier, maxTier)
+  def verify(selections: JSONArray, deleteOnInvalid: Boolean) {
     val hashes = (0 until selections.length).map {
       i => selections.getJSONObject(i).getString("hash")
     }
-    verify(minTier, maxTier, deleteOnInvalid, hashes.toSet)
+    verify(deleteOnInvalid, hashes.toSet)
   }
 
-  def remove(minTier: Int, maxTier: Int, selections: JSONArray) {
-    _blockCache.loadCache(minTier, maxTier)
-
-    val hashProviders = _blockCache.getHashProviders
-
+  def remove(selections: JSONArray) {
     (0 until selections.length).par.foreach {
       i =>
         val hash = selections.getJSONObject(i).getString("hash")
-        val meta = JsonUtil.loadJson(_replicationStrategy.load(hash))
+        val meta = JsonUtil.loadJson(_replicationStrategy.load(hash, getHashProviders(hash)))
 
-        removeBlock(hashProviders, hash)
+        removeBlock(hash)
 
         if (false) {
           // TODO: only delete if there are no other files referencing these blocks
           val blocks = meta.getJSONArray("blocks")
-          (0 until blocks.length).foreach(j => removeBlock(hashProviders, blocks.getString(j)))
+          (0 until blocks.length).foreach(j => removeBlock(blocks.getString(j)))
         }
 
         val indexMeta = new JSONObject
@@ -381,24 +362,21 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
     }
   }
 
-  private def removeBlock(hashProviders: Map[String, List[Adapter]], hash: String) {
-    Option(hashProviders.get(hash).get).foreach {
-      adapters =>
-        adapters.par.foreach {
-          adapter =>
-            try {
-              val deleteSuccess = adapter.remove(hash)
-              if (deleteSuccess) {
-                onMessage(String.format("successfully deleted block %s found on adapter %s", hash, adapter.URI))
-              } else {
-                onMessage(String.format("failed to delete block %s found on adapter %s", hash, adapter.URI))
-              }
-            } catch {
-              case e: Exception => {
-                onMessage(String.format("failed to delete block %s on adapter %s", hash, adapter.URI))
-                log.error(hash, e)
-              }
-            }
+  private def removeBlock(hash: String) {
+    getHashProviders(hash).par.foreach {
+      adapter =>
+        try {
+          val deleteSuccess = adapter.remove(hash)
+          if (deleteSuccess) {
+            onMessage(String.format("successfully deleted block %s found on adapter %s", hash, adapter.URI))
+          } else {
+            onMessage(String.format("failed to delete block %s found on adapter %s", hash, adapter.URI))
+          }
+        } catch {
+          case e: Exception => {
+            onMessage(String.format("failed to delete block %s on adapter %s", hash, adapter.URI))
+            log.error(hash, e)
+          }
         }
     }
   }

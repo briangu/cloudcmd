@@ -27,7 +27,8 @@ public class JsonConfigStorage implements ConfigStorage {
   private boolean _isDebug = false;
   private int _defaultTier;
 
-  private List<Adapter> _adapters;
+  private List<Adapter> _allAdapters;
+  private List<Adapter> _filteredAdapters;
   private Map<String, String> _adapterHandlers;
 
   private BlockCache _blockCache;
@@ -157,15 +158,16 @@ public class JsonConfigStorage implements ConfigStorage {
     _configRoot = configRoot;
     _config = loadConfig(configRoot);
     _adapterHandlers = loadAdapterHandlers(_config);
-    _adapters = loadAdapters(_config);
+    _allAdapters = loadAdapters(_config);
+    _filteredAdapters = _allAdapters;
     _isDebug = loadDebug(_config);
   }
 
   @Override
   public void shutdown() {
-    if (_adapters == null) return;
+    if (_allAdapters == null) return;
 
-    for (Adapter adapter : _adapters) {
+    for (Adapter adapter : _allAdapters) {
       try {
         adapter.shutdown();
       } catch (Exception e) {
@@ -223,7 +225,7 @@ public class JsonConfigStorage implements ConfigStorage {
 
     JSONArray adapters = new JSONArray();
 
-    for (Adapter adapter : _adapters) {
+    for (Adapter adapter : _allAdapters) {
       adapters.put(adapter.URI().toString());
     }
 
@@ -270,14 +272,29 @@ public class JsonConfigStorage implements ConfigStorage {
 
   @Override
   public List<Adapter> getAdapters() {
-    return Collections.unmodifiableList(_adapters);
+    return Collections.unmodifiableList(_filteredAdapters);
+  }
+
+  @Override
+  public void filterAdapters(Integer minTier, Integer maxTier) {
+    _filteredAdapters = new ArrayList<Adapter>();
+    for (Adapter adapter : _allAdapters) {
+      if (!adapter.IsFull() && adapter.IsOnLine() && (adapter.Tier() >= minTier && adapter.Tier() <= maxTier)) {
+        _filteredAdapters.add(adapter);
+      }
+    }
+  }
+
+  @Override
+  public List<Adapter> getAllAdapters() {
+    return Collections.unmodifiableList(_allAdapters);
   }
 
   @Override
   public void addAdapter(URI adapterUri) {
     try {
       Adapter adapter = loadAdapter(adapterUri);
-      _adapters.add(adapter);
+      _allAdapters.add(adapter);
     } catch (ClassNotFoundException e) {
       e.printStackTrace();
     }

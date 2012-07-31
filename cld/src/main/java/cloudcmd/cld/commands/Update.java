@@ -28,7 +28,8 @@ public class Update implements Command
   {
     if (_uri == null) {
       System.err.println("updating all adapters");
-      ConfigStorageService.instance().getBlockCache().refreshCache(_minTier.intValue(), _maxTier.intValue());
+      ConfigStorageService.instance().filterAdapters(_minTier.intValue(), _maxTier.intValue());
+      CloudEngineService.instance().refreshAdapterCaches();
     } else {
       URI adapterURI = new URI(_uri);
       for (cloudcmd.common.adapters.Adapter adapter : ConfigStorageService.instance().getAdapters()) {

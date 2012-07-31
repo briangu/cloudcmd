@@ -7,7 +7,7 @@ import java.io.InputStream
 import util.Random
 import java.util.concurrent.atomic.AtomicInteger
 
-class MirrorReplicationStrategy(blockCache: BlockCache) extends ReplicationStrategy {
+class MirrorReplicationStrategy extends ReplicationStrategy {
 
   private[engine] var log: Logger = Logger.getLogger(classOf[MirrorReplicationStrategy])
 
@@ -15,15 +15,7 @@ class MirrorReplicationStrategy(blockCache: BlockCache) extends ReplicationStrat
     adapters.filterNot(_.describe.contains(hash)).size > 0
   }
 
-  def push(listener: CloudEngineListener, adapters: Set[Adapter], hash: String) {
-    val hashProviders = blockCache.getHashProviders
-    if (!hashProviders.contains(hash)) {
-      listener.onMessage(String.format("push_block: could not find block %s in existing storage!", hash))
-      return
-    }
-
-    val adapters = Random.shuffle(hashProviders.get(hash).get.filter(_.IsOnLine())).sortBy(x => x.Tier)
-
+  def push(listener: CloudEngineListener, adapters: Set[Adapter], hash: String, hashProviders: List[Adapter]) {
     val pushedCount = new AtomicInteger
 
     adapters.par.foreach{ adapter =>
@@ -32,7 +24,7 @@ class MirrorReplicationStrategy(blockCache: BlockCache) extends ReplicationStrat
       } else {
         var is: InputStream = null
         try {
-          is = load(hash)
+          is = load(hash, hashProviders)
           if (is != null) {
             adapter.store(is, hash)
             pushedCount.incrementAndGet()
@@ -58,10 +50,9 @@ class MirrorReplicationStrategy(blockCache: BlockCache) extends ReplicationStrat
   }
 
   // TODO: this should provide an iterator over a list of streams that we can interrupt once we succeed
-  def load(hash: String): InputStream = {
-    val hashProviders = blockCache.getHashProviders
+  def load(hash: String, hashProviders: List[Adapter]): InputStream = {
     if (hashProviders.contains(hash)) {
-      val adapters = Random.shuffle(hashProviders.get(hash).get.filter(_.IsOnLine())).sortBy(x => x.Tier)
+      val adapters = Random.shuffle(hashProviders).sortBy(x => x.Tier)
       if (adapters.size > 0) {
         adapters(0).load(hash)
       } else {

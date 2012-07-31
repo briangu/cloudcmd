@@ -2,6 +2,7 @@ package cloudcmd.cld.commands;
 
 
 import cloudcmd.cld.CloudEngineService;
+import cloudcmd.cld.ConfigStorageService;
 import cloudcmd.common.FileUtil;
 import cloudcmd.common.JsonUtil;
 import cloudcmd.cld.IndexStorageService;
@@ -76,7 +77,8 @@ public class Get implements Command
 
     if (!_dryrun)
     {
-      CloudEngineService.instance().fetch(_minTier.intValue(), _maxTier.intValue(), selections);
+      ConfigStorageService.instance().filterAdapters(_minTier.intValue(), _maxTier.intValue());
+      CloudEngineService.instance().fetch(selections);
     }
     else
     {

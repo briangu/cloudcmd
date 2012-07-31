@@ -21,7 +21,11 @@ public interface ConfigStorage
 
   Integer getPropertyAsInt(String key);
 
+  List<Adapter> getAllAdapters();
+
   List<Adapter> getAdapters();
+
+  void filterAdapters(Integer minTier, Integer maxTier);
 
   void addAdapter(URI adapterUri);
 

@@ -19,15 +19,20 @@ trait CloudEngine {
 
   def batchAdd(file: java.util.Set[File], tags: java.util.Set[String], adapter: Adapter)
 
-  def sync(minTier: Int, maxTier: Int, selections: JSONArray)
+  def sync(selections: JSONArray)
 
-  def fetch(minTier: Int, maxTier: Int, selections: JSONArray)
+  def fetch(selections: JSONArray)
 
-  def verify(minTier: Int, maxTier: Int, selections: JSONArray, deleteOnInvalid: Boolean)
+  def verify(selections: JSONArray, deleteOnInvalid: Boolean)
 
-  def remove(minTier: Int, maxTier: Int, selections: JSONArray)
+  def remove(selections: JSONArray)
 
   def addTags(selections: JSONArray, tags: java.util.Set[String]): JSONArray
 
   def registerListener(listener: CloudEngineListener)
+
+  def getHashProviders(): Map[String, List[Adapter]]
+  def getHashProviders(hash: String) : List[Adapter]
+  def getMetaHashSet() : Set[String]
+  def refreshAdapterCaches()
 }

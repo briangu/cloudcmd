@@ -17,16 +17,6 @@ import java.nio.channels.Channels
 
 //     "s3://<aws id>@<bucket>?tier=2&tags=s3&secret=<aws secret>"
 
-object S3Adapter {
-  def parseAwsInfo(adapterUri: URI): (String, String, String) = {
-    val parts = adapterUri.getAuthority.split("@")
-    if (parts.length != 2) throw new IllegalArgumentException("authority format: awsKey@bucketname")
-    val queryParams = UriUtil.parseQueryString(adapterUri)
-    if (!queryParams.containsKey("secret")) throw new IllegalArgumentException("missing aws secret")
-    (parts(0), queryParams.get("secret"), parts(1))
-  }
-}
-
 class S3Adapter extends Adapter with MD5Storable {
 
   private var _bucketName: String = null
@@ -35,13 +25,21 @@ class S3Adapter extends Adapter with MD5Storable {
   override
   def init(configDir: String, tier: Int, adapterType: String, tags: Set[String], uri: URI) {
     super.init(configDir, tier, adapterType, tags, uri)
-    val (awsKey, awsSecret, awsBucketName) = S3Adapter.parseAwsInfo(uri)
+    val (awsKey, awsSecret, awsBucketName) = parseAwsInfo(uri)
     val creds = new AWSCredentials(awsKey, awsSecret)
     _s3Service = new RestS3Service(creds)
     _bucketName = awsBucketName
     if () {
       bootstrap
     }
+  }
+
+  def parseAwsInfo(adapterUri: URI): (String, String, String) = {
+    val parts = adapterUri.getAuthority.split("@")
+    if (parts.length != 2) throw new IllegalArgumentException("authority format: awsKey@bucketname")
+    val queryParams = UriUtil.parseQueryString(adapterUri)
+    if (!queryParams.containsKey("secret")) throw new IllegalArgumentException("missing aws secret")
+    (parts(0), queryParams.get("secret"), parts(1))
   }
 
   private def bootstrap {

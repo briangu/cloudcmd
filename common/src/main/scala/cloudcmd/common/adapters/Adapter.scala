@@ -16,11 +16,12 @@ trait Adapter {
   def IsOnLine(): Boolean = true
   def IsFull(): Boolean = true
 
-  def init(configDir: String, tier: Int, `type`: String, tags: Set[String], uri: URI) {
+  def init(configDir: String, tier: Int, adapterType: String, tags: java.util.Set[String], uri: URI) {
+    import scala.collection.JavaConversions._
     ConfigDir = configDir
     Tier = tier
-    Type = `type`
-    Tags = tags
+    Type = adapterType
+    Tags = tags.toSet
     URI = uri
   }
 
