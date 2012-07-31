@@ -1,7 +1,7 @@
 package cloudcmd.cld.commands;
 
 
-import cloudcmd.cld.CloudEngineService;
+import cloudcmd.cld.IndexStorageService;
 import cloudcmd.common.JsonUtil;
 import cloudcmd.common.MetaUtil;
 import jpbetz.cli.*;
@@ -48,7 +48,7 @@ public class Tag implements Command
         preparedTags = removeTags;
       }
 
-      JSONArray newMeta = CloudEngineService.instance().addTags(selections, preparedTags);
+      JSONArray newMeta = IndexStorageService.instance().addTags(selections, preparedTags);
       System.out.println(newMeta.toString());
     }
     finally

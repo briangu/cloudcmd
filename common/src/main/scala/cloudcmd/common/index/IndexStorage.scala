@@ -5,9 +5,10 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.util.List
 import java.io.File
+import cloudcmd.common.engine.CloudEngine
 
 trait IndexStorage {
-  def init(configRoot: String)
+  def init(configRoot: String, cloudEngine: CloudEngine)
 
   def purge
 

@@ -2,9 +2,8 @@ package cloudcmd.cld.commands;
 
 
 import cloudcmd.cld.CloudEngineService;
-import cloudcmd.cld.ConfigStorageService;
-import cloudcmd.common.JsonUtil;
 import cloudcmd.cld.IndexStorageService;
+import cloudcmd.common.JsonUtil;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
 import jpbetz.cli.Opt;
@@ -31,7 +30,7 @@ public class Verify implements Command
   public void exec(CommandContext commandLine) throws Exception
   {
     JSONArray selections = _verifyAll ? IndexStorageService.instance().find(new JSONObject()) : JsonUtil.loadJsonArray(System.in);
-    ConfigStorageService.instance().filterAdapters(_minTier.intValue(), _maxTier.intValue());
-    CloudEngineService.instance().verify(selections, _deleteOnInvalid);
+    CloudEngineService.instance().filterAdapters(_minTier.intValue(), _maxTier.intValue());
+    IndexStorageService.instance().verify(selections, _deleteOnInvalid);
   }
 }

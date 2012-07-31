@@ -1,7 +1,7 @@
 package cloudcmd.cld.commands;
 
 
-import cloudcmd.cld.CloudEngineService;
+import cloudcmd.cld.IndexStorageService;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
 import jpbetz.cli.SubCommand;
@@ -13,6 +13,6 @@ public class Reindex implements Command
   public void exec(CommandContext commandLine) throws Exception
   {
     System.err.println("rebuilding index available adapters");
-    CloudEngineService.instance().reindex();
+    IndexStorageService.instance().reindex();
   }
 }

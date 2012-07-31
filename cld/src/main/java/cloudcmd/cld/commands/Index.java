@@ -1,13 +1,14 @@
 package cloudcmd.cld.commands;
 
 
-import cloudcmd.cld.CloudEngineService;
+import cloudcmd.cld.IndexStorageService;
 import cloudcmd.common.FileTypeUtil;
 import cloudcmd.common.FileUtil;
 import cloudcmd.common.engine.FileWalker;
-import cloudcmd.common.adapters.Adapter;
-import cloudcmd.cld.ConfigStorageService;
-import jpbetz.cli.*;
+import jpbetz.cli.Arg;
+import jpbetz.cli.Command;
+import jpbetz.cli.CommandContext;
+import jpbetz.cli.SubCommand;
 
 import java.io.File;
 import java.util.Collections;
@@ -55,6 +56,6 @@ public class Index implements Command {
       }
     });
 
-    CloudEngineService.instance().batchAdd(fileSet, new HashSet<String>(_tags));
+    IndexStorageService.instance().batchAdd(fileSet, new HashSet<String>(_tags));
   }
 }

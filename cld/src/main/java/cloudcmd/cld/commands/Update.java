@@ -3,6 +3,7 @@ package cloudcmd.cld.commands;
 
 import cloudcmd.cld.CloudEngineService;
 import cloudcmd.cld.ConfigStorageService;
+import cloudcmd.cld.IndexStorageService;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
 import jpbetz.cli.Opt;
@@ -28,7 +29,7 @@ public class Update implements Command
   {
     if (_uri == null) {
       System.err.println("updating all adapters");
-      ConfigStorageService.instance().filterAdapters(_minTier.intValue(), _maxTier.intValue());
+      CloudEngineService.instance().filterAdapters(_minTier.intValue(), _maxTier.intValue());
       CloudEngineService.instance().refreshAdapterCaches();
     } else {
       URI adapterURI = new URI(_uri);
@@ -41,6 +42,6 @@ public class Update implements Command
     }
 
     System.err.println("rebuilding index available adapters");
-    CloudEngineService.instance().reindex();
+    IndexStorageService.instance().reindex();
   }
 }

@@ -9,6 +9,10 @@ import java.io.{InputStream, File}
 trait CloudEngine {
   def init(configService: ConfigStorage, indexStorage: IndexStorage)
 
+  def filterAdapters(minTier: Int, maxTier: Int)
+
+  def registerListener(listener: CloudEngineListener)
+
   def run()
 
   def shutdown()
@@ -25,8 +29,6 @@ trait CloudEngine {
 
   def remove(hash: String)
   def removeAll(hashes: Set[String])
-
-  def registerListener(listener: CloudEngineListener)
 
   def getHashProviders(): Map[String, List[Adapter]]
   def getHashProviders(hash: String) : List[Adapter]

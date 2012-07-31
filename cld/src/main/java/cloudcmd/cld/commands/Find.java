@@ -1,9 +1,9 @@
 package cloudcmd.cld.commands;
 
 
+import cloudcmd.cld.IndexStorageService;
 import cloudcmd.common.MetaUtil;
 import cloudcmd.common.StringUtil;
-import cloudcmd.cld.IndexStorageService;
 import jpbetz.cli.*;
 import org.json.JSONArray;
 import org.json.JSONObject;

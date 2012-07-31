@@ -2,10 +2,9 @@ package cloudcmd.cld.commands;
 
 
 import cloudcmd.cld.CloudEngineService;
-import cloudcmd.cld.ConfigStorageService;
+import cloudcmd.cld.IndexStorageService;
 import cloudcmd.common.FileUtil;
 import cloudcmd.common.JsonUtil;
-import cloudcmd.cld.IndexStorageService;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
 import jpbetz.cli.Opt;
@@ -77,8 +76,8 @@ public class Get implements Command
 
     if (!_dryrun)
     {
-      ConfigStorageService.instance().filterAdapters(_minTier.intValue(), _maxTier.intValue());
-      CloudEngineService.instance().fetch(selections);
+      CloudEngineService.instance().filterAdapters(_minTier.intValue(), _maxTier.intValue());
+      IndexStorageService.instance().fetch(selections);
     }
     else
     {

@@ -2,9 +2,8 @@ package cloudcmd.cld.commands;
 
 
 import cloudcmd.cld.CloudEngineService;
-import cloudcmd.cld.ConfigStorageService;
-import cloudcmd.common.JsonUtil;
 import cloudcmd.cld.IndexStorageService;
+import cloudcmd.common.JsonUtil;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;
 import jpbetz.cli.Opt;
@@ -29,7 +28,7 @@ public class Sync implements Command
   {
     JSONArray selections = _syncAll ? IndexStorageService.instance().find(new JSONObject()) : JsonUtil.loadJsonArray(System.in);
     System.err.println(String.format("syncing %d files", selections.length()));
-    ConfigStorageService.instance().filterAdapters(_minTier.intValue(), _maxTier.intValue());
-    CloudEngineService.instance().sync(selections);
+    CloudEngineService.instance().filterAdapters(_minTier.intValue(), _maxTier.intValue());
+    IndexStorageService.instance().sync(selections);
   }
 }

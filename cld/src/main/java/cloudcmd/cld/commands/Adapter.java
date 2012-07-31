@@ -2,7 +2,10 @@ package cloudcmd.cld.commands;
 
 
 import cloudcmd.cld.ConfigStorageService;
-import jpbetz.cli.*;
+import jpbetz.cli.Command;
+import jpbetz.cli.CommandContext;
+import jpbetz.cli.Opt;
+import jpbetz.cli.SubCommand;
 
 import java.net.URI;
 
