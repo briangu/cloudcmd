@@ -23,7 +23,7 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
 
   private var _cloudEngine: CloudEngine = null
 
-  private var _listeners : List[CloudEngineListener] = List()
+  private var _listeners : List[IndexStorageListener] = List()
 
   private var _cp: JdbcConnectionPool = null
 
@@ -36,7 +36,7 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
     conn
   }
 
-  def registerListener(listener: CloudEngineListener) {
+  def registerListener(listener: IndexStorageListener) {
     _listeners = _listeners ++ List(listener)
   }
 
@@ -128,8 +128,6 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
   private val addMetaSql = "INSERT INTO FILE_INDEX (%s) VALUES (%s)".format(fields.mkString(","), StringUtil.joinRepeat(fields.size, "?", ","))
 
   private def addMeta(db: Connection, fmds: List[FileMetaData]) {
-    import scala.collection.JavaConversions._
-
     var statement: PreparedStatement = null
     try {
       val bind = new ListBuffer[AnyRef]
@@ -139,15 +137,15 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
 
       for (meta <- fmds) {
         bind.clear
-        bind.add(meta.getHash)
-        bind.add(meta.getPath)
-        bind.add(meta.getFilename)
-        bind.add(meta.getFileExt)
-        bind.add(meta.getFileSize)
-        bind.add(meta.getFileDate)
-        bind.add(buildTags(meta))
-        bind.add(meta.getDataAsString)
-        (0 until bind.size).foreach(i => bindVar(statement, i + 1, bind.get(i)))
+        bind.append(meta.getHash)
+        bind.append(meta.getPath)
+        bind.append(meta.getFilename)
+        bind.append(meta.getFileExt)
+        bind.append(meta.getFileSize)
+        bind.append(meta.getFileDate)
+        bind.append(buildTags(meta))
+        bind.append(meta.getDataAsString)
+        (0 until bind.size).foreach(i => bindVar(statement, i + 1, bind(i)))
         statement.addBatch
 
         k += 1
@@ -406,7 +404,7 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
   def batchAdd(fileSet: java.util.Set[File], tags: java.util.Set[String]) {
     import collection.JavaConversions._
     _batchAdd(fileSet.toSet, tags.toSet)
-  }                                                                                 ˜
+  }
 
   private def _batchAdd(fileSet: Set[File], tags: Set[String]) {
     import collection.JavaConversions._
@@ -498,59 +496,53 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
 
   def find(filter: JSONObject): JSONArray = {
     val results: JSONArray = new JSONArray
+
     var db: Connection = null
     var statement: PreparedStatement = null
     try {
       db = getReadOnlyDbConnection
+
       var sql: String = null
-      val bind: List[AnyRef] = new ArrayList[AnyRef]
+      val bind = new ListBuffer[AnyRef]
+
       if (filter.has("tags")) {
         sql = "SELECT T.HASH,T.RAWMETA FROM FTL_SEARCH_DATA(?, 0, 0) FTL, FILE_INDEX T WHERE FTL.TABLE='FILE_INDEX' AND T.HASH = FTL.KEYS[0]"
-        bind.add(filter.getString("tags"))
+        bind.append(filter.getString("tags"))
       }
       else {
-        val list: List[String] = new ArrayList[String]
-        val iter: Iterator[String] = filter.keys
+        val list = new ListBuffer[String]
+        val iter = filter.keys().asInstanceOf[Iterator[String]]
         while (iter.hasNext) {
-          val key: String = iter.next
-          val obj: AnyRef = filter.get(key)
+          val key = iter.next
+          val obj = filter.get(key)
           if (obj.isInstanceOf[Array[String]] || obj.isInstanceOf[Array[Long]]) {
-            val foo: Collection[AnyRef] = Arrays.asList(obj)
-            list.add(String.format("%s In (%s)", key.toUpperCase, StringUtil.joinRepeat(foo.size, "?", ",")))
-            bind.addAll(foo)
+            val foo = List(obj)
+            list.append(String.format("%s In (%s)", key.toUpperCase, StringUtil.joinRepeat(foo.size, "?", ",")))
+            bind.appendAll(foo)
           }
           else {
             if (obj.toString.contains("%")) {
-              list.add(String.format("%s LIKE ?", key))
+              list.append(String.format("%s LIKE ?", key))
             }
             else {
-              list.add(String.format("%s IN (?)", key))
+              list.append(String.format("%s IN (?)", key))
             }
-            bind.add(obj)
+            bind.append(obj)
           }
         }
         if (list.size > 0) {
-          sql = String.format("SELECT HASH,RAWMETA FROM FILE_INDEX WHERE %s", StringUtil.join(list, " AND "))
+          sql = "SELECT HASH,RAWMETA FROM FILE_INDEX WHERE %s".format(list.mkString(" AND "))
         }
         else {
-          sql = String.format("SELECT HASH,RAWMETA FROM FILE_INDEX")
+          sql = "SELECT HASH,RAWMETA FROM FILE_INDEX"
         }
       }
-      if (filter.has("count")) sql += String.format(" LIMIT %d", filter.getInt("count"))
-      if (filter.has("offset")) sql += String.format(" OFFSET %d", filter.getInt("offset"))
+      if (filter.has("count")) sql += " LIMIT %d".format(filter.getInt("count"))
+      if (filter.has("offset")) sql += " OFFSET %d".format(filter.getInt("offset"))
       statement = db.prepareStatement(sql)
-      {
-        var i: Int = 0
-        var paramIdx: Int = 1
-        while (i < bind.size) {
-          {
-            bind(statement, paramIdx, bind.get(i))
-          }
-          i += 1
-          paramIdx += 1
-        }
-      }
-      val rs: ResultSet = statement.executeQuery
+      (0 until bind.size).foreach(i => bindVar(statement, i + 1, bind(i)))
+
+      val rs = statement.executeQuery
       while (rs.next) {
         results.put(MetaUtil.loadMeta(rs.getString("HASH"), new JSONObject(rs.getString("RAWMETA"))).toJson)
       }
