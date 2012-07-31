@@ -6,7 +6,7 @@ import cloudcmd.common.index.IndexStorage
 import org.json.JSONArray
 import java.io.File
 
-abstract trait CloudEngine {
+trait CloudEngine {
   def init(configService: ConfigStorage, indexStorage: IndexStorage)
 
   def run()
@@ -15,9 +15,9 @@ abstract trait CloudEngine {
 
   def reindex()
 
-  def add(file: File, tags: Set[String], adapter: Adapter)
+  def add(file: File, tags: java.util.Set[String], adapter: Adapter)
 
-  def batchAdd(file: Set[File], tags: Set[String], adapter: Adapter)
+  def batchAdd(file: java.util.Set[File], tags: java.util.Set[String], adapter: Adapter)
 
   def sync(minTier: Int, maxTier: Int, selections: JSONArray)
 
@@ -27,5 +27,7 @@ abstract trait CloudEngine {
 
   def remove(minTier: Int, maxTier: Int, selections: JSONArray)
 
-  def addTags(selections: JSONArray, tags: Set[String]): JSONArray
+  def addTags(selections: JSONArray, tags: java.util.Set[String]): JSONArray
+
+  def registerListener(listener: CloudEngineListener)
 }

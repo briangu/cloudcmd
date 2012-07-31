@@ -32,8 +32,8 @@ public class Update implements Command
     } else {
       URI adapterURI = new URI(_uri);
       for (cloudcmd.common.adapters.Adapter adapter : ConfigStorageService.instance().getAdapters()) {
-        if (adapter.URI.toString().equals(_uri) || (adapterURI.getPath().equals(adapter.URI.getPath()))) {
-          System.err.println("updating adapter: " + adapter.URI.toString());
+        if (adapter.URI().toString().equals(_uri) || (adapterURI.getPath().equals(adapter.URI().getPath()))) {
+          System.err.println("updating adapter: " + adapter.URI().toString());
           adapter.refreshCache();
         }
       }

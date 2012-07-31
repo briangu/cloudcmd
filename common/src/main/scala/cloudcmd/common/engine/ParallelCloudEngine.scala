@@ -9,6 +9,7 @@ import index.IndexStorage
 import config.ConfigStorage
 import collection.mutable
 import scala.util.Random
+import java.util
 
 class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
 
@@ -27,7 +28,7 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
     _replicationStrategy = _configService.getReplicationStrategy
   }
 
-  def registerListeners(listener: CloudEngineListener) {
+  def registerListener(listener: CloudEngineListener) {
     _listeners = _listeners ++ List(listener)
   }
 
@@ -64,11 +65,13 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
     _configService.getAdapters.filter(available(_, minTier, maxTier)).filter(_.describe().contains(hash)).toList
   }
 
-  def add(file: File, tags: Set[String], adapter: Adapter) {
-    batchAdd(Set(file), tags, adapter)
+  def add(file: File, tags: java.util.Set[String], adapter: Adapter) {
+    val hs = new util.HashSet[File]()
+    hs.add(file)
+    batchAdd(hs, tags, adapter)
   }
 
-  def batchAdd(fileSet: Set[File], tags: Set[String], adapter: Adapter) {
+  def batchAdd(fileSet: java.util.Set[File], tags: java.util.Set[String], adapter: Adapter) {
     import collection.JavaConversions._
 
     val metaSet = new mutable.HashSet[FileMetaData] with mutable.SynchronizedSet[FileMetaData]
@@ -78,7 +81,6 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
 
         var blockHash: String = null
         var fis: FileInputStream = null
-        var bais: ByteArrayInputStream = null
 
         try {
           val startTime = System.currentTimeMillis()
@@ -130,7 +132,6 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
         }
         finally {
           FileUtil.SafeClose(fis)
-          FileUtil.SafeClose(bais)
         }
 
         if (blockHash == null) {
@@ -210,8 +211,6 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
   }
 
   def fetch(minTier: Int, maxTier: Int, meta: FileMetaData) {
-    import collection.JavaConversions._
-
     val hashProviders = _blockCache.getHashProviders()
     val blockHashes = (0 until meta.getBlockHashes().length()).map(meta.getBlockHashes().getString)
 
@@ -275,7 +274,7 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
     }
   }
 
-  def addTags(selections: JSONArray, tags: Set[String]): JSONArray = {
+  def addTags(selections: JSONArray, tags: java.util.Set[String]): JSONArray = {
     val hashProviders = _blockCache.getHashProviders
 
     val fmds = (0 until selections.length).par.flatMap {
@@ -383,8 +382,6 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
   }
 
   private def removeBlock(hashProviders: Map[String, List[Adapter]], hash: String) {
-    import collection.JavaConversions._
-
     Option(hashProviders.get(hash).get).foreach {
       adapters =>
         adapters.par.foreach {

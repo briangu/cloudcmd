@@ -63,9 +63,9 @@ public class Adapter implements Command
 
       for (cloudcmd.common.adapters.Adapter adapter : ConfigStorageService.instance().getAdapters())
       {
-        System.out.println("Adapter: " + adapter.Type);
-        System.out.println("  URI: " + adapter.URI.toString());
-        System.out.println("  ConfigDir: " + adapter.ConfigDir);
+        System.out.println("Adapter: " + adapter.Type());
+        System.out.println("  URI: " + adapter.URI().toString());
+        System.out.println("  ConfigDir: " + adapter.ConfigDir());
         System.out.println("  IsOnline: " + adapter.IsOnLine());
         System.out.println("  IsFull: " + adapter.IsFull());
         System.out.println();
