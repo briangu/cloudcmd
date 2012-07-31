@@ -1,7 +1,6 @@
 package cloudcmd.common.config;
 
 import cloudcmd.common.adapters.Adapter;
-import cloudcmd.common.engine.BlockCache;
 import cloudcmd.common.engine.ReplicationStrategy;
 import org.json.JSONException;
 
@@ -21,11 +20,7 @@ public interface ConfigStorage
 
   Integer getPropertyAsInt(String key);
 
-  List<Adapter> getAllAdapters();
-
   List<Adapter> getAdapters();
-
-  void filterAdapters(Integer minTier, Integer maxTier);
 
   void addAdapter(URI adapterUri);
 
@@ -40,6 +35,4 @@ public interface ConfigStorage
   Adapter getAdapter(URI adapterURI);
 
   ReplicationStrategy getReplicationStrategy();
-
-  BlockCache getBlockCache();
 }

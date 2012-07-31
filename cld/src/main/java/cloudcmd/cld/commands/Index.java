@@ -30,20 +30,6 @@ public class Index implements Command {
       _path = FileUtil.getCurrentWorkingDirectory();
     }
 
-    // TODO: allow selectable adapters
-    Adapter adapter = null;
-
-    for (Adapter a : ConfigStorageService.instance().getAdapters()) {
-      if (a.IsOnLine() && !a.IsFull()) {
-        adapter = a;
-        break;
-      }
-    }
-
-    if (adapter == null) {
-      throw new IllegalArgumentException("there are no adapters to flush to");
-    }
-
     final Set<File> fileSet = Collections.newSetFromMap(new ConcurrentHashMap<File, Boolean>());
 
     final FileTypeUtil fileTypeUtil = FileTypeUtil.instance();
@@ -60,10 +46,15 @@ public class Index implements Command {
 
       @Override
       public void process(File file) {
-        fileSet.add(file);
+        String fileName = file.getName();
+        Integer extIndex = fileName.lastIndexOf(".");
+        String ext = (extIndex > 0) ? fileName.substring(extIndex + 1) : null;
+        if (!fileTypeUtil.skipExt(ext)) {
+          fileSet.add(file);
+        }
       }
     });
 
-    CloudEngineService.instance().batchAdd(fileSet, new HashSet<String>(_tags), adapter);
+    CloudEngineService.instance().batchAdd(fileSet, new HashSet<String>(_tags));
   }
 }

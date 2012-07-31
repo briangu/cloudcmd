@@ -1,42 +1,33 @@
 package cloudcmd.common;
 
 import java.util.Set;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
 
-public class FileTypeUtil
-{
+public class FileTypeUtil {
   private static FileTypeUtil _instance = null;
 
   private JSONObject _typeMap = null;
   private Set<String> _skipDir = null;
   private Set<String> _skipExt = null;
 
-  public static FileTypeUtil instance()
-  {
-    if (_instance == null)
-    {
-      synchronized (FileTypeUtil.class)
-      {
-        if (_instance == null)
-        {
+  public static FileTypeUtil instance() {
+    if (_instance == null) {
+      synchronized (FileTypeUtil.class) {
+        if (_instance == null) {
           FileTypeUtil ftu = new FileTypeUtil();
 
-          try
-          {
+          try {
             ftu._typeMap = ResourceUtil.loadJson("filetypes.json");
             JSONObject skipMap = ResourceUtil.loadJson("skipMap.json");
             ftu._skipDir = JsonUtil.createSet(skipMap.getJSONArray("dirs"));
             ftu._skipExt = JsonUtil.createSet(skipMap.getJSONArray("exts"));
-          }
-          catch (IOException e)
-          {
+          } catch (IOException e) {
             e.printStackTrace();
-          }
-          catch (JSONException e)
-          {
+          } catch (JSONException e) {
             e.printStackTrace();
           }
 
@@ -48,25 +39,24 @@ public class FileTypeUtil
     return _instance;
   }
 
-  public boolean skipDir(String dir)
-  {
+  public boolean skipDir(String dir) {
     return _skipDir.contains(dir);
   }
 
-  public boolean skipExt(String ext)
-  {
+  public boolean skipExt(String ext) {
     return _skipExt.contains(ext);
   }
 
-  public String getTypeFromExtension(String ext)
-  {
+  public String getTypeFromName(String filename) {
+    Integer idx = filename.lastIndexOf(".");
+    return (idx > -1) ? getTypeFromExtension(filename.substring(idx)) : "";
+  }
+
+  public String getTypeFromExtension(String ext) {
     ext = ext.toLowerCase();
-    try
-    {
-      return _typeMap.has(ext) ? _typeMap.getString(ext) : null;
-    }
-    catch (JSONException e)
-    {
+    try {
+      return _typeMap.has(ext) ? _typeMap.getString(ext) : "";
+    } catch (JSONException e) {
       e.printStackTrace();
     }
     return null;

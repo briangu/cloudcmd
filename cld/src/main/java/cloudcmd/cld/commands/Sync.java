@@ -12,7 +12,7 @@ import jpbetz.cli.SubCommand;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-@SubCommand(name = "push", description = "Sync the local cache to storage endpoints.")
+@SubCommand(name = "sync", description = "Sync the local cache to storage endpoints.")
 public class Sync implements Command
 {
   @Opt(opt = "n", longOpt = "minTier", description = "min tier to verify to", required = false)
