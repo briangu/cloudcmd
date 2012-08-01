@@ -7,22 +7,12 @@ import java.io.InputStream
 import util.Random
 import java.util.concurrent.atomic.AtomicInteger
 
-class MirrorReplicationStrategy extends ReplicationStrategy {
+class MirrorReplicationStrategy extends ReplicationStrategy with EventSource {
 
   private val log: Logger = Logger.getLogger(classOf[MirrorReplicationStrategy])
 
-  private var _listener: CloudEngineListener = null
-
-  def registerListener(listener: CloudEngineListener) {
-    _listener = listener
-  }
-
-  private def onMessage(msg: String) {
-    if (_listener != null) _listener.onMessage(msg)
-  }
-
   def isReplicated(hash: String, adapters: List[Adapter]): Boolean = {
-    adapters.filterNot(_.describe.contains(hash)).size > 0
+    adapters.par.filterNot(_.describe.contains(hash)).size > 0
   }
 
   def sync(hash: String, hashProviders: List[Adapter], adapters: List[Adapter]) {
@@ -47,7 +37,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
   }
 
   def contains(hash: String, adapters: List[Adapter]) : Boolean = {
-    adapters.filter(_.describe.contains(hash)).size > 0
+    adapters.par.filter(_.describe.contains(hash)).size > 0
   }
 
   def store(hash: String, is: InputStream, adapters: List[Adapter]) {
@@ -109,12 +99,12 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
   }
 
   def verify(hash: String, hashProviders: List[Adapter], deleteOnInvalid: Boolean) : Boolean = {
-    var valid = false
-
     val replicated = isReplicated(hash, hashProviders)
     if (!replicated) {
       onMessage(String.format("block %s is not fully replicated", hash))
     }
+
+    var valid = false
 
     hashProviders.par.foreach {
       adapter =>

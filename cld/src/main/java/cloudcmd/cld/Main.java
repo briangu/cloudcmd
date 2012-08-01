@@ -8,7 +8,6 @@ import jpbetz.cli.CommandSet;
 
 import java.io.File;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.SynchronousQueue;
 
 public class Main

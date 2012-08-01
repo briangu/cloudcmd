@@ -3,7 +3,6 @@ package cloudcmd.common.config
 import cloudcmd.common.adapters.Adapter
 import cloudcmd.common.engine.ReplicationStrategy
 import java.net.URI
-import java.util.List
 
 trait ConfigStorage {
   def init(configRoot: String)

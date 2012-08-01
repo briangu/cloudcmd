@@ -6,13 +6,12 @@ import java.io._
 import org.apache.log4j.Logger
 import config.ConfigStorage
 
-class ParallelCloudEngine extends CloudEngine {
+class ParallelCloudEngine extends CloudEngine with EventSource {
 
   private val log = Logger.getLogger(classOf[ParallelCloudEngine])
 
   private var _storage: ReplicationStrategy = null
   private var _configService: ConfigStorage = null
-  private var _listeners : List[CloudEngineListener] = List()
   private var _adapters : List[Adapter] = null
 
   def init(configService: ConfigStorage) {
@@ -22,16 +21,8 @@ class ParallelCloudEngine extends CloudEngine {
     _storage = _configService.getReplicationStrategy
   }
 
-  def registerListener(listener: CloudEngineListener) {
-    _listeners = _listeners ++ List(listener)
-  }
-
   def run {}
   def shutdown {}
-
-  def onMessage(msg: String) {
-    _listeners.foreach(_.onMessage(msg))
-  }
 
   def filterAdapters(minTier: Int, maxTier: Int) {
     import scala.collection.JavaConversions._

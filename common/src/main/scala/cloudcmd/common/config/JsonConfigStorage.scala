@@ -12,7 +12,7 @@ import java.io.File
 import java.io.IOException
 import java.net.URI
 import java.nio.channels.Channels
-import java.util._
+import collection.mutable.ListBuffer
 
 class JsonConfigStorage extends ConfigStorage {
 
@@ -58,13 +58,9 @@ class JsonConfigStorage extends ConfigStorage {
   private def loadAdapterHandlers(config: JSONObject): Map[String, String] = {
     if (!config.has("adapterHandlers")) throw new IllegalArgumentException("config is missing the adapters field")
     val handlers = config.getJSONObject("adapterHandlers")
-    val adapterHandlers = new HashMap[String, String]
-    val keys = handlers.keys.asInstanceOf[Iterator[String]]
-    while (keys.hasNext) {
-      val key = keys.next
-      adapterHandlers.put(key, handlers.getString(key))
-    }
-    adapterHandlers
+
+    import scala.collection.JavaConversions._
+    Map() ++ handlers.keys().flatMap{key => Map(key.asInstanceOf[String] -> handlers.getString(key.asInstanceOf[String]))}
   }
 
   private def loadAdapters(config: JSONObject): List[Adapter] = {
@@ -75,13 +71,13 @@ class JsonConfigStorage extends ConfigStorage {
   }
 
   private def loadAdapters(adapterUris: JSONArray): List[Adapter] = {
-    val adapters = new ArrayList[Adapter]
+    val adapters = new ListBuffer[Adapter]
     (0 until adapterUris.length()).foreach{ i =>
       val adapterUri = new URI(adapterUris.getString(i))
       val adapter = loadAdapter(adapterUri)
-      adapters.add(adapter)
+      adapters.append(adapter)
     }
-    adapters
+    adapters.toList
   }
 
   private def getTierFromUri(adapterUri: URI): Int = {
@@ -90,24 +86,22 @@ class JsonConfigStorage extends ConfigStorage {
   }
 
   private def getTagsFromUri(adapterUri: URI): Set[String] = {
-    val tags = new HashSet[String]
     val queryParams = UriUtil.parseQueryString(adapterUri)
     if (queryParams.containsKey("tags")) {
       val parts = queryParams.get("tags").split(",")
-      for (tag <- parts) {
-        tags.add(tag)
-      }
+      parts.flatMap(Set(_)).toSet
+    } else {
+      Set()
     }
-    tags
   }
 
   private def loadAdapter(adapterUri: URI): Adapter = {
     var adapter: Adapter = null
     val scheme = adapterUri.getScheme
-    if (!_adapterHandlers.containsKey(scheme)) {
+    if (!_adapterHandlers.contains(scheme)) {
       throw new IllegalArgumentException(String.format("scheme %s in adapter URI %s is not supported!", scheme, adapterUri))
     }
-    val handlerType = _adapterHandlers.get(scheme)
+    val handlerType = _adapterHandlers.get(scheme).get
     val tier = getTierFromUri(adapterUri)
     val tags = getTagsFromUri(adapterUri)
     val clazz = classOf[JsonConfigStorage].getClassLoader.loadClass(handlerType)
@@ -136,7 +130,6 @@ class JsonConfigStorage extends ConfigStorage {
 
   def shutdown {
     if (_allAdapters == null) return
-    import scala.collection.JavaConversions._
     for (adapter <- _allAdapters) {
       try {
         adapter.shutdown
@@ -230,13 +223,13 @@ class JsonConfigStorage extends ConfigStorage {
   }
 
   def getAdapters: List[Adapter] = {
-    Collections.unmodifiableList(_filteredAdapters)
+    _filteredAdapters
   }
 
   def addAdapter(adapterUri: URI) {
     try {
       val adapter: Adapter = loadAdapter(adapterUri)
-      _allAdapters.add(adapter)
+      _allAdapters = _allAdapters ++ List(adapter)
     }
     catch {
       case e: ClassNotFoundException => e.printStackTrace
