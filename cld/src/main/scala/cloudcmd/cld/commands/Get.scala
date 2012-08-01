@@ -1,7 +1,5 @@
 package cloudcmd.cld.commands
 
-import cloudcmd.cld.CloudEngineService
-import cloudcmd.cld.IndexStorageService
 import cloudcmd.common.FileUtil
 import cloudcmd.common.util.JsonUtil
 import jpbetz.cli.Command
@@ -13,6 +11,7 @@ import org.json.JSONObject
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
+import cloudcmd.cld.CloudServices
 
 @SubCommand(name = "get", description = "Fetch files from the cloud and store locally.")
 class Get extends Command {
@@ -29,7 +28,7 @@ class Get extends Command {
   def exec(commandLine: CommandContext) {
     var selections: JSONArray = null
     if (_pullAll) {
-      selections = IndexStorageService.instance.find(new JSONObject)
+      selections = CloudServices.IndexStorage.find(new JSONObject)
     }
     else {
       var is: InputStream = null
@@ -46,8 +45,8 @@ class Get extends Command {
     if (_outdir == null) _outdir = FileUtil.getCurrentWorkingDirectory
     prefixPaths(_outdir, selections)
     if (!_dryrun) {
-      CloudEngineService.instance.filterAdapters(_minTier.intValue, _maxTier.intValue)
-      IndexStorageService.instance.fetch(selections)
+      CloudServices.CloudEngine.filterAdapters(_minTier.intValue, _maxTier.intValue)
+      CloudServices.IndexStorage.fetch(selections)
     }
     else {
       System.out.print(selections.toString)

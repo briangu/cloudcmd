@@ -1,13 +1,12 @@
 package cloudcmd.cld.commands
 
-import cloudcmd.cld.CloudEngineService
-import cloudcmd.cld.IndexStorageService
 import cloudcmd.common.util.JsonUtil
 import jpbetz.cli.Command
 import jpbetz.cli.CommandContext
 import jpbetz.cli.Opt
 import jpbetz.cli.SubCommand
 import org.json.JSONObject
+import cloudcmd.cld.CloudServices
 
 @SubCommand(name = "sync", description = "Sync the local cache to storage endpoints.")
 class Sync extends Command {
@@ -17,9 +16,9 @@ class Sync extends Command {
   @Opt(opt = "a", longOpt = "all", description = "sync all", required = false) private var _syncAll: Boolean = true
 
   def exec(commandLine: CommandContext) {
-    val selections = if (_syncAll) IndexStorageService.instance.find(new JSONObject) else JsonUtil.loadJsonArray(System.in)
+    val selections = if (_syncAll) CloudServices.IndexStorage.find(new JSONObject) else JsonUtil.loadJsonArray(System.in)
     System.err.println("syncing %d files".format(selections.length))
-    CloudEngineService.instance.filterAdapters(_minTier.intValue, _maxTier.intValue)
-    IndexStorageService.instance.sync(selections)
+    CloudServices.CloudEngine.filterAdapters(_minTier.intValue, _maxTier.intValue)
+    CloudServices.IndexStorage.sync(selections)
   }
 }

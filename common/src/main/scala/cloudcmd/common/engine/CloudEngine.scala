@@ -1,21 +1,15 @@
 package cloudcmd.common.engine
 
 import cloudcmd.common.adapters.Adapter
-import cloudcmd.common.config.ConfigStorage
-import cloudcmd.common.index.IndexStorage
-import org.json.JSONArray
-import java.io.{InputStream, File}
+import java.io.InputStream
 
-trait CloudEngine {
-  def init(configService: ConfigStorage)
+trait CloudEngine extends EventSource {
+
+  def init()
+  def run()
+  def shutdown()
 
   def filterAdapters(minTier: Int, maxTier: Int)
-
-  def registerListener(listener: CloudEngineListener)
-
-  def run()
-
-  def shutdown()
 
   def sync(hash : String)
   def syncAll(hashes : Set[String])

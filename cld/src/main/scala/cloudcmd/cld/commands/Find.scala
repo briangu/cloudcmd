@@ -1,10 +1,10 @@
 package cloudcmd.cld.commands
 
-import cloudcmd.cld.IndexStorageService
 import cloudcmd.common.util.MetaUtil
 import cloudcmd.common.StringUtil
 import jpbetz.cli._
 import org.json.JSONObject
+import cloudcmd.cld.CloudServices
 
 @SubCommand(name = "find", description = "Query the index of archived files.")
 class Find extends Command {
@@ -30,7 +30,7 @@ class Find extends Command {
     if (_hash != null) filter.put("hash", _hash)
     if (_count.intValue > 0) filter.put("count", _count.intValue)
     if (_offset.intValue > 0) filter.put("offset", _offset.intValue)
-    val selections = IndexStorageService.instance.find(filter)
+    val selections = CloudServices.IndexStorage.find(filter)
     System.out.println(selections.toString)
   }
 }

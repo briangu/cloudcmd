@@ -2,9 +2,9 @@ package cloudcmd.common.engine
 
 trait EventSource {
 
-  protected var _listeners : List[CloudEngineListener] = List()
+  protected var _listeners : List[EngineEventListener] = List()
 
-  def registerListener(listener: CloudEngineListener) {
+  def registerListener(listener: EngineEventListener) {
     _listeners = _listeners ++ List(listener)
   }
 

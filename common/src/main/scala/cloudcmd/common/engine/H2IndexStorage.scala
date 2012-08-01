@@ -1,54 +1,43 @@
-package cloudcmd.common.index
+package cloudcmd.common.engine
 
 import cloudcmd.common._
-import engine.CloudEngine
 import org.apache.log4j.Logger
 import org.h2.fulltext.{FullText, FullTextLucene}
 import org.h2.jdbcx.JdbcConnectionPool
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
-import java.io.{FileInputStream, ByteArrayInputStream, InputStream, File}
+import java.io.{ByteArrayInputStream, InputStream, File}
 import java.sql.{PreparedStatement, SQLException, Statement, Connection}
 import collection.mutable.ListBuffer
 import scala.util.Random
 import collection.mutable
 import util._
 
-class H2IndexStorage extends IndexStorage with IndexStorageListener {
+class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSource {
   private val log = Logger.getLogger(classOf[H2IndexStorage])
-  
+
   private val BATCH_SIZE = 1024
   private val WHITESPACE = " ,:-._" + File.separator
-  
+
   private var _configRoot: String = null
-
-  private var _cloudEngine: CloudEngine = null
-
-  private var _listeners : List[IndexStorageListener] = List()
 
   private var _cp: JdbcConnectionPool = null
 
   private def getDbFile = "%s%sindex".format(_configRoot, File.separator)
+
   private def createConnectionString: String = "jdbc:h2:%s".format(getDbFile)
+
   private def getDbConnection = _cp.getConnection
+
   private def getReadOnlyDbConnection: Connection = {
     val conn = getDbConnection
     conn.setReadOnly(true)
     conn
   }
 
-  def registerListener(listener: IndexStorageListener) {
-    _listeners = _listeners ++ List(listener)
-  }
-
-  def onMessage(msg: String) {
-    _listeners.foreach(_.onMessage(msg))
-  }
-
-  def init(configRoot: String, cloudEngine: CloudEngine) {
+  def init(configRoot: String) {
     _configRoot = configRoot
-    _cloudEngine = cloudEngine
 
     Class.forName("org.h2.Driver")
     Class.forName("org.h2.fulltext.FullTextLucene")
@@ -166,14 +155,13 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
     }
   }
 
-  private def buildTags(meta: FileMetaData) : String = {
-    import scala.collection.JavaConversions._
-
+  private def buildTags(meta: FileMetaData): String = {
     val tagSet = meta.getTags ++ meta.getPath ++ FileTypeUtil.instance.getTypeFromName(meta.getFilename)
     var tags = tagSet.mkString(" ")
 
-    WHITESPACE.toCharArray.foreach{ ch =>
-      tags = tags.replace(ch, ' ')
+    WHITESPACE.toCharArray.foreach {
+      ch =>
+        tags = tags.replace(ch, ' ')
     }
 
     tags
@@ -216,10 +204,14 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
   }
 
   def pruneHistory(selections: List[FileMetaData]) {
-    removeAll(Set() ++ selections.flatMap(fmd => if (fmd.getParent == null) { Nil } else { Set(fmd.getParent) }))
+    removeAll(Set() ++ selections.flatMap(fmd => if (fmd.getParent == null) {
+      Nil
+    } else {
+      Set(fmd.getParent)
+    }))
   }
 
-  def removeAll(hashes : Set[String]) {
+  def removeAll(hashes: Set[String]) {
     var db: Connection = null
     var statement: PreparedStatement = null
     try {
@@ -228,15 +220,16 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
       statement = db.prepareStatement("DELETE FROM FILE_INDEX WHERE HASH = ?")
 
       var k = 0
-      hashes.foreach{ hash =>
-        bindVar(statement, 1, hash)
-        statement.addBatch
+      hashes.foreach {
+        hash =>
+          bindVar(statement, 1, hash)
+          statement.addBatch
 
-        k +=1
-        if (k > BATCH_SIZE) {
-          statement.executeBatch
-          k = 0
-        }
+          k += 1
+          if (k > BATCH_SIZE) {
+            statement.executeBatch
+            k = 0
+          }
       }
 
       statement.executeBatch
@@ -280,10 +273,10 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
   def reindex {
     purge
 
-    val fmds = _cloudEngine.getMetaHashSet.par.flatMap {
+    val fmds = cloudEngine.getMetaHashSet.par.flatMap {
       hash =>
         try {
-          List(MetaUtil.loadMeta(hash, JsonUtil.loadJson(_cloudEngine.load(hash))))
+          List(MetaUtil.loadMeta(hash, JsonUtil.loadJson(cloudEngine.load(hash))))
         } catch {
           case e: Exception => {
             log.error(hash, e)
@@ -304,7 +297,7 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
     val blockHashes = (0 until meta.getBlockHashes.length).map(meta.getBlockHashes.getString)
     val hashAdapterMap = blockHashes.flatMap {
       hash =>
-        val hashProviders = _cloudEngine.getHashProviders(hash)
+        val hashProviders = cloudEngine.getHashProviders(hash)
         if (hashProviders.size > 0) {
           Map(hash -> Random.shuffle(hashProviders).sortBy(_.Tier))
         } else {
@@ -356,8 +349,6 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
   }
 
   def addTags(selections: JSONArray, tags: Set[String]): JSONArray = {
-    import collection.JavaConversions._
-
     val fmds = (0 until selections.length).par.flatMap {
       i =>
         val hash = selections.getJSONObject(i).getString("hash")
@@ -371,7 +362,7 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
           data.put("tags", new JSONArray(newTags))
 
           val derivedMeta = MetaUtil.deriveMeta(hash, data)
-          _cloudEngine.store(derivedMeta.getHash, new ByteArrayInputStream(derivedMeta.getDataAsString.getBytes("UTF-8")))
+          cloudEngine.store(derivedMeta.getHash, new ByteArrayInputStream(derivedMeta.getDataAsString.getBytes("UTF-8")))
           List(derivedMeta)
         }
     }.toList
@@ -383,57 +374,13 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
   }
 
   def verify(selections: JSONArray, deleteOnInvalid: Boolean) {
-    _cloudEngine.verifyAll(getHashesFromSelections(selections), deleteOnInvalid)
+    cloudEngine.verifyAll(getHashesFromSelections(selections), deleteOnInvalid)
   }
 
-  private def getHashesFromSelections(selections: JSONArray) : Set[String] = {
+  private def getHashesFromSelections(selections: JSONArray): Set[String] = {
     Set() ++ (0 until selections.length).par.map {
       i => selections.getJSONObject(i).getString("hash")
     }
-  }
-
-  def add(file: File, tags: Set[String]) {
-    batchAdd(Set(file), tags)
-  }
-
-  def batchAdd(fileSet: Set[File], tags: Set[String]) {
-    import collection.JavaConversions._
-
-    val metaSet = new collection.mutable.HashSet[FileMetaData] with collection.mutable.SynchronizedSet[FileMetaData]
-
-    fileSet.par.foreach {
-      file =>
-        var blockHash: String = null
-
-        val startTime = System.currentTimeMillis
-        try {
-          var fis = new FileInputStream(file)
-          try {
-            blockHash = CryptoUtil.computeHashAsString(fis)
-          } finally {
-            FileUtil.SafeClose(fis)
-          }
-
-          fis = new FileInputStream(file)
-          try {
-            _cloudEngine.store(blockHash, fis)
-          } finally {
-            FileUtil.SafeClose(fis)
-          }
-
-          val meta = MetaUtil.createMeta(file, List(blockHash), tags)
-          _cloudEngine.store(meta.getHash, new ByteArrayInputStream(meta.getDataAsString.getBytes("UTF-8")))
-          metaSet.add(meta)
-        }
-        finally {
-          onMessage("took %6d ms to index %s".format((System.currentTimeMillis - startTime), file.getName))
-          if (blockHash == null) {
-            onMessage("failed to index file: " + file.getAbsolutePath)
-          }
-        }
-    }
-
-    addAll(metaSet.toList)
   }
 
   def sync(selections: JSONArray) {
@@ -446,17 +393,17 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
           val allHashes = Set(hash) ++ (0 until blocks.length).flatMap(idx => Set(blocks.getString(idx)))
           // TODO: we don't really need to ensure that every block has a provider as we can verify that implicitly later
           allHashes.foreach(pushSet.add)
-/*
-          allHashes.foreach{ h =>
-            val providers = _cloudEngine.getHashProviders(hash)
-            if (providers.size > 0) {
-              pushSet.add(h)
-            } else {
-              // TODO: we need to fire a data not found event here
-              log.error("hash not found in storage: " + hash)
-            }
-          }
-*/
+          /*
+                    allHashes.foreach{ h =>
+                      val providers = cloudEngine.getHashProviders(hash)
+                      if (providers.size > 0) {
+                        pushSet.add(h)
+                      } else {
+                        // TODO: we need to fire a data not found event here
+                        log.error("hash not found in storage: " + hash)
+                      }
+                    }
+          */
         } else {
           log.error("unexpected hash type: " + hash)
         }
@@ -464,7 +411,7 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
 
     // TODO: respect acceptsTags
 
-    _cloudEngine.syncAll(pushSet.toSet)
+    cloudEngine.syncAll(pushSet.toSet)
   }
 
   // TODO: what about the meta.Parent chain? do we want to wipe out the entire chain?
@@ -472,14 +419,14 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
     (0 until selections.length).par.foreach {
       i =>
         val hash = selections.getJSONObject(i).getString("hash")
-        val meta = JsonUtil.loadJson(_cloudEngine.load(hash))
+        val meta = JsonUtil.loadJson(cloudEngine.load(hash))
 
-        _cloudEngine.remove(hash)
+        cloudEngine.remove(hash)
 
         if (false) {
           // TODO: only delete if there are no other files referencing these blocks
           val blocks = meta.getJSONArray("blocks")
-          (0 until blocks.length).foreach(j => _cloudEngine.remove(blocks.getString(j)))
+          (0 until blocks.length).foreach(j => cloudEngine.remove(blocks.getString(j)))
         }
 
         val indexMeta = new JSONObject

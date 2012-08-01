@@ -1,13 +1,12 @@
 package cloudcmd.cld.commands
 
-import cloudcmd.cld.CloudEngineService
-import cloudcmd.cld.IndexStorageService
 import cloudcmd.common.util.JsonUtil
 import jpbetz.cli.Command
 import jpbetz.cli.CommandContext
 import jpbetz.cli.Opt
 import jpbetz.cli.SubCommand
 import org.json.JSONArray
+import cloudcmd.cld.CloudServices
 
 @SubCommand(name = "remove", description = "Remove files from storage.")
 class Remove extends Command {
@@ -17,7 +16,7 @@ class Remove extends Command {
 
   def exec(commandLine: CommandContext) {
     val selections: JSONArray = JsonUtil.loadJsonArray(System.in)
-    CloudEngineService.instance.filterAdapters(_minTier.intValue, _maxTier.intValue)
-    IndexStorageService.instance.remove(selections)
+    CloudServices.CloudEngine.filterAdapters(_minTier.intValue, _maxTier.intValue)
+    CloudServices.IndexStorage.remove(selections)
   }
 }

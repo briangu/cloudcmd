@@ -1,5 +1,5 @@
 package cloudcmd.common.engine
 
-trait CloudEngineListener {
+trait EngineEventListener {
   def onMessage(msg: String)
 }

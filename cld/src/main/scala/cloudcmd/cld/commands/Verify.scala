@@ -1,13 +1,11 @@
 package cloudcmd.cld.commands
 
-import cloudcmd.cld.CloudEngineService
-import cloudcmd.cld.IndexStorageService
+import cloudcmd.cld.CloudServices
 import cloudcmd.common.util.JsonUtil
 import jpbetz.cli.Command
 import jpbetz.cli.CommandContext
 import jpbetz.cli.Opt
 import jpbetz.cli.SubCommand
-import org.json.JSONArray
 import org.json.JSONObject
 
 @SubCommand(name = "verify", description = "Verify storage contents.") class Verify extends Command {
@@ -18,8 +16,8 @@ import org.json.JSONObject
   @Opt(opt = "d", longOpt = "delete", description = "delete invalid blocks", required = false) private var _deleteOnInvalid: Boolean = true
 
   def exec(commandLine: CommandContext) {
-    val selections = if (_verifyAll) IndexStorageService.instance.find(new JSONObject) else JsonUtil.loadJsonArray(System.in)
-    CloudEngineService.instance.filterAdapters(_minTier.intValue, _maxTier.intValue)
-    IndexStorageService.instance.verify(selections, _deleteOnInvalid)
+    val selections = if (_verifyAll) CloudServices.IndexStorage.find(new JSONObject) else JsonUtil.loadJsonArray(System.in)
+    CloudServices.CloudEngine.filterAdapters(_minTier.intValue, _maxTier.intValue)
+    CloudServices.IndexStorage.verify(selections, _deleteOnInvalid)
   }
 }

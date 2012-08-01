@@ -1,13 +1,11 @@
 package cloudcmd.cld.commands
 
-import cloudcmd.cld.CloudEngineService
-import cloudcmd.cld.ConfigStorageService
-import cloudcmd.cld.IndexStorageService
 import jpbetz.cli.Command
 import jpbetz.cli.CommandContext
 import jpbetz.cli.Opt
 import jpbetz.cli.SubCommand
 import java.net.URI
+import cloudcmd.cld.CloudServices
 
 @SubCommand(name = "update", description = "update cached adapter information.")
 class Update extends Command {
@@ -19,12 +17,12 @@ class Update extends Command {
   def exec(commandLine: CommandContext) {
     if (_uri == null) {
       System.err.println("updating all adapters")
-      CloudEngineService.instance.filterAdapters(_minTier.intValue, _maxTier.intValue)
-      CloudEngineService.instance.refreshAdapterCaches
+      CloudServices.CloudEngine.filterAdapters(_minTier.intValue, _maxTier.intValue)
+      CloudServices.CloudEngine.refreshAdapterCaches
     }
     else {
       val adapterURI: URI = new URI(_uri)
-      for (adapter <- ConfigStorageService.instance.getAdapters) {
+      for (adapter <- CloudServices.ConfigService.getAdapters) {
         if ((adapter.URI.toString == _uri) || ((adapterURI.getPath == adapter.URI.getPath))) {
           System.err.println("updating adapter: " + adapter.URI.toString)
           adapter.refreshCache
@@ -32,6 +30,6 @@ class Update extends Command {
       }
     }
     System.err.println("rebuilding index available adapters")
-    IndexStorageService.instance.reindex
+    CloudServices.IndexStorage.reindex
   }
 }

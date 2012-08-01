@@ -6,25 +6,23 @@ import java.io._
 import org.apache.log4j.Logger
 import config.ConfigStorage
 
-class ParallelCloudEngine extends CloudEngine with EventSource {
+class ParallelCloudEngine(configService: ConfigStorage) extends CloudEngine {
 
   private val log = Logger.getLogger(classOf[ParallelCloudEngine])
 
-  private var _storage: ReplicationStrategy = null
-  private var _configService: ConfigStorage = null
+  private var _storage : ReplicationStrategy = null
   private var _adapters : List[Adapter] = null
 
-  def init(configService: ConfigStorage) {
-    _configService = configService
-    _adapters = _configService.getAdapters.toList
-    _storage = _configService.getReplicationStrategy
+  def init() {
+    _storage = configService.getReplicationStrategy
+    _adapters = configService.getAdapters
   }
 
   def run {}
   def shutdown {}
 
   def filterAdapters(minTier: Int, maxTier: Int) {
-    _adapters = _configService.getAdapters.filter(a => a.Tier >= minTier && a.Tier <= maxTier && a.IsOnLine() && !a.IsFull()).toList
+    _adapters = configService.getAdapters.filter(a => a.Tier >= minTier && a.Tier <= maxTier && a.IsOnLine() && !a.IsFull()).toList
   }
 
   def refreshAdapterCaches() {

@@ -1,11 +1,11 @@
 package cloudcmd.cld.commands
 
-import cloudcmd.cld.ConfigStorageService
 import jpbetz.cli.Command
 import jpbetz.cli.CommandContext
 import jpbetz.cli.Opt
 import jpbetz.cli.SubCommand
 import java.net.URI
+import cloudcmd.cld.CloudServices
 
 @SubCommand(name = "adapter", description = "Manager storage adapters.") 
 class Adapter extends Command {
@@ -21,12 +21,12 @@ class Adapter extends Command {
         return
       }
       val uri: URI = new URI(_uri)
-      val found: Boolean = ConfigStorageService.instance.removeAdapter(uri)
+      val found: Boolean = CloudServices.ConfigService.removeAdapter(uri)
       if (!found) {
         System.err.println("could not find adapter to remove: " + uri)
         return
       }
-      ConfigStorageService.instance.writeConfig
+      CloudServices.ConfigService.writeConfig
     }
     else if (_add) {
       if (_uri == null) {
@@ -34,13 +34,13 @@ class Adapter extends Command {
         return
       }
       val uri: URI = new URI(_uri)
-      ConfigStorageService.instance.addAdapter(uri)
-      ConfigStorageService.instance.writeConfig
+      CloudServices.ConfigService.addAdapter(uri)
+      CloudServices.ConfigService.writeConfig
     }
     else if (_list) {
       System.out.println("Adapters:")
       System.out.println
-      for (adapter <- ConfigStorageService.instance.getAdapters) {
+      for (adapter <- CloudServices.ConfigService.getAdapters) {
         System.out.println("Adapter: " + adapter.Type)
         System.out.println("  URI: " + adapter.URI.toString)
         System.out.println("  ConfigDir: " + adapter.ConfigDir)

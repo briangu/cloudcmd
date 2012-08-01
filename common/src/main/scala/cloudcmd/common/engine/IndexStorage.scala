@@ -1,13 +1,11 @@
-package cloudcmd.common.index
+package cloudcmd.common.engine
 
 import cloudcmd.common.util.FileMetaData
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.File
-import cloudcmd.common.engine.CloudEngine
 
-trait IndexStorage {
-  def init(configRoot: String, cloudEngine: CloudEngine)
+trait IndexStorage extends EventSource  {
+  def init(configRoot: String)
 
   def purge
 
@@ -15,23 +13,17 @@ trait IndexStorage {
 
   def shutdown
 
-  def registerListener(listener: IndexStorageListener)
+  def reindex()
 
   def find(filter: JSONObject): JSONArray
 
   def add(meta: FileMetaData)
 
-  def remove(meta: FileMetaData)
-
   def addAll(fmds: List[FileMetaData])
 
+  def remove(meta: FileMetaData)
+
   def pruneHistory(fmds: List[FileMetaData])
-
-  def reindex()
-
-  def add(file: File, tags: Set[String])
-
-  def batchAdd(file: Set[File], tags: Set[String])
 
   def sync(selections: JSONArray)
 

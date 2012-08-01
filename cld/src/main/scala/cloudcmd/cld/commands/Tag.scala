@@ -1,11 +1,11 @@
 package cloudcmd.cld.commands
 
-import cloudcmd.cld.IndexStorageService
 import cloudcmd.common.util.{MetaUtil, JsonUtil}
-import cloudcmd.common.{FileUtil}
+import cloudcmd.common.FileUtil
 import jpbetz.cli._
 import java.io.File
 import java.io.FileInputStream
+import cloudcmd.cld.CloudServices
 
 @SubCommand(name = "tag", description = "Add or remove tags to/from archived files.")
 class Tag extends Command {
@@ -26,7 +26,7 @@ class Tag extends Command {
         preparedTags = preparedTags.map("-" + _)
       }
 
-      val newMeta = IndexStorageService.instance.addTags(selections, preparedTags.toSet)
+      val newMeta = CloudServices.IndexStorage.addTags(selections, preparedTags.toSet)
       System.out.println(newMeta.toString)
     }
     finally {
