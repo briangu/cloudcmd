@@ -12,7 +12,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy with EventSource {
   private val log: Logger = Logger.getLogger(classOf[MirrorReplicationStrategy])
 
   def isReplicated(hash: String, adapters: List[Adapter]): Boolean = {
-    adapters.par.filterNot(_.describe.contains(hash)).size > 0
+    adapters.par.filterNot(_.contains(hash)).size > 0
   }
 
   def sync(hash: String, hashProviders: List[Adapter], adapters: List[Adapter]) {
@@ -36,24 +36,23 @@ class MirrorReplicationStrategy extends ReplicationStrategy with EventSource {
     }
   }
 
-  def contains(hash: String, adapters: List[Adapter]) : Boolean = {
-    adapters.par.filter(_.describe.contains(hash)).size > 0
-  }
-
-  def store(hash: String, is: InputStream, adapters: List[Adapter]) {
-    var containsAdapters = adapters.par.filter(_.describe.contains(hash)).toList
-    if (containsAdapters.size == 0) {
-      adapters(0).store(is, hash)
+  def store(hash: String, dis: InputStream, adapters: List[Adapter]) {
+    var containsAdapters = adapters.par.filter(_.contains(hash)).toList
+    val nis = if (containsAdapters.size == 0) {
+      adapters(0).store(dis, hash)
       containsAdapters = containsAdapters ++ List(adapters(0))
+      null
+    } else {
+      dis
     }
 
     val missingAdapters = adapters -- containsAdapters
     val pushedCount = new AtomicInteger(containsAdapters.size)
 
     missingAdapters.par.foreach{ adapter =>
-      var is: InputStream = null
+      var is: InputStream = nis
       try {
-        is = load(hash, containsAdapters)
+        if (is == null) is = load(hash, containsAdapters)
         adapter.store(is, hash)
         pushedCount.incrementAndGet()
         containsAdapters = containsAdapters ++ List(adapter)

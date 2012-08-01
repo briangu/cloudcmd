@@ -185,9 +185,8 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
   }
 
   private def getDescription: mutable.HashSet[String] with mutable.SynchronizedSet[String] = {
-    if (_description != null) {
-      _description
-    }
+    if (_description != null) return _description
+
     this synchronized {
       if (_description == null) {
         val description = new mutable.HashSet[String] with mutable.SynchronizedSet[String]

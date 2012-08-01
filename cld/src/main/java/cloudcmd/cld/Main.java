@@ -53,6 +53,8 @@ public class Main
       }
     });
 
+    long startTime = System.currentTimeMillis();
+
     try
     {
       Listener listener = new Listener(queue);
@@ -83,6 +85,7 @@ public class Main
       app.addSubCommands(Tag.class);
       app.addSubCommands(Update.class);
       app.addSubCommands(Verify.class);
+
       app.invoke(args);
     }
     finally
@@ -94,5 +97,7 @@ public class Main
       event[0] = true;
       msgPump.interrupt();
     }
+
+    System.err.println(String.format("took %6d ms to run",((System.currentTimeMillis() - startTime))));
   }
 }

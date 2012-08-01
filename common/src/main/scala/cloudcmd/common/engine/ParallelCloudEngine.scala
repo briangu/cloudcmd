@@ -44,7 +44,7 @@ class ParallelCloudEngine extends CloudEngine with EventSource {
   }
 
   def getHashProviders(hash: String) : List[Adapter] = {
-    _adapters.par.filter(_.describe().contains(hash)).toList
+    _adapters.par.filter(_.contains(hash)).toList
   }
 
   def sync(hash: String) {
@@ -52,9 +52,7 @@ class ParallelCloudEngine extends CloudEngine with EventSource {
   }
 
   def syncAll(hashes : Set[String]) {
-    hashes.par.filter(_storage.isReplicated(_, _adapters)).par.foreach {
-      hash => _storage.sync(hash, getHashProviders(hash), _adapters)
-    }
+    hashes.par.foreach { hash => _storage.sync(hash, getHashProviders(hash), _adapters) }
   }
 
   def verify(hash: String, deleteOnInvalid: Boolean) {

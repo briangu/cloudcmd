@@ -12,6 +12,7 @@ import java.io.{FileInputStream, ByteArrayInputStream, InputStream, File}
 import java.sql.{PreparedStatement, SQLException, Statement, Connection}
 import collection.mutable.ListBuffer
 import scala.util.Random
+import collection.mutable
 
 class H2IndexStorage extends IndexStorage with IndexStorageListener {
   private val log = Logger.getLogger(classOf[H2IndexStorage])
@@ -435,29 +436,34 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
   }
 
   def sync(selections: JSONArray) {
-    val pushSet = Set() ++ (0 until selections.length).par.flatMap {
+    val pushSet = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
+    (0 until selections.length).par.foreach {
       i =>
         val hash = selections.getJSONObject(i).getString("hash")
         if (hash.endsWith(".meta")) {
           val blocks = selections.getJSONObject(i).getJSONObject("data").getJSONArray("blocks")
           val allHashes = Set(hash) ++ (0 until blocks.length).flatMap(idx => Set(blocks.getString(idx)))
-          allHashes.flatMap{ h =>
+          // TODO: we don't really need to ensure that every block has a provider as we can verify that implicitly later
+          allHashes.foreach(pushSet.add)
+/*
+          allHashes.foreach{ h =>
             val providers = _cloudEngine.getHashProviders(hash)
             if (providers.size > 0) {
-              Set(h)
+              pushSet.add(h)
             } else {
               // TODO: we need to fire a data not found event here
               log.error("hash not found in storage: " + hash)
-              Nil
             }
           }
+*/
         } else {
           log.error("unexpected hash type: " + hash)
-          Nil
         }
     }
 
-    _cloudEngine.syncAll(pushSet)
+    // TODO: respect acceptsTags
+
+    _cloudEngine.syncAll(pushSet.toSet)
   }
 
   // TODO: what about the meta.Parent chain? do we want to wipe out the entire chain?
