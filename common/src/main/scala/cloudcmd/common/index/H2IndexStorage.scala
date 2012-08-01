@@ -402,15 +402,22 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
     fileSet.par.foreach {
       file =>
         var blockHash: String = null
-        var fis: InputStream = null
 
         val startTime = System.currentTimeMillis()
         try {
+          var fis = new FileInputStream(file)
+          try {
+            blockHash = CryptoUtil.computeHashAsString(fis)
+          } finally {
+            FileUtil.SafeClose(fis)
+          }
+
           fis = new FileInputStream(file)
-          fis.mark(0)
-          blockHash = CryptoUtil.computeHashAsString(fis)
-          fis.reset()
-          _cloudEngine.store(blockHash, fis)
+          try {
+            _cloudEngine.store(blockHash, fis)
+          } finally {
+            FileUtil.SafeClose(fis)
+          }
 
           val meta = MetaUtil.createMeta(file, List(blockHash), tags)
           _cloudEngine.store(meta.getHash(), new ByteArrayInputStream(meta.getDataAsString().getBytes("UTF-8")))
@@ -418,9 +425,8 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
         }
         finally {
           onMessage("took %6d ms to index %s".format((System.currentTimeMillis() - startTime), file.getName()))
-          FileUtil.SafeClose(fis)
           if (blockHash == null) {
-            throw new RuntimeException("failed to index file: " + file.getAbsolutePath())
+            onMessage("failed to index file: " + file.getAbsolutePath())
           }
         }
     }

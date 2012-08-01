@@ -15,7 +15,7 @@ import collection.mutable
 class Index extends Command {
 
   @Arg(name = "path", optional = false) var _path: String = null
-  @Arg(name = "tags", optional = true, isVararg = true) var _tags: List[String] = null
+  @Arg(name = "tags", optional = true, isVararg = true) var _tags: java.util.List[String] = null
 
   def exec(commandLine: CommandContext) {
     if (_path == null) {
@@ -29,10 +29,11 @@ class Index extends Command {
         if (skip) {
           System.err.println(String.format("Skipping dir: " + file.getAbsolutePath))
         }
-        return skip
+        skip
       }
 
       def process(file: File) {
+        if (!file.exists()) return // catch soft links
         val fileName: String = file.getName
         val extIndex: Int = fileName.lastIndexOf(".")
         val ext: String = if ((extIndex > 0)) fileName.substring(extIndex + 1) else null
@@ -41,6 +42,7 @@ class Index extends Command {
         }
       }
     })
+    import scala.collection.JavaConversions._
     IndexStorageService.instance.batchAdd(fileSet.toSet, _tags.toSet)
   }
 }
