@@ -28,8 +28,11 @@ class DirectS3Adapter extends Adapter {
     val creds = new AWSCredentials(awsKey, awsSecret)
     _s3Service = new RestS3Service(creds)
     _bucketName = awsBucketName
-    bootstrap
-    _isOnline = _s3Service.isBucketAccessible(_bucketName)
+
+    if (!_s3Service.isBucketAccessible(_bucketName)) {
+      _s3Service.getOrCreateBucket(_bucketName)
+      _isOnline = _s3Service.isBucketAccessible(_bucketName)
+    }
   }
 
   def parseAwsInfo(adapterUri: URI): (String, String, String) = {
@@ -38,16 +41,6 @@ class DirectS3Adapter extends Adapter {
     val queryParams = UriUtil.parseQueryString(adapterUri)
     if (!queryParams.containsKey("secret")) throw new IllegalArgumentException("missing aws secret")
     (parts(0), queryParams.get("secret"), parts(1))
-  }
-
-  private def bootstrap {
-    if (!_s3Service.isBucketAccessible(_bucketName)) {
-      bootstrapS3
-    }
-  }
-
-  private def bootstrapS3 {
-    _s3Service.getOrCreateBucket(_bucketName)
   }
 
   override

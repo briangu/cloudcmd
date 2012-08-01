@@ -27,11 +27,11 @@ class DirectFileAdapter extends Adapter {
     val rootPathDir = new File(_rootPath)
     rootPathDir.mkdirs
     _isOnline = rootPathDir.exists
-    if (IsOnLine()) bootstrap(_dataDir, _dbDir)
+    if (IsOnLine()) bootstrap(_dataDir)
   }
 
-  private def bootstrap(dataPath: String, dbPath: String) {
-    val file: File = new File(_dataDir)
+  private def bootstrap(dataPath: String) {
+    val file: File = new File(dataPath)
     if (!file.exists) {
       initSubDirs(dataPath)
     }
@@ -58,12 +58,8 @@ class DirectFileAdapter extends Adapter {
   def verify(hash: String): Boolean = {
     val file: File = new File(getDataFileFromHash(hash))
     if (file.exists) {
-      val idx: Int = hash.lastIndexOf(".")
-      val testHash = if (idx >= 0) {
-        hash.substring(0, idx)
-      } else {
-        hash
-      }
+      val idx = hash.lastIndexOf(".")
+      val testHash = if (idx >= 0) hash.substring(0, idx) else hash
       CryptoUtil.computeHashAsString(file) == testHash
     } else {
       false
@@ -75,8 +71,8 @@ class DirectFileAdapter extends Adapter {
   private def getDataFileFromHash(hash: String): String = getPathFromHash(hash) + File.separator + hash
 
   private def getHashFromDataFile(hash: String): String = {
-    val idx: Int = hash.lastIndexOf(".")
-    if ((idx >= 0)) hash.substring(0, idx) else hash
+    val idx = hash.lastIndexOf(".")
+    if (idx >= 0) hash.substring(0, idx) else hash
   }
 
   def store(is: InputStream, hash: String) {
