@@ -9,7 +9,9 @@ import jpbetz.cli.Opt
 import jpbetz.cli.SubCommand
 import java.net.URI
 
-@SubCommand(name = "update", description = "update cached adapter information.") class Update extends Command {
+@SubCommand(name = "update", description = "update cached adapter information.")
+class Update extends Command {
+
   @Opt(opt = "n", longOpt = "minTier", description = "min tier to verify to", required = false) private var _minTier: Number = 0
   @Opt(opt = "m", longOpt = "maxTier", description = "max tier to verify to", required = false) private var _maxTier: Number = Integer.MAX_VALUE
   @Opt(opt = "a", longOpt = "adapter", description = "adapter URI to refresh", required = false) private var _uri: String = null

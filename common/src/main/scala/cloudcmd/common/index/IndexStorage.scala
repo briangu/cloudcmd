@@ -3,7 +3,6 @@ package cloudcmd.common.index
 import cloudcmd.common.FileMetaData
 import org.json.JSONArray
 import org.json.JSONObject
-import java.util.List
 import java.io.File
 import cloudcmd.common.engine.CloudEngine
 
@@ -30,9 +29,9 @@ trait IndexStorage {
 
   def reindex()
 
-  def add(file: File, tags: java.util.Set[String])
+  def add(file: File, tags: Set[String])
 
-  def batchAdd(file: java.util.Set[File], tags: java.util.Set[String])
+  def batchAdd(file: Set[File], tags: Set[String])
 
   def sync(selections: JSONArray)
 
@@ -42,5 +41,5 @@ trait IndexStorage {
 
   def remove(selections: JSONArray)
 
-  def addTags(selections: JSONArray, tags: java.util.Set[String]): JSONArray
+  def addTags(selections: JSONArray, tags: Set[String]): JSONArray
 }

@@ -7,11 +7,12 @@ import jpbetz.cli.Opt
 import jpbetz.cli.SubCommand
 import java.net.URI
 
-@SubCommand(name = "adapter", description = "Manager storage adapters.") class Adapter extends Command {
-  @Opt(opt = "r", longOpt = "remove", description = "remove adapter", required = false) private[commands] var _remove: Boolean = false
-  @Opt(opt = "l", longOpt = "list", description = "list adapters", required = false) private[commands] var _list: Boolean = false
-  @Opt(opt = "a", longOpt = "add", description = "add adapter", required = false) private[commands] var _add: Boolean = false
-  @Opt(opt = "u", longOpt = "uri", description = "adapter URI", required = false) private[commands] var _uri: String = null
+@SubCommand(name = "adapter", description = "Manager storage adapters.") 
+class Adapter extends Command {
+  @Opt(opt = "r", longOpt = "remove", description = "remove adapter", required = false) private var _remove: Boolean = false
+  @Opt(opt = "l", longOpt = "list", description = "list adapters", required = false) private var _list: Boolean = false
+  @Opt(opt = "a", longOpt = "add", description = "add adapter", required = false) private var _add: Boolean = false
+  @Opt(opt = "u", longOpt = "uri", description = "adapter URI", required = false) private var _uri: String = null
 
   def exec(commandLine: CommandContext) {
     if (_remove) {

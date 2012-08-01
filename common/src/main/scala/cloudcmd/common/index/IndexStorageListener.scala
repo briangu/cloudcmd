@@ -1,5 +1,5 @@
 package cloudcmd.common.index
 
-trait IndexStorageListener {
+trait   IndexStorageListener {
   def onMessage(msg: String)
 }

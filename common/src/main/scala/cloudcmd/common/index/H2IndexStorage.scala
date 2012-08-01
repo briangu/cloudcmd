@@ -213,12 +213,7 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
     removeAll(Set(meta.getHash))
   }
 
-  def pruneHistory(selections: java.util.List[FileMetaData]) {
-    import scala.collection.JavaConversions._
-    pruneHistory(selections.toList)
-  }
-
-  private def _pruneHistory(selections: List[FileMetaData]) {
+  def pruneHistory(selections: List[FileMetaData]) {
     removeAll(Set() ++ selections.flatMap(fmd => if (fmd.getParent == null) { Nil } else { Set(fmd.getParent) }))
   }
 
@@ -255,12 +250,7 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
     }
   }
 
-  def addAll(meta: java.util.List[FileMetaData]) {
-    import collection.JavaConversions._
-    _addAll(meta.toList)
-  }
-
-  private def _addAll(meta: List[FileMetaData]) {
+  def addAll(meta: List[FileMetaData]) {
     if (meta == null) return
     var db: Connection = null
     try {
@@ -300,8 +290,8 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
         }
     }.toList
 
-    _addAll(fmds)
-    _pruneHistory(fmds)
+    addAll(fmds)
+    pruneHistory(fmds)
   }
 
   def fetch(selections: JSONArray) {
@@ -363,7 +353,9 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
     }
   }
 
-  def addTags(selections: JSONArray, tags: java.util.Set[String]): JSONArray = {
+  def addTags(selections: JSONArray, tags: Set[String]): JSONArray = {
+    import collection.JavaConversions._
+
     val fmds = (0 until selections.length).par.flatMap {
       i =>
         val hash = selections.getJSONObject(i).getString("hash")
@@ -382,8 +374,6 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
         }
     }.toList
 
-    import collection.JavaConversions._
-
     addAll(fmds)
     pruneHistory(fmds)
 
@@ -400,23 +390,11 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
     }
   }
 
-  // TODO: remove java.util.
-  def add(file: File, tags: java.util.Set[String]) {
-    import collection.JavaConversions._
-    _add(file, tags.toSet)
+  def add(file: File, tags: Set[String]) {
+    batchAdd(Set(file), tags)
   }
 
-  private def _add(file: File, tags: Set[String]) {
-    _batchAdd(Set(file), tags)
-  }
-
-  // TODO: remove java.util.
-  def batchAdd(fileSet: java.util.Set[File], tags: java.util.Set[String]) {
-    import collection.JavaConversions._
-    _batchAdd(fileSet.toSet, tags.toSet)
-  }
-
-  private def _batchAdd(fileSet: Set[File], tags: Set[String]) {
+  def batchAdd(fileSet: Set[File], tags: Set[String]) {
     import collection.JavaConversions._
 
     val metaSet = new collection.mutable.HashSet[FileMetaData] with collection.mutable.SynchronizedSet[FileMetaData]
@@ -434,7 +412,7 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
           fis.reset()
           _cloudEngine.store(blockHash, fis)
 
-          val meta = MetaUtil.createMeta(file, java.util.Arrays.asList(blockHash), tags)
+          val meta = MetaUtil.createMeta(file, List(blockHash), tags)
           _cloudEngine.store(meta.getHash(), new ByteArrayInputStream(meta.getDataAsString().getBytes("UTF-8")))
           metaSet.add(meta)
         }
