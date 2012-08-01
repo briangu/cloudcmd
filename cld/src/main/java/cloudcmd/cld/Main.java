@@ -37,13 +37,18 @@ public class Main
     }
 
     final Boolean[] event = new Boolean[1];
+    event[0] = new Boolean(false);
+
     final BlockingQueue<String> queue = new SynchronousQueue<String>();
     Thread msgPump = new Thread(new Runnable() {
       @Override
       public void run() {
         while(!event[0]) {
-          String msg = queue.poll();
-          System.err.println(msg);
+          try {
+            String msg = queue.take();
+            System.err.println(msg);
+          } catch (InterruptedException e) {
+          }
         }
       }
     });
@@ -87,7 +92,6 @@ public class Main
       ConfigStorageService.instance().shutdown();
 
       event[0] = true;
-      queue.offer("done.");
       msgPump.interrupt();
     }
   }

@@ -495,9 +495,9 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
       }
       else {
         val list = new ListBuffer[String]
-        val iter = filter.keys().asInstanceOf[Iterator[String]]
+        val iter = filter.keys()
         while (iter.hasNext) {
-          val key = iter.next
+          val key = iter.next.asInstanceOf[String]
           val obj = filter.get(key)
           if (obj.isInstanceOf[Array[String]] || obj.isInstanceOf[Array[Long]]) {
             val foo = List(obj)
