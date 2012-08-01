@@ -18,10 +18,10 @@ trait CloudEngine {
   def shutdown()
 
   def sync(hash : String)
-  def sync(hashes : Set[String])
+  def syncAll(hashes : Set[String])
 
-  def verify(hashes: Set[String], deleteOnInvalid: Boolean)
   def verify(hash: String, deleteOnInvalid: Boolean)
+  def verifyAll(hashes: Set[String], deleteOnInvalid: Boolean)
 
   def load(hash: String) : InputStream
 

@@ -57,20 +57,20 @@ class ParallelCloudEngine extends CloudEngine {
   }
 
   def sync(hash: String) {
-    sync(Set(hash))
+    syncAll(Set(hash))
   }
 
-  def sync(hashes : Set[String]) {
+  def syncAll(hashes : Set[String]) {
     hashes.par.filter(_storage.isReplicated(_, _adapters)).par.foreach {
       hash => _storage.sync(hash, getHashProviders(hash), _adapters)
     }
   }
 
   def verify(hash: String, deleteOnInvalid: Boolean) {
-    verify(Set(hash), deleteOnInvalid)
+    verifyAll(Set(hash), deleteOnInvalid)
   }
 
-  def verify(hashes: Set[String], deleteOnInvalid: Boolean) {
+  def verifyAll(hashes: Set[String], deleteOnInvalid: Boolean) {
     hashes.par.foreach(hash => _storage.verify(hash, getHashProviders(hash), deleteOnInvalid))
   }
 
@@ -82,11 +82,11 @@ class ParallelCloudEngine extends CloudEngine {
     _storage.load(hash, getHashProviders(hash))
   }
 
-  def removeAll(hashes: Set[String]) {
-    hashes.par.foreach(hash => _storage.remove(hash, getHashProviders(hash)))
-  }
-
   def remove(hash: String) {
     removeAll(Set(hash))
+  }
+
+  def removeAll(hashes: Set[String]) {
+    hashes.par.foreach(hash => _storage.remove(hash, getHashProviders(hash)))
   }
 }

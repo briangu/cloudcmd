@@ -4,7 +4,7 @@ package cloudcmd.cld.commands;
 import cloudcmd.cld.IndexStorageService;
 import cloudcmd.common.FileTypeUtil;
 import cloudcmd.common.FileUtil;
-import cloudcmd.common.engine.FileWalker;
+import cloudcmd.common.util.FileWalker;
 import jpbetz.cli.Arg;
 import jpbetz.cli.Command;
 import jpbetz.cli.CommandContext;

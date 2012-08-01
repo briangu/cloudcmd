@@ -1,4 +1,4 @@
-package cloudcmd.common.engine
+package cloudcmd.common.util
 
 import java.io.File
 import java.util.Stack
@@ -17,7 +17,7 @@ object FileWalker {
       val curFile = stack.pop
       val subFiles = curFile.listFiles
       if (subFiles != null) {
-        val toPush = List() ++ subFiles.par.flatMap{
+        val toPush = List() ++ subFiles.par.flatMap {
           file =>
             if (file.isDirectory) {
               if (handler.skipDir(file)) {
@@ -37,6 +37,8 @@ object FileWalker {
 
   trait FileHandler {
     def skipDir(file: File): Boolean
+
     def process(file: File)
   }
+
 }

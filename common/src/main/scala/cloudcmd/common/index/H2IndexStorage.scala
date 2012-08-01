@@ -11,7 +11,7 @@ import org.json.JSONObject
 import java.io.{FileInputStream, ByteArrayInputStream, InputStream, File}
 import java.sql.{PreparedStatement, SQLException, Statement, Connection}
 import collection.mutable.ListBuffer
-import util.Random
+import scala.util.Random
 
 class H2IndexStorage extends IndexStorage with IndexStorageListener {
   private val log = Logger.getLogger(classOf[H2IndexStorage])
@@ -391,7 +391,7 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
   }
 
   def verify(selections: JSONArray, deleteOnInvalid: Boolean) {
-    _cloudEngine.verify(getHashesFromSelections(selections), deleteOnInvalid)
+    _cloudEngine.verifyAll(getHashesFromSelections(selections), deleteOnInvalid)
   }
 
   private def getHashesFromSelections(selections: JSONArray) : Set[String] = {
@@ -477,7 +477,7 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
         }
     }
 
-    _cloudEngine.sync(pushSet)
+    _cloudEngine.syncAll(pushSet)
   }
 
   // TODO: what about the meta.Parent chain? do we want to wipe out the entire chain?
