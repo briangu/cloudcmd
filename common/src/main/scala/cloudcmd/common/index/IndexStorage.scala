@@ -1,6 +1,6 @@
 package cloudcmd.common.index
 
-import cloudcmd.common.FileMetaData
+import cloudcmd.common.util.FileMetaData
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File

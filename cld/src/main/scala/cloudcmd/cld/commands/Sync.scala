@@ -2,12 +2,11 @@ package cloudcmd.cld.commands
 
 import cloudcmd.cld.CloudEngineService
 import cloudcmd.cld.IndexStorageService
-import cloudcmd.common.JsonUtil
+import cloudcmd.common.util.JsonUtil
 import jpbetz.cli.Command
 import jpbetz.cli.CommandContext
 import jpbetz.cli.Opt
 import jpbetz.cli.SubCommand
-import org.json.JSONArray
 import org.json.JSONObject
 
 @SubCommand(name = "sync", description = "Sync the local cache to storage endpoints.")

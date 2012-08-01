@@ -1,16 +1,15 @@
 package cloudcmd.cld.commands
 
 import cloudcmd.cld.IndexStorageService
-import cloudcmd.common.MetaUtil
+import cloudcmd.common.util.MetaUtil
 import cloudcmd.common.StringUtil
 import jpbetz.cli._
 import org.json.JSONObject
-import java.util.List
 
 @SubCommand(name = "find", description = "Query the index of archived files.")
 class Find extends Command {
 
-  @Arg(name = "tags", optional = true, isVararg = true) private var _tags: List[String] = null
+  @Arg(name = "tags", optional = true, isVararg = true) private var _tags: java.util.List[String] = null
   @Opt(opt = "p", longOpt = "path", description = "path to find by", required = false) private var _path: String = null
   @Opt(opt = "f", longOpt = "name", description = "filename to find by", required = false) private var _filename: String = null
   @Opt(opt = "h", longOpt = "hash", description = "hash to find by", required = false) private var _hash: String = null
@@ -21,7 +20,8 @@ class Find extends Command {
   def exec(commandLine: CommandContext) {
     val filter = new JSONObject
     if (_tags != null) {
-      val tags = MetaUtil.prepareTags(_tags)
+      import scala.collection.JavaConversions._
+      val tags = MetaUtil.prepareTags(_tags.toList)
       if (tags.size > 0) filter.put("tags", StringUtil.join(tags, " "))
     }
     if (_path != null) filter.put("path", _path)

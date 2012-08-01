@@ -1,7 +1,7 @@
 package cloudcmd.common.adapters
 
 import cloudcmd.common._
-import util.FileWalker
+import util.{CryptoUtil, FileWalker}
 import org.jboss.netty.buffer.ChannelBuffer
 import java.io._
 import java.net.URI

@@ -1,6 +1,6 @@
 package cloudcmd.cld.commands
 
-import cloudcmd.common.JsonUtil
+import cloudcmd.common.util.JsonUtil
 import jpbetz.cli.Command
 import jpbetz.cli.CommandContext
 import jpbetz.cli.SubCommand

@@ -1,7 +1,7 @@
 package cloudcmd.cld.commands
 
 import cloudcmd.cld.IndexStorageService
-import cloudcmd.common.FileTypeUtil
+import cloudcmd.common.util.{FileTypeUtil, FileWalker}
 import cloudcmd.common.FileUtil
 import cloudcmd.common.util.FileWalker
 import jpbetz.cli.Arg

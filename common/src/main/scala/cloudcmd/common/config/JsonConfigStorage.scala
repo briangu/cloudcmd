@@ -13,6 +13,7 @@ import java.io.IOException
 import java.net.URI
 import java.nio.channels.Channels
 import collection.mutable.ListBuffer
+import util.{CryptoUtil, JsonUtil}
 
 class JsonConfigStorage extends ConfigStorage {
 
@@ -57,10 +58,7 @@ class JsonConfigStorage extends ConfigStorage {
 
   private def loadAdapterHandlers(config: JSONObject): Map[String, String] = {
     if (!config.has("adapterHandlers")) throw new IllegalArgumentException("config is missing the adapters field")
-    val handlers = config.getJSONObject("adapterHandlers")
-
-    import scala.collection.JavaConversions._
-    Map() ++ handlers.keys().flatMap{key => Map(key.asInstanceOf[String] -> handlers.getString(key.asInstanceOf[String]))}
+    JsonUtil.toStringMap(config.getJSONObject("adapterHandlers"))
   }
 
   private def loadAdapters(config: JSONObject): List[Adapter] = {
@@ -108,7 +106,6 @@ class JsonConfigStorage extends ConfigStorage {
     try {
       adapter = clazz.newInstance.asInstanceOf[Adapter]
       val adapterIdHash = CryptoUtil.digestToString(CryptoUtil.computeMD5Hash(Channels.newChannel(new ByteArrayInputStream(adapterUri.toASCIIString.getBytes("UTF-8")))))
-      import scala.collection.JavaConversions._
       adapter.init(_configRoot + File.separator + "adapterCaches" + File.separator + adapterIdHash, tier, handlerType, tags.toSet, adapterUri)
     }
     catch {
@@ -185,7 +182,6 @@ class JsonConfigStorage extends ConfigStorage {
   private def rebuildConfig {
     _config.put("defaultTier", _defaultTier)
     val adapters = new JSONArray
-    import scala.collection.JavaConversions._
     for (adapter <- _allAdapters) {
       adapters.put(adapter.URI.toString)
     }
@@ -205,7 +201,6 @@ class JsonConfigStorage extends ConfigStorage {
 
   def getAdapter(adapterURI: URI): Adapter = {
     val adapters: List[Adapter] = getAdapters
-    import scala.collection.JavaConversions._
     for (adapter <- adapters) {
       if (adapter.URI == adapterURI) {
         return adapter

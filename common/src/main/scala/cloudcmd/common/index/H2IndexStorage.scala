@@ -13,6 +13,7 @@ import java.sql.{PreparedStatement, SQLException, Statement, Connection}
 import collection.mutable.ListBuffer
 import scala.util.Random
 import collection.mutable
+import util._
 
 class H2IndexStorage extends IndexStorage with IndexStorageListener {
   private val log = Logger.getLogger(classOf[H2IndexStorage])
@@ -142,8 +143,8 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
         bind.append(meta.getPath)
         bind.append(meta.getFilename)
         bind.append(meta.getFileExt)
-        bind.append(meta.getFileSize)
-        bind.append(meta.getFileDate)
+        bind.append(meta.getFileSize.asInstanceOf[AnyRef])
+        bind.append(meta.getFileDate.asInstanceOf[AnyRef])
         bind.append(buildTags(meta))
         bind.append(meta.getDataAsString)
         (0 until bind.size).foreach(i => bindVar(statement, i + 1, bind(i)))
@@ -199,7 +200,7 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
       db = getDbConnection
       db.setAutoCommit(false)
       addMeta(db, List(meta))
-      db.commit()
+      db.commit
     }
     catch {
       case e: JSONException => log.error(e)
@@ -233,12 +234,12 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
 
         k +=1
         if (k > BATCH_SIZE) {
-          statement.executeBatch()
+          statement.executeBatch
           k = 0
         }
       }
 
-      statement.executeBatch()
+      statement.executeBatch
       db.commit
     }
     catch {
@@ -279,7 +280,7 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
   def reindex {
     purge
 
-    val fmds = _cloudEngine.getMetaHashSet().par.flatMap {
+    val fmds = _cloudEngine.getMetaHashSet.par.flatMap {
       hash =>
         try {
           List(MetaUtil.loadMeta(hash, JsonUtil.loadJson(_cloudEngine.load(hash))))
@@ -300,7 +301,7 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
   }
 
   def fetch(meta: FileMetaData) {
-    val blockHashes = (0 until meta.getBlockHashes().length()).map(meta.getBlockHashes().getString)
+    val blockHashes = (0 until meta.getBlockHashes.length).map(meta.getBlockHashes.getString)
     val hashAdapterMap = blockHashes.flatMap {
       hash =>
         val hashProviders = _cloudEngine.getHashProviders(hash)
@@ -325,12 +326,12 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
               // TODO: support writing to an offset of the existing file to allow for sub-blocks
               remoteData = blockProviders(i).load(hash)
               val destFile = new File(meta.getPath)
-              destFile.getParentFile().mkdirs()
+              destFile.getParentFile.mkdirs
               val remoteDataHash = CryptoUtil.digestToString(CryptoUtil.writeAndComputeHash(remoteData, destFile))
               if (remoteDataHash.equals(hash)) {
                 success = true
               } else {
-                destFile.delete()
+                destFile.delete
               }
             } catch {
               case e: Exception => {
@@ -345,9 +346,9 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
           }
 
           if (success) {
-            onMessage(String.format("%s pulled block %s", meta.getPath(), hash))
+            onMessage(String.format("%s pulled block %s", meta.getPath, hash))
           } else {
-            onMessage(String.format("%s failed to pull block %s", meta.getFilename(), hash))
+            onMessage(String.format("%s failed to pull block %s", meta.getFilename, hash))
             // TODO: attempt to rever the block and write it in the correct target file region
           }
       }
@@ -404,7 +405,7 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
       file =>
         var blockHash: String = null
 
-        val startTime = System.currentTimeMillis()
+        val startTime = System.currentTimeMillis
         try {
           var fis = new FileInputStream(file)
           try {
@@ -421,13 +422,13 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
           }
 
           val meta = MetaUtil.createMeta(file, List(blockHash), tags)
-          _cloudEngine.store(meta.getHash(), new ByteArrayInputStream(meta.getDataAsString().getBytes("UTF-8")))
+          _cloudEngine.store(meta.getHash, new ByteArrayInputStream(meta.getDataAsString.getBytes("UTF-8")))
           metaSet.add(meta)
         }
         finally {
-          onMessage("took %6d ms to index %s".format((System.currentTimeMillis() - startTime), file.getName()))
+          onMessage("took %6d ms to index %s".format((System.currentTimeMillis - startTime), file.getName))
           if (blockHash == null) {
-            onMessage("failed to index file: " + file.getAbsolutePath())
+            onMessage("failed to index file: " + file.getAbsolutePath)
           }
         }
     }
@@ -507,7 +508,7 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
       }
       else {
         val list = new ListBuffer[String]
-        val iter = filter.keys()
+        val iter = filter.keys
         while (iter.hasNext) {
           val key = iter.next.asInstanceOf[String]
           val obj = filter.get(key)

@@ -1,5 +1,6 @@
 package cloudcmd.common;
 
+import cloudcmd.common.util.CryptoUtil;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
