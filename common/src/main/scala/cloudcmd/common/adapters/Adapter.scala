@@ -28,11 +28,8 @@ trait Adapter {
   def shutdown()
 
   def accepts(tags: Set[String]): Boolean = {
-    if (AcceptsTags == null || AcceptsTags.size == 0) true
-    for (tag <- tags) {
-      if (AcceptsTags.contains(tag)) true
-    }
-    false
+    if (AcceptsTags == null || AcceptsTags.size == 0 || tags.size == 0) return true
+    AcceptsTags.intersect(tags).size > 0
   }
 
   def remove(hash: String): Boolean

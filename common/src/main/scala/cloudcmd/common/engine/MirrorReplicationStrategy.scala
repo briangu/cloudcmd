@@ -37,6 +37,8 @@ class MirrorReplicationStrategy extends ReplicationStrategy with EventSource {
   }
 
   def store(hash: String, dis: InputStream, adapters: List[Adapter]) {
+    if (adapters == null || adapters.size == 0) throw new IllegalArgumentException("no adapters to store to")
+
     var containsAdapters = adapters.par.filter(_.contains(hash)).toList
     val nis = if (containsAdapters.size == 0) {
       adapters(0).store(dis, hash)

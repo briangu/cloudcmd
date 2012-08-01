@@ -362,7 +362,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
           data.put("tags", new JSONArray(newTags))
 
           val derivedMeta = MetaUtil.deriveMeta(hash, data)
-          cloudEngine.store(derivedMeta.getHash, new ByteArrayInputStream(derivedMeta.getDataAsString.getBytes("UTF-8")))
+          cloudEngine.store(derivedMeta.getHash, new ByteArrayInputStream(derivedMeta.getDataAsString.getBytes("UTF-8")), derivedMeta)
           List(derivedMeta)
         }
     }.toList
@@ -374,44 +374,22 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
   }
 
   def verify(selections: JSONArray, deleteOnInvalid: Boolean) {
-    cloudEngine.verifyAll(getHashesFromSelections(selections), deleteOnInvalid)
-  }
-
-  private def getHashesFromSelections(selections: JSONArray): Set[String] = {
-    Set() ++ (0 until selections.length).par.map {
-      i => selections.getJSONObject(i).getString("hash")
-    }
+    cloudEngine.verifyAll(getHashMetaMap(selections), deleteOnInvalid)
   }
 
   def sync(selections: JSONArray) {
-    val pushSet = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
-    (0 until selections.length).par.foreach {
+    cloudEngine.syncAll(getHashMetaMap(selections))
+  }
+
+  private def getHashMetaMap(selections: JSONArray) : Map[String, FileMetaData] = {
+    Map() ++ (0 until selections.length()).par.flatMap{
       i =>
-        val hash = selections.getJSONObject(i).getString("hash")
-        if (hash.endsWith(".meta")) {
-          val blocks = selections.getJSONObject(i).getJSONObject("data").getJSONArray("blocks")
-          val allHashes = Set(hash) ++ (0 until blocks.length).flatMap(idx => Set(blocks.getString(idx)))
-          // TODO: we don't really need to ensure that every block has a provider as we can verify that implicitly later
-          allHashes.foreach(pushSet.add)
-          /*
-                    allHashes.foreach{ h =>
-                      val providers = cloudEngine.getHashProviders(hash)
-                      if (providers.size > 0) {
-                        pushSet.add(h)
-                      } else {
-                        // TODO: we need to fire a data not found event here
-                        log.error("hash not found in storage: " + hash)
-                      }
-                    }
-          */
-        } else {
-          log.error("unexpected hash type: " + hash)
+        val fmd = MetaUtil.loadMeta(selections.getJSONObject(i))
+        val blockHashes = fmd.getBlockHashes
+        Map(fmd.getHash -> fmd) ++ (0 until blockHashes.length).flatMap{ j =>
+          Map(blockHashes.getString(j) -> fmd)
         }
     }
-
-    // TODO: respect acceptsTags
-
-    cloudEngine.syncAll(pushSet.toSet)
   }
 
   // TODO: what about the meta.Parent chain? do we want to wipe out the entire chain?

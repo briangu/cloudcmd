@@ -5,6 +5,7 @@ import adapters.Adapter
 import java.io._
 import org.apache.log4j.Logger
 import config.ConfigStorage
+import util.FileMetaData
 
 class ParallelCloudEngine(configService: ConfigStorage) extends CloudEngine {
 
@@ -33,34 +34,32 @@ class ParallelCloudEngine(configService: ConfigStorage) extends CloudEngine {
     Set() ++ _adapters.flatMap(a => a.describe.toSet).par.filter(hash => hash.endsWith(".meta"))
   }
 
-  def getHashProviders(): Map[String, List[Adapter]] = {
-    Map() ++ _adapters.flatMap(a => a.describe.toSet).par.flatMap {
-      hash => Map(hash -> _adapters.filter(_.describe().contains(hash)).toList)
-    }
+  def getAdaptersAccepts(fmd: FileMetaData) : List[Adapter] = {
+    _adapters.par.filter(_.accepts(fmd.getTags)).toList
   }
 
   def getHashProviders(hash: String) : List[Adapter] = {
-    _adapters.par.filter(_.contains(hash)).toList
+    _adapters.par.filter( a => a.contains(hash)).toList
   }
 
-  def sync(hash: String) {
-    syncAll(Set(hash))
+  def sync(hash: String, fmd: FileMetaData) {
+    syncAll(Map(hash -> fmd))
   }
 
-  def syncAll(hashes : Set[String]) {
-    hashes.par.foreach { hash => _storage.sync(hash, getHashProviders(hash), _adapters) }
+  def syncAll(hashes : Map[String, FileMetaData]) {
+    hashes.par.foreach{ case (hash, fmd) => _storage.sync(hash, getHashProviders(hash), getAdaptersAccepts(fmd)) }
   }
 
-  def verify(hash: String, deleteOnInvalid: Boolean) {
-    verifyAll(Set(hash), deleteOnInvalid)
+  def verify(hash: String, fmd: FileMetaData, deleteOnInvalid: Boolean) {
+    verifyAll(Map(hash -> fmd), deleteOnInvalid)
   }
 
-  def verifyAll(hashes: Set[String], deleteOnInvalid: Boolean) {
-    hashes.par.foreach(hash => _storage.verify(hash, getHashProviders(hash), deleteOnInvalid))
+  def verifyAll(hashes: Map[String, FileMetaData], deleteOnInvalid: Boolean) {
+    hashes.par.foreach{ case (hash, fmd) => _storage.verify(hash, getAdaptersAccepts(fmd), deleteOnInvalid) }
   }
 
-  def store(hash: String, is: InputStream) {
-    _storage.store(hash, is, _adapters.toList)
+  def store(hash: String, is: InputStream, fmd: FileMetaData) {
+    _storage.store(hash, is, getAdaptersAccepts(fmd))
   }
 
   def load(hash: String) : InputStream = {
