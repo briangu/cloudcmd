@@ -22,8 +22,8 @@ object MetaUtil {
         "fileext", if (extIndex >= 0) fileName.substring(extIndex + 1) else null,
         "filesize", file.length.asInstanceOf[AnyRef],
         "filedate", file.lastModified.asInstanceOf[AnyRef],
-        "blocks", new JSONArray(blockHashes),
-        "tags", new JSONArray(tags)))
+        "blocks", JsonUtil.toJsonArray(blockHashes),
+        "tags", JsonUtil.toJsonArray(tags)))
   }
 
   def loadMeta(jsonObject: JSONObject): FileMetaData = {

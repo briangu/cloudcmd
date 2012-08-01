@@ -8,6 +8,18 @@ import java.io._
 
 object JsonUtil {
 
+  def toJsonArray(data: List[String]) : JSONArray = {
+    val arr = new JSONArray()
+    data.foreach(arr.put)
+    arr
+  }
+
+  def toJsonArray(data: Set[String]) : JSONArray = {
+    val arr = new JSONArray()
+    data.foreach(arr.put)
+    arr
+  }
+
   def toStringMap(obj: JSONObject) : Map[String, String] = {
     import scala.collection.JavaConversions._
     Map() ++ obj.keys().flatMap{key => Map(key.asInstanceOf[String] -> obj.getString(key.asInstanceOf[String]))}
