@@ -3,6 +3,7 @@ package cloudcmd.cld;
 import cloudcmd.cld.commands.*;
 import cloudcmd.common.FileUtil;
 import cloudcmd.common.engine.CloudEngineListener;
+import cloudcmd.common.index.IndexStorageListener;
 import jpbetz.cli.CommandSet;
 
 import java.io.File;
@@ -12,6 +13,19 @@ import java.util.concurrent.SynchronousQueue;
 
 public class Main
 {
+  private static class Listener implements CloudEngineListener, IndexStorageListener {
+
+    private BlockingQueue<String> _queue;
+
+    public Listener(BlockingQueue<String> queue) {
+      _queue = queue;
+    }
+
+    @Override
+    public void onMessage(String msg) {
+      _queue.offer(msg);
+    }
+  }
 
   @SuppressWarnings("unchecked")
   public static void main(String[] args) throws Exception
@@ -37,17 +51,16 @@ public class Main
 
     try
     {
+      Listener listener = new Listener(queue);
+
       ConfigStorageService.instance().init(configRoot);
-      IndexStorageService.instance().init(configRoot);
-      CloudEngineService.instance().init(ConfigStorageService.instance(), IndexStorageService.instance());
-      CloudEngineService.instance().registerListener(new CloudEngineListener() {
-        @Override
-        public void onMessage(String msg) {
-          synchronized (queue) {
-            queue.offer(msg);
-          }
-        }
-      });
+      ConfigStorageService.instance().getReplicationStrategy().registerListener(listener);
+
+      CloudEngineService.instance().init(ConfigStorageService.instance());
+      CloudEngineService.instance().registerListener(listener);
+
+      IndexStorageService.instance().init(configRoot, CloudEngineService.instance());
+      IndexStorageService.instance().registerListener(listener);
 
       msgPump.start();
       CloudEngineService.instance().run();

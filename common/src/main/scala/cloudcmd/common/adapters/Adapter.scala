@@ -8,29 +8,29 @@ trait Adapter {
 
   var ConfigDir: String = null
   var Type: String = null
-  var Tags: Set[String] = null
+  var AcceptsTags: Set[String] = null
   var URI: URI = null
   var Tier: Int = 0
-  protected var _isOnline: Boolean = false
 
-  def IsOnLine(): Boolean = true
-  def IsFull(): Boolean = true
+  protected var _isOnline = false
 
-  def init(configDir: String, tier: Int, adapterType: String, tags: java.util.Set[String], uri: URI) {
-    import scala.collection.JavaConversions._
+  def IsOnLine(): Boolean = _isOnline
+  def IsFull(): Boolean = false
+
+  def init(configDir: String, tier: Int, adapterType: String, acceptsTags: Set[String], uri: URI) {
     ConfigDir = configDir
     Tier = tier
     Type = adapterType
-    Tags = tags.toSet
+    AcceptsTags = acceptsTags
     URI = uri
   }
 
   def shutdown()
 
   def accepts(tags: Set[String]): Boolean = {
-    if (Tags == null || Tags.size == 0) true
+    if (AcceptsTags == null || AcceptsTags.size == 0) true
     for (tag <- tags) {
-      if (Tags.contains(tag)) true
+      if (AcceptsTags.contains(tag)) true
     }
     false
   }

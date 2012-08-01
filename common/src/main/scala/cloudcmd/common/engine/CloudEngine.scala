@@ -7,7 +7,7 @@ import org.json.JSONArray
 import java.io.{InputStream, File}
 
 trait CloudEngine {
-  def init(configService: ConfigStorage, indexStorage: IndexStorage)
+  def init(configService: ConfigStorage)
 
   def filterAdapters(minTier: Int, maxTier: Int)
 

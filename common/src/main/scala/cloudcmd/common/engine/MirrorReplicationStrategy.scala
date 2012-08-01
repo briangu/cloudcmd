@@ -7,9 +7,19 @@ import java.io.InputStream
 import util.Random
 import java.util.concurrent.atomic.AtomicInteger
 
-class MirrorReplicationStrategy(listener: CloudEngineListener) extends ReplicationStrategy {
+class MirrorReplicationStrategy extends ReplicationStrategy {
 
   private val log: Logger = Logger.getLogger(classOf[MirrorReplicationStrategy])
+
+  private var _listener: CloudEngineListener = null
+
+  def registerListener(listener: CloudEngineListener) {
+    _listener = listener
+  }
+
+  private def onMessage(msg: String) {
+    if (_listener != null) _listener.onMessage(msg)
+  }
 
   def isReplicated(hash: String, adapters: List[Adapter]): Boolean = {
     adapters.filterNot(_.describe.contains(hash)).size > 0
@@ -23,11 +33,11 @@ class MirrorReplicationStrategy(listener: CloudEngineListener) extends Replicati
     }
     catch {
       case e: DataNotFoundException => {
-        listener.onMessage(String.format("no adapter has block %s"))
+        onMessage(String.format("no adapter has block %s"))
         log.error(hash, e)
       }
       case e: Exception => {
-        listener.onMessage(String.format("failed to sync block %s", hash))
+        onMessage(String.format("failed to sync block %s", hash))
         log.error(hash, e)
       }
     }
@@ -60,7 +70,7 @@ class MirrorReplicationStrategy(listener: CloudEngineListener) extends Replicati
       }
       catch {
         case e: Exception => {
-          listener.onMessage(String.format("failed to sync block %s to %s", hash, adapter.URI.toString))
+          onMessage(String.format("failed to sync block %s to %s", hash, adapter.URI.toString))
           log.error(hash, e)
         }
       }
@@ -70,7 +80,7 @@ class MirrorReplicationStrategy(listener: CloudEngineListener) extends Replicati
     }
 
     if (pushedCount.get() != adapters.size) {
-      listener.onMessage("failed to store block %s on %d of %d adapters".format(hash, pushedCount.get, adapters.size))
+      onMessage("failed to store block %s on %d of %d adapters".format(hash, pushedCount.get, adapters.size))
     }
   }
 
@@ -85,13 +95,13 @@ class MirrorReplicationStrategy(listener: CloudEngineListener) extends Replicati
         try {
           val deleteSuccess = adapter.remove(hash)
           if (deleteSuccess) {
-            listener.onMessage(String.format("successfully deleted block %s found on adapter %s", hash, adapter.URI))
+            onMessage(String.format("successfully deleted block %s found on adapter %s", hash, adapter.URI))
           } else {
-            listener.onMessage(String.format("failed to delete block %s found on adapter %s", hash, adapter.URI))
+            onMessage(String.format("failed to delete block %s found on adapter %s", hash, adapter.URI))
           }
         } catch {
           case e: Exception => {
-            listener.onMessage(String.format("failed to delete block %s on adapter %s", hash, adapter.URI))
+            onMessage(String.format("failed to delete block %s on adapter %s", hash, adapter.URI))
             log.error(hash, e)
           }
         }
@@ -103,7 +113,7 @@ class MirrorReplicationStrategy(listener: CloudEngineListener) extends Replicati
 
     val replicated = isReplicated(hash, hashProviders)
     if (!replicated) {
-      listener.onMessage(String.format("block %s is not fully replicated", hash))
+      onMessage(String.format("block %s is not fully replicated", hash))
     }
 
     hashProviders.par.foreach {
@@ -116,18 +126,18 @@ class MirrorReplicationStrategy(listener: CloudEngineListener) extends Replicati
           } else {
             valid = false
 
-            listener.onMessage(String.format("bad block %s found on adapter %s", hash, adapter.URI))
+            onMessage(String.format("bad block %s found on adapter %s", hash, adapter.URI))
             if (deleteOnInvalid) {
               try {
                 val deleteSuccess = adapter.remove(hash)
                 if (deleteSuccess) {
-                  listener.onMessage(String.format("successfully deleted block %s found on adapter %s", hash, adapter.URI))
+                  onMessage(String.format("successfully deleted block %s found on adapter %s", hash, adapter.URI))
                 } else {
-                  listener.onMessage(String.format("failed to delete block %s found on adapter %s", hash, adapter.URI))
+                  onMessage(String.format("failed to delete block %s found on adapter %s", hash, adapter.URI))
                 }
               } catch {
                 case e: Exception => {
-                  listener.onMessage(String.format("failed to delete block %s on adapter %s", hash, adapter.URI))
+                  onMessage(String.format("failed to delete block %s on adapter %s", hash, adapter.URI))
                   log.error(hash, e)
                 }
               }
@@ -135,7 +145,7 @@ class MirrorReplicationStrategy(listener: CloudEngineListener) extends Replicati
           }
         } catch {
           case e: Exception => {
-            listener. onMessage(String.format("failed to verify block %s on adapter %s", hash, adapter.URI))
+            onMessage(String.format("failed to verify block %s on adapter %s", hash, adapter.URI))
             log.error(hash, e)
           }
         }

@@ -1,7 +1,7 @@
 package cloudcmd.common.index
 
 import cloudcmd.common._
-import engine.{CloudEngineListener, CloudEngine}
+import engine.CloudEngine
 import org.apache.log4j.Logger
 import org.h2.fulltext.{FullText, FullTextLucene}
 import org.h2.jdbcx.JdbcConnectionPool
@@ -213,7 +213,12 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
     removeAll(Set(meta.getHash))
   }
 
-  def pruneHistory(selections: List[FileMetaData]) {
+  def pruneHistory(selections: java.util.List[FileMetaData]) {
+    import scala.collection.JavaConversions._
+    pruneHistory(selections.toList)
+  }
+
+  private def _pruneHistory(selections: List[FileMetaData]) {
     removeAll(Set() ++ selections.flatMap(fmd => if (fmd.getParent == null) { Nil } else { Set(fmd.getParent) }))
   }
 
@@ -250,7 +255,12 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
     }
   }
 
-  def addAll(meta: List[FileMetaData]) {
+  def addAll(meta: java.util.List[FileMetaData]) {
+    import collection.JavaConversions._
+    _addAll(meta.toList)
+  }
+
+  private def _addAll(meta: List[FileMetaData]) {
     if (meta == null) return
     var db: Connection = null
     try {
@@ -290,8 +300,8 @@ class H2IndexStorage extends IndexStorage with IndexStorageListener {
         }
     }.toList
 
-    addAll(fmds)
-    pruneHistory(fmds)
+    _addAll(fmds)
+    _pruneHistory(fmds)
   }
 
   def fetch(selections: JSONArray) {

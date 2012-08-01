@@ -4,10 +4,9 @@ import cloudcmd.common._
 import adapters.Adapter
 import java.io._
 import org.apache.log4j.Logger
-import index.IndexStorage
 import config.ConfigStorage
 
-class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
+class ParallelCloudEngine extends CloudEngine {
 
   private val log = Logger.getLogger(classOf[ParallelCloudEngine])
 
@@ -16,7 +15,7 @@ class ParallelCloudEngine extends CloudEngine with CloudEngineListener {
   private var _listeners : List[CloudEngineListener] = List()
   private var _adapters : List[Adapter] = null
 
-  def init(configService: ConfigStorage, indexStorage: IndexStorage) {
+  def init(configService: ConfigStorage) {
     import scala.collection.JavaConversions._
     _configService = configService
     _adapters = _configService.getAdapters.toList

@@ -16,6 +16,15 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
   protected var _dbDir: String = null
   protected var _dataDir: String = null
 
+  private def getDbFileName(dbPath: String): String = "%s%sindex".format(dbPath, File.separator)
+  private def createConnectionString(dbPath: String): String = "jdbc:h2:%s".format(getDbFileName(dbPath))
+  private def getDbConnection: Connection = _cp.getConnection
+  private def getReadOnlyDbConnection: Connection = {
+    val conn: Connection = getDbConnection
+    conn.setReadOnly(true)
+    conn
+  }
+
   override def init(configDir: String, tier: Int, adapterType: String, tags: Set[String], config: URI) {
     super.init(configDir, tier, adapterType, tags, config)
 
@@ -29,18 +38,6 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
     if (_isOnline) bootstrap(_dataDir, _dbDir)
 
     wrappedAdapter.init(configDir, tier, adapterType, tags, config)
-  }
-
-  private def getDbFileName(dbPath: String): String = "%s%sindex".format(dbPath, File.separator)
-
-  private def createConnectionString(dbPath: String): String = "jdbc:h2:%s".format(getDbFileName(dbPath))
-
-  private def getDbConnection: Connection = _cp.getConnection
-
-  private def getReadOnlyDbConnection: Connection = {
-    val conn: Connection = getDbConnection
-    conn.setReadOnly(true)
-    conn
   }
 
   protected def bootstrap(dataPath: String, dbPath: String) {

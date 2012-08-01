@@ -15,4 +15,6 @@ trait ReplicationStrategy {
   def remove(hash: String, adapters: List[Adapter])
 
   def verify(hash: String, adapters: List[Adapter], deleteOnInvalid: Boolean) : Boolean
+
+  def registerListener(listener: CloudEngineListener)
 }
