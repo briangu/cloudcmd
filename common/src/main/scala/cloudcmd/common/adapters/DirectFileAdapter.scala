@@ -5,12 +5,11 @@ import util.FileWalker
 import org.jboss.netty.buffer.ChannelBuffer
 import java.io._
 import java.net.URI
-import java.util.UUID
 import collection.mutable
 
 //     "file:///tmp/storage?tier=1&tags=image,movie,vacation"
 
-class DirectFileAdapter extends Adapter with InlineStorable {
+class DirectFileAdapter extends Adapter {
 
   val MIN_FREE_STORAGE_SIZE: Int = 1024 * 1024
   val LARGE_FILE_CUTOFF: Int = 128 * 1024 * 1024
@@ -52,7 +51,7 @@ class DirectFileAdapter extends Adapter with InlineStorable {
 
   def remove(hash: String): Boolean = {
     val file = new File(getDataFileFromHash(hash))
-    if (file.exists) file.delete
+    if (file.exists) FileUtil.delete(file)
     true
   }
 
@@ -87,49 +86,6 @@ class DirectFileAdapter extends Adapter with InlineStorable {
     }
   }
 
-  def store(is: InputStream): String = {
-    if (is.available > LARGE_FILE_CUTOFF) {
-      storeLargeFile(is)
-    } else {
-      storeSmallFile(is)
-    }
-  }
-
-  private def storeSmallFile(is: InputStream): String = {
-    var baos: ByteArrayOutputStream = null
-    var bais: ByteArrayInputStream = null
-    var hash: String = null
-    try {
-      baos = new ByteArrayOutputStream
-      hash = CryptoUtil.digestToString(CryptoUtil.writeAndComputeHash(is, baos))
-      bais = new ByteArrayInputStream(baos.toByteArray)
-      FileUtil.writeFile(bais, getDataFileFromHash(hash))
-    }
-    finally {
-      FileUtil.SafeClose(bais)
-      FileUtil.SafeClose(baos)
-    }
-    hash
-  }
-
-  private def storeLargeFile(is: InputStream): String = {
-    val tmpFile: File = new File(_dataDir + File.separator + UUID.randomUUID.toString + ".tmp")
-    tmpFile.createNewFile
-    val hash = FileUtil.writeFileAndComputeHash(is, tmpFile)
-    val newFile = new File(getDataFileFromHash(hash))
-    if (newFile.exists && newFile.length == tmpFile.length) {
-      tmpFile.delete
-    }
-    else {
-      val success = tmpFile.renameTo(newFile)
-      if (!success) {
-        tmpFile.delete
-        throw new IOException("failed to move file: " + tmpFile.getAbsolutePath)
-      }
-    }
-    hash
-  }
-
   def load(hash: String): InputStream = {
     val file = new File(getDataFileFromHash(hash))
     if (!file.exists) throw new DataNotFoundException(hash)
@@ -146,7 +102,6 @@ class DirectFileAdapter extends Adapter with InlineStorable {
     val hashes = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
     FileWalker.enumerateFolders(_dataDir, new FileWalker.FileHandler {
       def skipDir(file: File): Boolean = false
-
       def process(file: File) = hashes.add(file.getName)
     })
     hashes.toSet

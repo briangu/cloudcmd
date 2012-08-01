@@ -17,7 +17,7 @@ import java.nio.channels.Channels
 
 //     "s3://<aws id>@<bucket>?tier=2&tags=s3&secret=<aws secret>"
 
-class DirectS3Adapter extends Adapter with MD5Storable {
+class DirectS3Adapter extends Adapter {
 
   private var _bucketName: String = null
   private var _s3Service: RestS3Service = null
@@ -92,8 +92,7 @@ class DirectS3Adapter extends Adapter with MD5Storable {
     }
   }
 
-  override
-  def store(data: InputStream, hash: String, md5Digest: Array[Byte], length: Long) {
+  private def store(data: InputStream, hash: String, md5Digest: Array[Byte], length: Long) {
     if (contains(hash)) return
     val s3Object: S3Object = new S3Object(hash)
     s3Object.setDataInputStream(data)
