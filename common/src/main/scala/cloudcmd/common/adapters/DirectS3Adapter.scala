@@ -1,8 +1,6 @@
 package cloudcmd.common.adapters
 
-import cloudcmd.common.CryptoUtil
-import cloudcmd.common.FileChannelBuffer
-import cloudcmd.common.UriUtil
+import cloudcmd.common.{FileUtil, CryptoUtil, FileChannelBuffer, UriUtil}
 import org.apache.commons.io.IOUtils
 import org.jboss.netty.buffer.ChannelBuffer
 import org.jets3t.service.impl.rest.httpclient.RestS3Service
@@ -14,6 +12,7 @@ import java.io.FileInputStream
 import java.io.InputStream
 import java.net.URI
 import java.nio.channels.Channels
+import cloudcmd.common.util.StreamUtil
 
 //     "s3://<aws id>@<bucket>?tier=2&tags=s3&secret=<aws secret>"
 
@@ -72,23 +71,38 @@ class DirectS3Adapter extends Adapter {
   }
 
   override
-  def store(data: InputStream, hash: String) {
-    if (data.isInstanceOf[ByteArrayInputStream]) {
-      val buffer: ByteArrayInputStream = data.asInstanceOf[ByteArrayInputStream]
-      val md5Hash = CryptoUtil.computeMD5Hash(Channels.newChannel(buffer))
-      buffer.reset
-      store(buffer, hash, md5Hash, buffer.available)
+  def store(is: InputStream, hash: String) {
+    if (is.isInstanceOf[ByteArrayInputStream]) {
+      val buffer = is.asInstanceOf[ByteArrayInputStream]
+      try {
+        buffer.mark(0)
+        val md5Hash = CryptoUtil.computeMD5Hash(Channels.newChannel(buffer))
+        buffer.reset
+        store(buffer, hash, md5Hash, buffer.available)
+      } finally {
+        buffer.close()
+      }
     }
-    else if (data.isInstanceOf[FileInputStream]) {
-      val buffer: FileInputStream = data.asInstanceOf[FileInputStream]
-      val md5Hash = CryptoUtil.computeMD5Hash(buffer.getChannel)
-      buffer.reset
-      store(buffer, hash, md5Hash, buffer.available)
+    else if (is.isInstanceOf[FileInputStream]) {
+      val buffer = is.asInstanceOf[FileInputStream]
+      try {
+        buffer.mark(0)
+        val md5Hash = CryptoUtil.computeMD5Hash(buffer.getChannel)
+        buffer.reset
+        store(buffer, hash, md5Hash, buffer.available)
+      } finally {
+        buffer.close()
+      }
     }
     else {
-      val buffer = IOUtils.toByteArray(data)
-      val md5Hash = CryptoUtil.computeMD5Hash(Channels.newChannel(new ByteArrayInputStream(buffer)))
-      store(new ByteArrayInputStream(buffer), hash, md5Hash, buffer.length)
+      val (hash, tmpFile) = StreamUtil.spoolStream(is)
+      val fis = new FileInputStream(tmpFile)
+      try {
+        store(fis, hash)
+      } finally {
+        fis.close()
+        FileUtil.delete(tmpFile)
+      }
     }
   }
 
