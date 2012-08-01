@@ -68,6 +68,7 @@ public class CryptoUtil {
     while (in.read(buff) != -1) {
       buff.flip();
       md.update(buff);
+      buff.flip();
       out.write(buff);
       buff.clear();
     }

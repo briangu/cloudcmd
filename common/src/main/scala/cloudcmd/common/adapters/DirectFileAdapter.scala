@@ -6,6 +6,7 @@ import org.jboss.netty.buffer.ChannelBuffer
 import java.io._
 import java.net.URI
 import collection.mutable
+import org.apache.commons.io.FileUtils
 
 //     "file:///tmp/storage?tier=1&tags=image,movie,vacation"
 
@@ -76,8 +77,9 @@ class DirectFileAdapter extends Adapter {
   }
 
   def store(is: InputStream, hash: String) {
-    val writeHash: String = FileUtil.writeFileAndComputeHash(is, new File(getDataFileFromHash(hash)))
+    val writeHash = FileUtil.writeFileAndComputeHash(is, new File(getDataFileFromHash(hash)))
     if (!(writeHash == getHashFromDataFile(hash))) {
+      FileUtil.delete(new File(getDataFileFromHash(hash)))
       throw new RuntimeException(String.format("failed to store data: expected %s got %s", hash, writeHash))
     }
   }
