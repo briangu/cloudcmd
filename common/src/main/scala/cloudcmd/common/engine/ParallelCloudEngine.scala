@@ -39,7 +39,7 @@ class ParallelCloudEngine(configService: ConfigStorage) extends CloudEngine {
   }
 
   def getHashProviders(hash: String) : List[Adapter] = {
-    _adapters.par.filter( a => a.contains(hash)).toList
+    _adapters.par.filter(_.contains(hash)).toList
   }
 
   def sync(hash: String, fmd: FileMetaData) {

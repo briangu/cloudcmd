@@ -23,11 +23,11 @@ class MirrorReplicationStrategy extends ReplicationStrategy with EventSource {
     }
     catch {
       case e: DataNotFoundException => {
-        onMessage(String.format("no adapter has block %s"))
+        onMessage("no adapter has block %s".format(hash))
         log.error(hash, e)
       }
       case e: Exception => {
-        onMessage(String.format("failed to sync block %s", hash))
+        onMessage("failed to sync block %s".format(hash))
         log.error(hash, e)
       }
     }
