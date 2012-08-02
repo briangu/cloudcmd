@@ -374,20 +374,25 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
   }
 
   def verify(selections: JSONArray, deleteOnInvalid: Boolean) {
-    cloudEngine.verifyAll(getHashMetaMap(selections), deleteOnInvalid)
-  }
-
-  def sync(selections: JSONArray) {
-    cloudEngine.syncAll(getHashMetaMap(selections))
-  }
-
-  private def getHashMetaMap(selections: JSONArray) : Map[String, FileMetaData] = {
-    Map() ++ (0 until selections.length()).par.flatMap{
+    (0 until selections.length()).par.foreach{
       i =>
         val fmd = MetaUtil.loadMeta(selections.getJSONObject(i))
         val blockHashes = fmd.getBlockHashes
-        Map(fmd.getHash -> fmd) ++ (0 until blockHashes.length).flatMap{ j =>
-          Map(blockHashes.getString(j) -> fmd)
+        cloudEngine.verify(fmd.getHash, fmd, deleteOnInvalid)
+        (0 until blockHashes.length).foreach{ j =>
+          cloudEngine.verify(blockHashes.getString(j), fmd, deleteOnInvalid)
+        }
+    }
+  }
+
+  def sync(selections: JSONArray) {
+    (0 until selections.length).foreach{
+      i =>
+        val fmd = MetaUtil.loadMeta(selections.getJSONObject(i))
+        val blockHashes = fmd.getBlockHashes
+        cloudEngine.sync(fmd.getHash, fmd)
+        (0 until blockHashes.length).foreach{ j =>
+          cloudEngine.sync(blockHashes.getString(j), fmd)
         }
     }
   }

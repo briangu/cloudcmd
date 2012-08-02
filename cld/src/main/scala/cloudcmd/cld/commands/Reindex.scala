@@ -7,7 +7,7 @@ import jpbetz.cli.SubCommand
 
 @SubCommand(name = "reindex", description = "Rebuild the index from available adapters.") class Reindex extends Command {
   def exec(commandLine: CommandContext) {
-    System.err.println("rebuilding index available adapters")
+    System.err.println("rebuilding file search index...")
     CloudServices.IndexStorage.reindex
   }
 }
