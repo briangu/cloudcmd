@@ -52,7 +52,7 @@ class FileTypeUtil {
 
   def getTypeFromName(filename: String): String = {
     val idx: Int = filename.lastIndexOf(".")
-    if ((idx > -1)) getTypeFromExtension(filename.substring(idx)) else ""
+    if ((idx > -1)) getTypeFromExtension(filename.substring(idx + 1)) else ""
   }
 
   def getTypeFromExtension(ext: String): String = {

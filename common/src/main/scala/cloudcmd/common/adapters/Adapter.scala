@@ -12,6 +12,9 @@ trait Adapter {
   var URI: URI = null
   var Tier: Int = 0
 
+  protected var KeepTags: Set[String] = Set()
+  protected var IgnoreTags: Set[String] = Set()
+
   protected var _isOnline = false
 
   def IsOnLine(): Boolean = _isOnline
@@ -21,15 +24,19 @@ trait Adapter {
     ConfigDir = configDir
     Tier = tier
     Type = adapterType
+
     AcceptsTags = acceptsTags
+    KeepTags = acceptsTags.filterNot(_.startsWith("-"))
+    IgnoreTags = (acceptsTags -- KeepTags).map(_.substring(1))
     URI = uri
   }
 
   def shutdown()
 
   def accepts(tags: Set[String]): Boolean = {
-    if (AcceptsTags == null || AcceptsTags.size == 0 || tags.size == 0) return true
-    AcceptsTags.intersect(tags).size > 0
+    if (IgnoreTags.intersect(tags).size > 0) return false
+    if (KeepTags.size == 0) return true
+    KeepTags.intersect(tags).size > 0
   }
 
   def remove(hash: String): Boolean

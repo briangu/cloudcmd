@@ -170,7 +170,7 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
     var statement: PreparedStatement = null
     try {
       db = getDbConnection
-      statement = db.prepareStatement("INSERT INTO BLOCK_INDEX VALUES (?)")
+      statement = db.prepareStatement("MERGE INTO BLOCK_INDEX VALUES (?)")
       statement.setString(1, hash)
       statement.execute
       getDescription.add(hash)

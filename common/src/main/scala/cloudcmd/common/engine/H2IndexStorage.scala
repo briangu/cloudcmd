@@ -156,14 +156,9 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
   }
 
   private def buildTags(meta: FileMetaData): String = {
-    val tagSet = meta.getTags ++ meta.getPath ++ FileTypeUtil.instance.getTypeFromName(meta.getFilename)
+    val tagSet = meta.getTags ++ Set(meta.getPath) ++ Set(FileTypeUtil.instance.getTypeFromName(meta.getFilename))
     var tags = tagSet.mkString(" ")
-
-    WHITESPACE.toCharArray.foreach {
-      ch =>
-        tags = tags.replace(ch, ' ')
-    }
-
+    WHITESPACE.toCharArray.foreach { ch => tags = tags.replace(ch, ' ') }
     tags
   }
 

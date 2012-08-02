@@ -1,7 +1,7 @@
 package cloudcmd.common.engine
 
 import java.io.{ByteArrayInputStream, FileInputStream, File}
-import cloudcmd.common.util.{MetaUtil, CryptoUtil, FileMetaData}
+import cloudcmd.common.util.{FileTypeUtil, MetaUtil, CryptoUtil, FileMetaData}
 import cloudcmd.common.FileUtil
 import cloudcmd.common.config.ConfigStorage
 
@@ -27,7 +27,11 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
         FileUtil.SafeClose(fis)
       }
 
-      val fmd = MetaUtil.createMeta(file, List(blockHash), tags)
+      val extIdx = file.getName.lastIndexOf(".")
+      val fileExt = if (extIdx > -1) file.getName.substring(extIdx + 1) else ""
+      val fileType = FileTypeUtil.instance.getTypeFromExtension(fileExt)
+      val derivedTags = tags ++ Set(fileExt) ++ (if (fileType.length > 0) Set(fileType) else Set())
+      val fmd = MetaUtil.createMeta(file, List(blockHash), derivedTags)
 
       fis = new FileInputStream(file)
       try {
