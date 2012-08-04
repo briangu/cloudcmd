@@ -1,19 +1,14 @@
 package cloudcmd.common.adapters
 
-import org.jboss.netty.buffer.ChannelBuffer
-import java.io.InputStream
 import java.net.URI
+import cloudcmd.common.{BlockContext, ContentAddressableStorage}
 
-trait Adapter {
+trait Adapter extends ContentAddressableStorage {
 
   var ConfigDir: String = null
   var Type: String = null
-  var AcceptsTags: Set[String] = null
   var URI: URI = null
   var Tier: Int = 0
-
-  protected var KeepTags: Set[String] = Set()
-  protected var IgnoreTags: Set[String] = Set()
 
   protected var _isOnline = false
 
@@ -24,34 +19,22 @@ trait Adapter {
     ConfigDir = configDir
     Tier = tier
     Type = adapterType
+    URI = uri
 
     AcceptsTags = acceptsTags
     KeepTags = acceptsTags.filterNot(_.startsWith("-"))
     IgnoreTags = (acceptsTags -- KeepTags).map(_.substring(1))
-    URI = uri
   }
 
   def shutdown()
 
-  def accepts(tags: Set[String]): Boolean = {
-    if (IgnoreTags.intersect(tags).size > 0) return false
+  var AcceptsTags: Set[String] = null
+  protected var KeepTags: Set[String] = Set()
+  protected var IgnoreTags: Set[String] = Set()
+
+  def accepts(ctx: BlockContext): Boolean = {
+    if (IgnoreTags.intersect(ctx.routingTags).size > 0) return false
     if (KeepTags.size == 0) return true
-    KeepTags.intersect(tags).size > 0
+    KeepTags.intersect(ctx.routingTags).size > 0
   }
-
-  def remove(hash: String): Boolean
-
-  def verify(hash: String): Boolean
-
-  def refreshCache()
-
-  def contains(hash: String): Boolean
-
-  def store(data: InputStream, hash: String)
-
-  def load(hash: String): InputStream
-
-  def loadChannel(hash: String): ChannelBuffer
-
-  def describe(): Set[String]
 }

@@ -1,16 +1,17 @@
 package cloudcmd.common.adapters
 
 import cloudcmd.common._
-import util.{CryptoUtil, FileWalker}
-import org.jboss.netty.buffer.ChannelBuffer
+import util.{JsonUtil, CryptoUtil, FileWalker}
 import java.io._
 import java.net.URI
 import collection.mutable
-import org.apache.commons.io.FileUtils
+import org.apache.log4j.Logger
 
 //     "file:///tmp/storage?tier=1&tags=image,movie,vacation"
 
 class DirectFileAdapter extends Adapter {
+
+  private val log: Logger = Logger.getLogger(classOf[DirectFileAdapter])
 
   val MIN_FREE_STORAGE_SIZE: Int = 1024 * 1024
   val LARGE_FILE_CUTOFF: Int = 128 * 1024 * 1024
@@ -31,6 +32,92 @@ class DirectFileAdapter extends Adapter {
     if (IsOnLine()) bootstrap(_dataDir)
   }
 
+  def shutdown {}
+
+  override def IsFull(): Boolean = new File(_rootPath).getUsableSpace < MIN_FREE_STORAGE_SIZE
+
+  def refreshCache {}
+
+  def containsAll(ctxs: Set[BlockContext]): Map[BlockContext, Boolean] = {
+    Map() ++ ctxs.par.flatMap( ctx => Map(ctx -> new File(getDataFileFromHash(ctx.hash)).exists()))
+  }
+
+  def removeAll(ctxs: Set[BlockContext]): Map[BlockContext, Boolean] = {
+    Map() ++ ctxs.par.flatMap{ ctx =>
+      val file = new File(getDataFileFromHash(ctx.hash))
+      if (file.exists) FileUtil.delete(file)
+      Map(ctx -> true)
+    }
+  }
+
+  def ensureAll(ctxs: Set[BlockContext], blockLevelCheck: Boolean): Map[BlockContext, Boolean] = {
+    Map() ++ ctxs.par.flatMap{ ctx =>
+      val file: File = new File(getDataFileFromHash(ctx.hash))
+      val valid = if (blockLevelCheck) {
+        if (file.exists) {
+          val idx = ctx.hash.lastIndexOf(".")
+          val testHash = if (idx >= 0) ctx.hash.substring(0, idx) else ctx.hash
+          CryptoUtil.computeHashAsString(file) == testHash
+        } else {
+          false
+        }
+      } else {
+        file.exists()
+      }
+      Map(ctx -> valid)
+    }
+  }
+
+  def store(ctx: BlockContext, is: InputStream) = {
+    val writeHash = FileUtil.writeFileAndComputeHash(is, new File(getDataFileFromHash(ctx.hash)))
+    val success = (writeHash == getHashFromDataFile(ctx.hash))
+    if (!success) {
+      FileUtil.delete(new File(getDataFileFromHash(ctx.hash)))
+      throw new RuntimeException("failed to store data: expected %s got %s".format(ctx.hash, writeHash))
+    }
+  }
+
+  def load(ctx: BlockContext): InputStream = {
+    val file = new File(getDataFileFromHash(ctx.hash))
+    if (!file.exists) throw new DataNotFoundException(ctx.hash)
+    new FileInputStream(file)
+  }
+
+  def describe: Set[BlockContext] = {
+    val hashes = describeHashes
+
+    val ctxs = new mutable.HashSet[BlockContext] with mutable.SynchronizedSet[BlockContext]
+    hashes.par.filter(h => h.endsWith(".meta")).par.foreach{ hash =>
+      val file = new File(getDataFileFromHash(hash))
+      if (file.exists()) {
+        val fis = new FileInputStream(file)
+        try {
+          val fmd = FileMetaData.fromJson(hash, JsonUtil.loadJson(fis))
+          ctxs.add(fmd.createBlockContext)
+          val blockHashes = fmd.getBlockHashes
+          (0 until blockHashes.length()).foreach{i =>
+            val blockHash = blockHashes.getString(i)
+            if (hashes.contains(blockHash)) {
+              ctxs.add(fmd.createBlockContext(blockHash))
+            }
+          }
+        } finally {
+          FileUtil.SafeClose(fis)
+        }
+      }
+    }
+    ctxs.toSet
+  }
+
+  def describeHashes: Set[String] = {
+    val hashes = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
+    FileWalker.enumerateFolders(_dataDir, new FileWalker.FileHandler {
+      def skipDir(file: File): Boolean = false
+      def process(file: File) = hashes.add(file.getName)
+    })
+    hashes.toSet
+  }
+
   private def bootstrap(dataPath: String) {
     val file: File = new File(dataPath)
     if (!file.exists) {
@@ -42,31 +129,6 @@ class DirectFileAdapter extends Adapter {
     (0 until 0x100).par.foreach(i => new File(rootPath + File.separator + "%02x".format(i)).mkdirs)
   }
 
-  override def IsFull(): Boolean = new File(_rootPath).getUsableSpace < MIN_FREE_STORAGE_SIZE
-
-  def refreshCache {}
-
-  def contains(hash: String): Boolean = new File(getDataFileFromHash(hash)).exists()
-
-  def shutdown {}
-
-  def remove(hash: String): Boolean = {
-    val file = new File(getDataFileFromHash(hash))
-    if (file.exists) FileUtil.delete(file)
-    true
-  }
-
-  def verify(hash: String): Boolean = {
-    val file: File = new File(getDataFileFromHash(hash))
-    if (file.exists) {
-      val idx = hash.lastIndexOf(".")
-      val testHash = if (idx >= 0) hash.substring(0, idx) else hash
-      CryptoUtil.computeHashAsString(file) == testHash
-    } else {
-      false
-    }
-  }
-
   private def getPathFromHash(hash: String): String = _dataDir + File.separator + hash.substring(0, 2)
 
   private def getDataFileFromHash(hash: String): String = getPathFromHash(hash) + File.separator + hash
@@ -74,34 +136,5 @@ class DirectFileAdapter extends Adapter {
   private def getHashFromDataFile(hash: String): String = {
     val idx = hash.lastIndexOf(".")
     if (idx >= 0) hash.substring(0, idx) else hash
-  }
-
-  def store(is: InputStream, hash: String) {
-    val writeHash = FileUtil.writeFileAndComputeHash(is, new File(getDataFileFromHash(hash)))
-    if (!(writeHash == getHashFromDataFile(hash))) {
-      FileUtil.delete(new File(getDataFileFromHash(hash)))
-      throw new RuntimeException(String.format("failed to store data: expected %s got %s", hash, writeHash))
-    }
-  }
-
-  def load(hash: String): InputStream = {
-    val file = new File(getDataFileFromHash(hash))
-    if (!file.exists) throw new DataNotFoundException(hash)
-    new FileInputStream(file)
-  }
-
-  def loadChannel(hash: String): ChannelBuffer = {
-    val file = new File(getDataFileFromHash(hash))
-    if (!file.exists) throw new DataNotFoundException(hash)
-    new FileChannelBuffer(file)
-  }
-
-  def describe: Set[String] = {
-    val hashes = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
-    FileWalker.enumerateFolders(_dataDir, new FileWalker.FileHandler {
-      def skipDir(file: File): Boolean = false
-      def process(file: File) = hashes.add(file.getName)
-    })
-    hashes.toSet
   }
 }

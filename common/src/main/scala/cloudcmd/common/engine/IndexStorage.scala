@@ -1,6 +1,6 @@
 package cloudcmd.common.engine
 
-import cloudcmd.common.util.FileMetaData
+import cloudcmd.common.FileMetaData
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -17,21 +17,19 @@ trait IndexStorage extends EventSource  {
 
   def find(filter: JSONObject): JSONArray
 
-  def add(meta: FileMetaData)
+  def add(fmd: FileMetaData)
 
   def addAll(fmds: List[FileMetaData])
 
-  def remove(meta: FileMetaData)
+  def remove(fmd: FileMetaData)
 
   def pruneHistory(fmds: List[FileMetaData])
 
-  def sync(selections: JSONArray)
+  def get(fmds: JSONArray)
 
-  def fetch(selections: JSONArray)
+  def ensure(fmds: JSONArray, blockLevelCheck: Boolean)
 
-  def verify(selections: JSONArray, deleteOnInvalid: Boolean)
+  def remove(fmds: JSONArray)
 
-  def remove(selections: JSONArray)
-
-  def addTags(selections: JSONArray, tags: Set[String]): JSONArray
+  def addTags(fmds: JSONArray, tags: Set[String]): JSONArray
 }

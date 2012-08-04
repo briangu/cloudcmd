@@ -46,7 +46,7 @@ class Get extends Command {
     prefixPaths(_outdir, selections)
     if (!_dryrun) {
       CloudServices.CloudEngine.filterAdapters(_minTier.intValue, _maxTier.intValue)
-      CloudServices.IndexStorage.fetch(selections)
+      CloudServices.IndexStorage.get(selections)
     }
     else {
       System.out.print(selections.toString)

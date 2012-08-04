@@ -80,14 +80,11 @@ object JsonUtil {
   }
 
   def createSet(array: JSONArray): Set[String] = {
-    (0 until array.length).flatMap{i =>
-      val objVal = array.getString(i)
-      if (objVal.length > 0) Set(objVal) else Nil
-    }.toSet
+    (0 until array.length).map(array.getString).toSet
   }
 
-  def createSet(rowTags: String, delimiter: String): Set[String] = {
-    rowTags.split(delimiter).toSet
+  def createSet(str: String, delimiter: String): Set[String] = {
+    str.split(delimiter).toSet
   }
 
   def prettyToString(jsonObject: JSONObject): String = {

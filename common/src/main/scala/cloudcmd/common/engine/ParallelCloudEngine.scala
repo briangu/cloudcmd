@@ -5,7 +5,8 @@ import adapters.Adapter
 import java.io._
 import org.apache.log4j.Logger
 import config.ConfigStorage
-import util.FileMetaData
+import cloudcmd.common
+import common.FileMetaData
 
 class ParallelCloudEngine(configService: ConfigStorage) extends CloudEngine {
 
@@ -26,51 +27,53 @@ class ParallelCloudEngine(configService: ConfigStorage) extends CloudEngine {
     _adapters = configService.getAdapters.filter(a => a.Tier >= minTier && a.Tier <= maxTier && a.IsOnLine() && !a.IsFull()).toList
   }
 
-  def refreshAdapterCaches() {
+  def describeMeta() : Set[BlockContext] = {
+    Set() ++ _adapters.par.flatMap(a => a.describe.filter(_.hash.endsWith(".meta")).toSet)
+  }
+
+  def getAdaptersAccepts(ctx: BlockContext) : List[Adapter] = {
+    _adapters.par.filter(_.accepts(ctx)).toList
+  }
+
+  private def getHashProviders(ctx: BlockContext) : List[Adapter] = {
+    _adapters.par.filter(_.contains(ctx)).toList
+  }
+
+  def refreshCache() {
     _adapters.par.foreach(_.refreshCache())
   }
 
-  def getMetaHashSet() : Set[String] = {
-    Set() ++ _adapters.flatMap(a => a.describe.toSet).par.filter(hash => hash.endsWith(".meta"))
+  def describe() : Set[BlockContext] = {
+    Set() ++ _adapters.par.flatMap(a => a.describe.toSet)
   }
 
-  def getAdaptersAccepts(fmd: FileMetaData) : List[Adapter] = {
-    _adapters.par.filter(_.accepts(fmd.getTags)).toList
+  def describeHashes() : Set[String] = {
+    Set() ++ _adapters.par.flatMap(a => a.describeHashes.toSet)
   }
 
-  def getHashProviders(hash: String) : List[Adapter] = {
-    _adapters.par.filter(_.contains(hash)).toList
+  override def contains(ctx: BlockContext) : Boolean = {
+    _adapters.par.find(_.contains(ctx)) != None
   }
 
-  def sync(hash: String, fmd: FileMetaData) {
-    syncAll(Map(hash -> fmd))
+  def containsAll(ctxs: Set[BlockContext]) : Map[BlockContext, Boolean] = {
+    Map() ++ ctxs.par.flatMap{ ctx => Map(ctx -> contains(ctx)) }
   }
 
-  def syncAll(hashes : Map[String, FileMetaData]) {
-    hashes.par.foreach{ case (hash, fmd) => _storage.sync(hash, getHashProviders(hash), getAdaptersAccepts(fmd)) }
+  def ensureAll(ctxs: Set[BlockContext], blockLevelCheck: Boolean) : Map[BlockContext, Boolean] = {
+    Map() ++ ctxs.par.flatMap( ctx =>
+      Map(ctx -> _storage.ensure(ctx, getHashProviders(ctx), getAdaptersAccepts(ctx), blockLevelCheck))
+    )
   }
 
-  def verify(hash: String, fmd: FileMetaData, deleteOnInvalid: Boolean) {
-    verifyAll(Map(hash -> fmd), deleteOnInvalid)
+  def store(ctx: BlockContext, is: InputStream) {
+    _storage.store(ctx, is, getAdaptersAccepts(ctx))
   }
 
-  def verifyAll(hashes: Map[String, FileMetaData], deleteOnInvalid: Boolean) {
-    hashes.par.foreach{ case (hash, fmd) => _storage.verify(hash, getAdaptersAccepts(fmd), deleteOnInvalid) }
+  def load(ctx: BlockContext) : InputStream = {
+    _storage.load(ctx, getHashProviders(ctx))
   }
 
-  def store(hash: String, is: InputStream, fmd: FileMetaData) {
-    _storage.store(hash, is, getAdaptersAccepts(fmd))
-  }
-
-  def load(hash: String) : InputStream = {
-    _storage.load(hash, getHashProviders(hash))
-  }
-
-  def remove(hash: String) {
-    removeAll(Set(hash))
-  }
-
-  def removeAll(hashes: Set[String]) {
-    hashes.par.foreach(hash => _storage.remove(hash, getHashProviders(hash)))
+  def removeAll(ctxs: Set[BlockContext]) : Map[BlockContext, Boolean] = {
+    Map() ++ ctxs.par.flatMap( ctx => Map(ctx -> _storage.remove(ctx, getHashProviders(ctx))) )
   }
 }

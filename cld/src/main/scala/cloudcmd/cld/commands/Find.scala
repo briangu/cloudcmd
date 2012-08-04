@@ -1,7 +1,6 @@
 package cloudcmd.cld.commands
 
-import cloudcmd.common.util.MetaUtil
-import cloudcmd.common.StringUtil
+import cloudcmd.common.{FileMetaData, StringUtil}
 import jpbetz.cli._
 import org.json.JSONObject
 import cloudcmd.cld.CloudServices
@@ -21,7 +20,7 @@ class Find extends Command {
     val filter = new JSONObject
     if (_tags != null) {
       import scala.collection.JavaConversions._
-      val tags = MetaUtil.prepareTags(_tags.toList)
+      val tags = FileMetaData.prepareTags(_tags.toList)
       if (tags.size > 0) filter.put("tags", StringUtil.join(tags, " "))
     }
     if (_path != null) filter.put("path", _path)

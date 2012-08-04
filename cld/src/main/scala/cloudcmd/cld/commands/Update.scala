@@ -18,7 +18,7 @@ class Update extends Command {
     if (_uri == null) {
       System.err.println("updating all adapters")
       CloudServices.CloudEngine.filterAdapters(_minTier.intValue, _maxTier.intValue)
-      CloudServices.CloudEngine.refreshAdapterCaches
+      CloudServices.CloudEngine.refreshCache
     }
     else {
       val adapterURI: URI = new URI(_uri)

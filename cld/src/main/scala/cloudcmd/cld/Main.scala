@@ -56,16 +56,15 @@ object Main {
       app.addSubCommands(classOf[Adapter])
       app.addSubCommands(classOf[Find])
       app.addSubCommands(classOf[Get])
-      app.addSubCommands(classOf[Index])
+      app.addSubCommands(classOf[Add])
       app.addSubCommands(classOf[Init])
       app.addSubCommands(classOf[Listing])
       app.addSubCommands(classOf[Print])
       app.addSubCommands(classOf[Reindex])
       app.addSubCommands(classOf[Remove])
-      app.addSubCommands(classOf[Sync])
+      app.addSubCommands(classOf[Ensure])
       app.addSubCommands(classOf[Tag])
       app.addSubCommands(classOf[Update])
-      app.addSubCommands(classOf[Verify])
       app.invoke(args)
     }
     finally {

@@ -1,18 +1,22 @@
 package cloudcmd.common.adapters
 
-import cloudcmd.common.SqlUtil
+import cloudcmd.common.{BlockContext, SqlUtil}
 import org.h2.jdbcx.JdbcConnectionPool
-import org.jboss.netty.buffer.ChannelBuffer
 import java.io._
 import java.net.URI
 import java.sql._
 import collection.mutable
+import org.apache.log4j.Logger
 
 class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
 
+  private val log = Logger.getLogger(classOf[DescriptionCacheAdapter])
+
+  private val BATCH_SIZE = 1024
+  
   protected var _rootPath: String = null
   private var _cp: JdbcConnectionPool = null
-  @volatile private var _description: mutable.HashSet[String] with mutable.SynchronizedSet[String] = null
+  @volatile private var _description: mutable.HashSet[BlockContext] with mutable.SynchronizedSet[BlockContext] = null
   protected var _dbDir: String = null
   protected var _dataDir: String = null
 
@@ -40,6 +44,13 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
     wrappedAdapter.init(configDir, tier, adapterType, tags, config)
   }
 
+  def shutdown {
+    if (_cp != null) {
+      _cp.dispose
+      _cp = null
+    }
+  }
+
   protected def bootstrap(dataPath: String, dbPath: String) {
     Class.forName("org.h2.Driver")
     _cp = JdbcConnectionPool.create(createConnectionString(dbPath), "sa", "sa")
@@ -56,11 +67,12 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
       db = getDbConnection
       st = db.createStatement
       st.execute("DROP TABLE if exists BLOCK_INDEX")
-      st.execute("CREATE TABLE BLOCK_INDEX ( HASH VARCHAR PRIMARY KEY )")
+      st.execute("CREATE TABLE BLOCK_INDEX ( HASH VARCHAR, TAGS VARCHAR, PRIMARY KEY(HASH, TAGS) )")
+      st.execute("CREATE INDEX IDX_BI ON BLOCK_INDEX (HASH, TAGS)")
       db.commit
     }
     catch {
-      case e: SQLException => e.printStackTrace
+      case e: SQLException => log.error(e)
     }
     finally {
       SqlUtil.SafeClose(st)
@@ -71,63 +83,73 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
   def refreshCache {
     wrappedAdapter.refreshCache
 
-    val foundHashes = wrappedAdapter.describe
-    val description = getDescription.toSet
-    val newHashes = foundHashes -- description
-    addToDb(newHashes)
-    val deletedHashes = description -- foundHashes
-    deleteFromDb(deletedHashes)
+    val foundContexts = wrappedAdapter.describe
+    val cachedContexts = getDescription.toSet
+    val newContexts = foundContexts -- cachedContexts
+    addToDb(newContexts)
+    val deletedContexts = cachedContexts -- foundContexts
+    deleteFromDb(deletedContexts)
   }
 
-  def contains(hash: String): Boolean = getDescription.contains(hash)
+  override def contains(ctx: BlockContext) : Boolean = getDescription.contains(ctx)
 
-  def verify(hash: String): Boolean = wrappedAdapter.verify(hash)
-
-  def store(is: InputStream, hash: String) {
-    wrappedAdapter.store(is, hash)
-    insertHash(hash)
+  def containsAll(ctxs: Set[BlockContext]) : Map[BlockContext, Boolean] = {
+    val present = getDescription.intersect(ctxs)
+    val missing = ctxs -- present
+    // TODO: which way is faster? hashes.flatmap or this
+    Map() ++ present.par.flatMap(h => Map(h -> true)) ++ missing.par.flatMap(h => Map(h -> false))
   }
 
-  def load(hash: String): InputStream = wrappedAdapter.load(hash)
-
-  def loadChannel(hash: String): ChannelBuffer = wrappedAdapter.loadChannel(hash)
-
-  def remove(hash: String): Boolean = {
-    val result = wrappedAdapter.remove(hash)
-    deleteFromDb(Set(hash))
-    result
-  }
-
-  def describe: Set[String] = getDescription.toSet
-
-  def shutdown {
-    if (_cp != null) {
-      _cp.dispose
+  def ensureAll(ctxs: Set[BlockContext], blockLevelCheck: Boolean): Map[BlockContext, Boolean] = {
+    Map() ++ ctxs.par.flatMap{ ctx =>
+      Map(ctx -> wrappedAdapter.ensure(ctx, blockLevelCheck))
     }
   }
 
-  private def addToDb(hashes: Set[String]) {
+  def store(ctx: BlockContext, is: InputStream) = {
+    wrappedAdapter.store(ctx, is)
+    addToDb(Set(ctx))
+  }
+
+  def load(ctx: BlockContext): InputStream = wrappedAdapter.load(ctx)
+
+  def removeAll(ctxs : Set[BlockContext]) : Map[BlockContext, Boolean] = {
+    val result = wrappedAdapter.removeAll(ctxs)
+    val removed = Set() ++ result.par.flatMap{ case (ctx, removed) =>  if (removed) Set(ctx) else Nil }
+    deleteFromDb(removed)
+    result
+  }
+
+  def describe: Set[BlockContext] = getDescription.toSet
+
+  def describeHashes: Set[String] = wrappedAdapter.describeHashes
+
+  private def addToDb(ctxs: Set[BlockContext]) {
     var db: Connection = null
     var statement: PreparedStatement = null
     try {
       db = getDbConnection
       db.setAutoCommit(false)
-      statement = db.prepareStatement("INSERT INTO BLOCK_INDEX VALUES (?)")
+      statement = db.prepareStatement("MERGE INTO BLOCK_INDEX VALUES (?,?)")
+
       var k = 0
-      for (hash <- hashes) {
-        statement.setString(1, hash)
+      for (ctx <- ctxs) {
+        statement.setString(1, ctx.hash)
+        statement.setString(2, ctx.routingTags.mkString(" "))
         statement.addBatch
+
         k += 1
-        if (k > 1024) {
+        if (k > BATCH_SIZE) {
           statement.executeBatch
           k = 0
         }
       }
+
       statement.executeBatch
       db.commit
     }
     catch {
-      case e: SQLException => e.printStackTrace
+      case e: SQLException => log.error(e)
     }
     finally {
       SqlUtil.SafeClose(statement)
@@ -135,7 +157,7 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
     }
   }
 
-  private def deleteFromDb(hashes: Set[String]) {
+  private def deleteFromDb(ctxs: Set[BlockContext]) {
     var db: Connection = null
     var statement: PreparedStatement = null
     try {
@@ -143,11 +165,11 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
       db.setAutoCommit(false)
       statement = db.prepareStatement("DELETE FROM BLOCK_INDEX WHERE HASH = ?")
       var k = 0
-      for (hash <- hashes) {
-        statement.setString(1, hash)
+      for (ctx <- ctxs) {
+        statement.setString(1, ctx.hash)
         statement.addBatch
         k += 1
-        if (k > 1024) {
+        if (k > BATCH_SIZE) {
           statement.executeBatch
           k = 0
         }
@@ -156,7 +178,7 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
       db.commit
     }
     catch {
-      case e: SQLException => e.printStackTrace
+      case e: SQLException => log.error(e)
     }
     finally {
       SqlUtil.SafeClose(statement)
@@ -164,45 +186,27 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
     }
   }
 
-  private def insertHash(hash: String) {
-    if (getDescription.contains(hash)) return
-    var db: Connection = null
-    var statement: PreparedStatement = null
-    try {
-      db = getDbConnection
-      statement = db.prepareStatement("MERGE INTO BLOCK_INDEX VALUES (?)")
-      statement.setString(1, hash)
-      statement.execute
-      getDescription.add(hash)
-    }
-    catch {
-      case e: SQLException => e.printStackTrace
-    }
-    finally {
-      SqlUtil.SafeClose(statement)
-      SqlUtil.SafeClose(db)
-    }
-  }
-
-  private def getDescription: mutable.HashSet[String] with mutable.SynchronizedSet[String] = {
+  private def getDescription: mutable.HashSet[BlockContext] with mutable.SynchronizedSet[BlockContext] = {
     if (_description != null) return _description
 
     this synchronized {
       if (_description == null) {
-        val description = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
         var db: Connection = null
         var statement: PreparedStatement = null
         try {
           db = getReadOnlyDbConnection
-          statement = db.prepareStatement("SELECT HASH FROM BLOCK_INDEX")
+          statement = db.prepareStatement("SELECT HASH,TAGS FROM BLOCK_INDEX")
+
+          val description = new mutable.HashSet[BlockContext] with mutable.SynchronizedSet[BlockContext]
           val resultSet = statement.executeQuery
           while (resultSet.next) {
-            description.add(resultSet.getString("HASH"))
+            description.add(new BlockContext(resultSet.getString("HASH"), resultSet.getString("TAGS").split(" ").toSet))
           }
+
           _description = description
         }
         catch {
-          case e: SQLException => e.printStackTrace
+          case e: SQLException => log.error(e)
         }
         finally {
           SqlUtil.SafeClose(statement)

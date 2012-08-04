@@ -2,19 +2,16 @@ package cloudcmd.common.engine
 
 import cloudcmd.common.adapters.Adapter
 import java.io.InputStream
+import cloudcmd.common.BlockContext
 
-trait ReplicationStrategy {
-  def isReplicated(hash: String, adapters: List[Adapter]): Boolean
+trait ReplicationStrategy extends EventSource {
+  def isReplicated(ctx: BlockContext, adapters: List[Adapter]): Boolean
 
-  def sync(hash: String, hashProviders: List[Adapter], adapters: List[Adapter])
+  def store(ctx: BlockContext, is: InputStream, adapters: List[Adapter])
 
-  def store(hash: String, is: InputStream, adapters: List[Adapter])
+  def load(ctx: BlockContext, adapters: List[Adapter]): InputStream
 
-  def load(hash: String, adapters: List[Adapter]): InputStream
+  def remove(ctx: BlockContext, adapters: List[Adapter]) : Boolean
 
-  def remove(hash: String, adapters: List[Adapter])
-
-  def verify(hash: String, adapters: List[Adapter], deleteOnInvalid: Boolean) : Boolean
-
-  def registerListener(listener: EngineEventListener)
+  def ensure(ctx: BlockContext, hashProviders: List[Adapter], adapters: List[Adapter], blockLevelCheck: Boolean) : Boolean
 }

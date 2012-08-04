@@ -1,7 +1,7 @@
 package cloudcmd.cld.commands
 
-import cloudcmd.common.util.{MetaUtil, JsonUtil}
-import cloudcmd.common.FileUtil
+import cloudcmd.common.util.JsonUtil
+import cloudcmd.common.{FileMetaData, FileUtil}
 import jpbetz.cli._
 import java.io.File
 import java.io.FileInputStream
@@ -21,7 +21,7 @@ class Tag extends Command {
     try {
       val selections = JsonUtil.loadJsonArray(is)
 
-      var preparedTags = MetaUtil.prepareTags(_tags.toList)
+      var preparedTags = FileMetaData.prepareTags(_tags.toList)
       if (_remove) {
         preparedTags = preparedTags.map("-" + _)
       }

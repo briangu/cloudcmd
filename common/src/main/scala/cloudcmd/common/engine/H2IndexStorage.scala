@@ -10,8 +10,6 @@ import org.json.JSONObject
 import java.io.{ByteArrayInputStream, InputStream, File}
 import java.sql.{PreparedStatement, SQLException, Statement, Connection}
 import collection.mutable.ListBuffer
-import scala.util.Random
-import collection.mutable
 import util._
 
 class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSource {
@@ -19,6 +17,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
 
   private val BATCH_SIZE = 1024
   private val WHITESPACE = " ,:-._" + File.separator
+  private val MAX_FETCH_RETRIES = 3
 
   private var _configRoot: String = null
 
@@ -53,6 +52,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     flush
     if (_cp != null) {
       _cp.dispose
+      _cp = null
     }
   }
 
@@ -268,13 +268,13 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
   def reindex {
     purge
 
-    val fmds = cloudEngine.getMetaHashSet.par.flatMap {
-      hash =>
+    val fmds = cloudEngine.describeMeta.par.flatMap {
+      ctx =>
         try {
-          List(MetaUtil.loadMeta(hash, JsonUtil.loadJson(cloudEngine.load(hash))))
+          List(FileMetaData.fromJson(ctx.hash, JsonUtil.loadJson(cloudEngine.load(ctx))))
         } catch {
           case e: Exception => {
-            log.error(hash, e)
+            log.error(ctx, e)
             Nil
           }
         }
@@ -284,63 +284,62 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     pruneHistory(fmds)
   }
 
-  def fetch(selections: JSONArray) {
-    (0 until selections.length).par.foreach(i => fetch(MetaUtil.loadMeta(selections.getJSONObject(i))))
+  def get(selections: JSONArray) {
+    (0 until selections.length).par.foreach(i => fetch(FileMetaData.fromJson(selections.getJSONObject(i))))
   }
 
-  def fetch(meta: FileMetaData) {
-    val blockHashes = (0 until meta.getBlockHashes.length).map(meta.getBlockHashes.getString)
-    val hashAdapterMap = blockHashes.flatMap {
-      hash =>
-        val hashProviders = cloudEngine.getHashProviders(hash)
-        if (hashProviders.size > 0) {
-          Map(hash -> Random.shuffle(hashProviders).sortBy(_.Tier))
+  // TODO: only read the file size bytes back (if the file is one block)
+  // TODO: support writing to an offset of the existing file to allow for sub-blocks
+  def fetch(fmd: FileMetaData) {
+    val blockHashes = (0 until fmd.getBlockHashes.length).map(fmd.getBlockHashes.getString)
+    if (blockHashes.size == 0) throw new IllegalArgumentException("no block hashes found!")
+    if (blockHashes.find(h => !cloudEngine.contains(fmd.createBlockContext(h))) == None) {
+      if (blockHashes.size == 1) {
+        attemptSingleBlockFetch(blockHashes(0), fmd)
+      } else {
+        throw new RuntimeException("multiple block hashes not yet supported!")
+      }
+    } else {
+      onMessage(String.format("some blocks of %s not currently available!", blockHashes.mkString(",")))
+    }
+  }
+
+  def attemptSingleBlockFetch(blockHash: String, fmd: FileMetaData) : Boolean = {
+    var success = false
+    var retries = MAX_FETCH_RETRIES
+
+    while (!success && retries > 0) {
+      var remoteData: InputStream = null
+      try {
+        remoteData = cloudEngine.load(fmd.createBlockContext(blockHash))
+        val destFile = new File(fmd.getPath)
+        destFile.getParentFile.mkdirs
+        val remoteDataHash = CryptoUtil.digestToString(CryptoUtil.writeAndComputeHash(remoteData, destFile))
+        if (remoteDataHash.equals(blockHash)) {
+          onMessage("retrieved: %s".format(fmd.getPath))
+          success = true
         } else {
-          onMessage(String.format("could not find block %s in existing storage!", hash))
-          Nil
+          onMessage("%s is corrupted after download using block %s".format(fmd.getFilename, blockHash))
+          destFile.delete
         }
-    }.toMap
+      } catch {
+        case e: Exception => {
+          onMessage("%s failed to read block %s".format(fmd.getFilename, blockHash))
+          log.error(blockHash, e)
+        }
+      } finally {
+        FileUtil.SafeClose(remoteData)
+      }
 
-    if (hashAdapterMap.size == blockHashes.size) {
-      blockHashes.foreach {
-        hash =>
-          val blockProviders = hashAdapterMap.get(hash).get
-          var success = false
-          var i = 0
-          while (!success && i < blockProviders.size) {
-            var remoteData: InputStream = null
-            try {
-              // TODO: only read the file size bytes back (if the file is one block)
-              // TODO: support writing to an offset of the existing file to allow for sub-blocks
-              remoteData = blockProviders(i).load(hash)
-              val destFile = new File(meta.getPath)
-              destFile.getParentFile.mkdirs
-              val remoteDataHash = CryptoUtil.digestToString(CryptoUtil.writeAndComputeHash(remoteData, destFile))
-              if (remoteDataHash.equals(hash)) {
-                success = true
-              } else {
-                destFile.delete
-              }
-            } catch {
-              case e: Exception => {
-                onMessage(String.format("failed to pull block %s", hash))
-                // TODO: We should delete/recover the block from the adapter
-              }
-              log.error(hash, e)
-            } finally {
-              FileUtil.SafeClose(remoteData)
-            }
-            i += 1
-          }
-
-          if (success) {
-            onMessage(String.format("%s pulled block %s", meta.getPath, hash))
-          } else {
-            onMessage(String.format("%s failed to pull block %s", meta.getFilename, hash))
-            // TODO: attempt to rever the block and write it in the correct target file region
-          }
+      if (!success) {
+        cloudEngine.ensure(fmd.createBlockContext(blockHash), true)
+        if (!cloudEngine.contains(fmd.createBlockContext(blockHash))) {
+          onMessage("giving up on %s, block %s not currently available!".format(fmd.getFilename, blockHash))
+          retries = 0
+        }
       }
     }
+    success
   }
 
   def addTags(selections: JSONArray, tags: Set[String]): JSONArray = {
@@ -348,16 +347,16 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
       i =>
         val hash = selections.getJSONObject(i).getString("hash")
         val data = selections.getJSONObject(i).getJSONObject("data")
-        val oldMeta = FileMetaData.create(hash, data)
+        val oldMeta = FileMetaData.fromJson(hash, data)
 
-        val newTags = MetaUtil.applyTags(oldMeta.getTags, tags)
+        val newTags = FileMetaData.applyTags(oldMeta.getTags, tags)
         if (newTags.equals(oldMeta.getTags)) {
           Nil
         } else {
           data.put("tags", new JSONArray(newTags))
 
-          val derivedMeta = MetaUtil.deriveMeta(hash, data)
-          cloudEngine.store(derivedMeta.getHash, new ByteArrayInputStream(derivedMeta.getDataAsString.getBytes("UTF-8")), derivedMeta)
+          val derivedMeta = FileMetaData.deriveMeta(hash, data)
+          cloudEngine.store(derivedMeta.createBlockContext, new ByteArrayInputStream(derivedMeta.getDataAsString.getBytes("UTF-8")))
           List(derivedMeta)
         }
     }.toList
@@ -365,29 +364,18 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     addAll(fmds)
     pruneHistory(fmds)
 
-    MetaUtil.toJsonArray(fmds)
+    FileMetaData.toJsonArray(fmds)
   }
 
-  def verify(selections: JSONArray, deleteOnInvalid: Boolean) {
+  def ensure(selections: JSONArray, blockLevelCheck: Boolean) {
     (0 until selections.length()).par.foreach{
       i =>
-        val fmd = MetaUtil.loadMeta(selections.getJSONObject(i))
-        val blockHashes = fmd.getBlockHashes
-        cloudEngine.verify(fmd.getHash, fmd, deleteOnInvalid)
-        (0 until blockHashes.length).foreach{ j =>
-          cloudEngine.verify(blockHashes.getString(j), fmd, deleteOnInvalid)
-        }
-    }
-  }
-
-  def sync(selections: JSONArray) {
-    (0 until selections.length).foreach{
-      i =>
-        val fmd = MetaUtil.loadMeta(selections.getJSONObject(i))
-        val blockHashes = fmd.getBlockHashes
-        cloudEngine.sync(fmd.getHash, fmd)
-        (0 until blockHashes.length).foreach{ j =>
-          cloudEngine.sync(blockHashes.getString(j), fmd)
+        val fmd = FileMetaData.fromJson(selections.getJSONObject(i))
+        val hashes = Set(fmd.getHash) ++ (0 until fmd.getBlockHashes.length).map(fmd.getBlockHashes.getString)
+        hashes.foreach{ hash =>
+          if (!cloudEngine.ensure(fmd.createBlockContext(hash), blockLevelCheck)) {
+            onMessage("%s: found incosistent block %s".format(fmd.getFilename, hash))
+          }
         }
     }
   }
@@ -396,23 +384,17 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
   def remove(selections: JSONArray) {
     (0 until selections.length).par.foreach {
       i =>
-        val hash = selections.getJSONObject(i).getString("hash")
-        val meta = JsonUtil.loadJson(cloudEngine.load(hash))
+        val fmd = FileMetaData.fromJson(selections.getJSONObject(i))
+        cloudEngine.remove(fmd.createBlockContext)
 
-        cloudEngine.remove(hash)
-
+        // TODO: only delete if there are no other files referencing these blocks
         if (false) {
-          // TODO: only delete if there are no other files referencing these blocks
-          val blocks = meta.getJSONArray("blocks")
-          (0 until blocks.length).foreach(j => cloudEngine.remove(blocks.getString(j)))
+          val blocks = fmd.getBlockHashes
+          (0 until blocks.length).foreach(j => cloudEngine.remove(fmd.createBlockContext(blocks.getString(j))))
         }
 
-        val indexMeta = new JSONObject
-        indexMeta.put("hash", hash)
-        indexMeta.put("data", meta)
-
-        // TODO: we should only do this if we are sure the rest happened correctly (although at worst we could reindex)
-        remove(MetaUtil.loadMeta(indexMeta))
+         // TODO: we should only do this if we are sure the rest happened correctly (although at worst we could reindex)
+        remove(fmd)
     }
   }
 
@@ -466,7 +448,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
 
       val rs = statement.executeQuery
       while (rs.next) {
-        results.put(MetaUtil.loadMeta(rs.getString("HASH"), new JSONObject(rs.getString("RAWMETA"))).toJson)
+        results.put(FileMetaData.fromJson(rs.getString("HASH"), new JSONObject(rs.getString("RAWMETA"))).toJson)
       }
     }
     catch {
