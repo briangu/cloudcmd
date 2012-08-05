@@ -5,8 +5,6 @@ import adapters.Adapter
 import java.io._
 import org.apache.log4j.Logger
 import config.ConfigStorage
-import cloudcmd.common
-import common.FileMetaData
 
 class ParallelCloudEngine(configService: ConfigStorage) extends CloudEngine {
 
@@ -57,6 +55,11 @@ class ParallelCloudEngine(configService: ConfigStorage) extends CloudEngine {
 
   def containsAll(ctxs: Set[BlockContext]) : Map[BlockContext, Boolean] = {
     Map() ++ ctxs.par.flatMap{ ctx => Map(ctx -> contains(ctx)) }
+  }
+
+  override
+  def ensure(ctx: BlockContext, blockLevelCheck: Boolean) : Boolean = {
+    _storage.ensure(ctx, getHashProviders(ctx), getAdaptersAccepts(ctx), blockLevelCheck)
   }
 
   def ensureAll(ctxs: Set[BlockContext], blockLevelCheck: Boolean) : Map[BlockContext, Boolean] = {

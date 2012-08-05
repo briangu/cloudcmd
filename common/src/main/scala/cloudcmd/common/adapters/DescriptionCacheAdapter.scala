@@ -100,6 +100,9 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
     Map() ++ present.par.flatMap(h => Map(h -> true)) ++ missing.par.flatMap(h => Map(h -> false))
   }
 
+  override
+  def ensure(ctx: BlockContext, blockLevelCheck: Boolean): Boolean = wrappedAdapter.ensure(ctx, blockLevelCheck)
+
   def ensureAll(ctxs: Set[BlockContext], blockLevelCheck: Boolean): Map[BlockContext, Boolean] = {
     Map() ++ ctxs.par.flatMap{ ctx =>
       Map(ctx -> wrappedAdapter.ensure(ctx, blockLevelCheck))
@@ -203,6 +206,7 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
             description.add(new BlockContext(resultSet.getString("HASH"), resultSet.getString("TAGS").split(" ").toSet))
           }
 
+          println(_rootPath)
           _description = description
         }
         catch {

@@ -50,22 +50,25 @@ class DirectFileAdapter extends Adapter {
     }
   }
 
-  def ensureAll(ctxs: Set[BlockContext], blockLevelCheck: Boolean): Map[BlockContext, Boolean] = {
-    Map() ++ ctxs.par.flatMap{ ctx =>
-      val file: File = new File(getDataFileFromHash(ctx.hash))
-      val valid = if (blockLevelCheck) {
-        if (file.exists) {
-          val idx = ctx.hash.lastIndexOf(".")
-          val testHash = if (idx >= 0) ctx.hash.substring(0, idx) else ctx.hash
-          CryptoUtil.computeHashAsString(file) == testHash
-        } else {
-          false
-        }
+  override
+  def ensure(ctx: BlockContext, blockLevelCheck: Boolean) : Boolean = {
+    val file = new File(getDataFileFromHash(ctx.hash))
+    val valid = if (blockLevelCheck) {
+      if (file.exists) {
+        val idx = ctx.hash.lastIndexOf(".")
+        val testHash = if (idx >= 0) ctx.hash.substring(0, idx) else ctx.hash
+        CryptoUtil.computeHashAsString(file) == testHash
       } else {
-        file.exists()
+        false
       }
-      Map(ctx -> valid)
+    } else {
+      file.exists()
     }
+    valid
+  }
+
+  def ensureAll(ctxs: Set[BlockContext], blockLevelCheck: Boolean): Map[BlockContext, Boolean] = {
+    Map() ++ ctxs.par.flatMap{ ctx => Map(ctx -> ensure(ctx, blockLevelCheck)) }
   }
 
   def store(ctx: BlockContext, is: InputStream) = {

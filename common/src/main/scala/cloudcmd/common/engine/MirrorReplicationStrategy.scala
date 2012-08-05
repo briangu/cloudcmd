@@ -12,7 +12,9 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
   private val log: Logger = Logger.getLogger(classOf[MirrorReplicationStrategy])
 
   def isReplicated(ctx: BlockContext, adapters: List[Adapter]): Boolean = {
-    adapters.par.filterNot(_.contains(ctx)).size > 0
+    val acceptsAdapters = adapters.par.filter(_.accepts(ctx))
+    val replicated = acceptsAdapters.filter(!_.contains(ctx)).size == 0
+    replicated
   }
 
   def store(ctx: BlockContext, dis: InputStream, adapters: List[Adapter]) {
@@ -89,7 +91,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
   }
 
   private def sync(ctx: BlockContext, hashProviders: List[Adapter], adapters: List[Adapter]) : Boolean = {
-    if (isReplicated(ctx, hashProviders)) return true
+    if (isReplicated(ctx, adapters)) return true
 
     var is: InputStream = null
     try {
@@ -110,7 +112,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
       FileUtil.SafeClose(is)
     }
 
-    isReplicated(ctx, hashProviders)
+    isReplicated(ctx, adapters)
   }
 
   private def ensureExistingBlocks(ctx: BlockContext, hashProviders: List[Adapter], blockLevelCheck: Boolean) : Map[Adapter, Boolean] = {
@@ -118,7 +120,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
       adapter =>
         var isConsistent = false
         try {
-          val isConsistent = adapter.ensure(ctx, blockLevelCheck)
+          isConsistent = adapter.ensure(ctx, blockLevelCheck)
           if (isConsistent) {
             // TODO: enable verbose flag
             //_wm.make(new MemoryElement("msg", "body", String.format("successfully validated block %s is on adapter %s", hash, adapter.URI)))
