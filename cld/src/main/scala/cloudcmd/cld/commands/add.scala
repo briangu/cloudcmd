@@ -11,7 +11,7 @@ import java.io.File
 import collection.mutable
 import cloudcmd.cld.CloudServices
 
-@SubCommand(name = "index", description = "add files")
+@SubCommand(name = "add", description = "add files")
 class Add extends Command {
 
   @Arg(name = "path", optional = false) var _path: String = null
