@@ -5,17 +5,43 @@ import java.io.InputStream
 import com.ning.http.client.AsyncHttpClient
 import org.jboss.netty.handler.codec.http.{HttpResponseStatus, HttpHeaders}
 import org.json.JSONArray
+import java.net.URI
 
-class DirectHttpAdapter(host: String) extends Adapter {
+class DirectHttpAdapter extends Adapter {
 
   val asyncHttpClient = new AsyncHttpClient()
+
+  var _host: String = null
+  var _urlRefreshCache : String = null
+  var _urlContainsAll : String = null
+  var _urlRemoveAll : String = null
+  var _urlEnsureAll : String = null
+  var _urlDescribe : String = null
+  var _urlDescribeHashes : String = null
+
+  private def buildUrls {
+    _urlRefreshCache = "%s/refreshCache".format(_host)
+    _urlContainsAll = "%s/blocks/containsAll".format(_host)
+    _urlRemoveAll = "%s/blocks/removeAll".format(_host)
+    _urlEnsureAll = "%s/blocks/ensureAll".format(_host)
+    _urlDescribe = "%s/blocks".format(_host)
+    _urlDescribeHashes = "%s/blocks/hashes".format(_host)
+  }
+
+  override def init(configDir: String, tier: Int, adapterType: String, acceptsTags: Set[String], uri: URI) {
+    super.init(configDir, tier, adapterType, acceptsTags, uri)
+    _host = "http://%s:%d".format(uri.getHost, uri.getPort)
+    buildUrls
+  }
+
+  def shutdown {}
 
   /***
    * Refresh the internal cache, which may be time consuming
    */
   def refreshCache() {
     val response = asyncHttpClient
-      .preparePost("/refreshCache")
+      .preparePost(_urlRefreshCache)
       .execute
       .get
     // TODO: use boolean or custom exception
@@ -32,7 +58,7 @@ class DirectHttpAdapter(host: String) extends Adapter {
     ctxs.foreach(ctx => arr.put(ctx.toJson))
 
     val response = asyncHttpClient
-      .preparePost("/blocks/containsAll")
+      .preparePost(_urlContainsAll)
       .addParameter("ctxs", arr.toString)
       .execute
       .get
@@ -52,7 +78,7 @@ class DirectHttpAdapter(host: String) extends Adapter {
     ctxs.foreach(ctx => arr.put(ctx.toJson))
 
     val response = asyncHttpClient
-      .preparePost("/blocks/removeAll")
+      .preparePost(_urlRemoveAll)
       .addParameter("ctxs", arr.toString)
       .execute
       .get
@@ -73,7 +99,7 @@ class DirectHttpAdapter(host: String) extends Adapter {
     ctxs.foreach(ctx => arr.put(ctx.toJson))
 
     val response = asyncHttpClient
-      .preparePost("/blocks/ensureAll")
+      .preparePost(_urlEnsureAll)
       .addParameter("ctxs", arr.toString)
       .execute
       .get
@@ -99,7 +125,7 @@ class DirectHttpAdapter(host: String) extends Adapter {
    */
   def store(ctx: BlockContext, is: InputStream) {
     val response = asyncHttpClient
-      .preparePost("/blocks/%s/%s".format(ctx.hash, ctx.routingTags.mkString(",")))
+      .preparePost("%s/blocks/%s/%s".format(_host, ctx.hash, ctx.routingTags.mkString(",")))
       .setBody(is)
       .execute
       .get
@@ -114,7 +140,7 @@ class DirectHttpAdapter(host: String) extends Adapter {
    */
   def load(ctx: BlockContext) : (InputStream, Int) = {
     val response = asyncHttpClient
-      .prepareGet("/blocks/%s/%s".format(ctx.hash, ctx.routingTags.mkString(",")))
+      .prepareGet("%s/blocks/%s/%s".format(_host, ctx.hash, ctx.routingTags.mkString(",")))
       .execute
       .get
     if (response.getStatusCode != HttpResponseStatus.OK.getCode) throw new DataNotFoundException(ctx)
@@ -126,7 +152,13 @@ class DirectHttpAdapter(host: String) extends Adapter {
    * @return
    */
   def describe() : Set[BlockContext] = {
-    null
+    val response = asyncHttpClient
+      .prepareGet(_urlDescribe)
+      .execute
+      .get
+    if (response.getStatusCode != HttpResponseStatus.OK.getCode) throw new RuntimeException("unable to describe")
+    val arr = new JSONArray(response.getResponseBody("UTF-8"))
+    Set() ++ (0 until arr.length).par.map(idx => BlockContext.fromJson(arr.getJSONObject(idx)))
   }
 
   /***
@@ -135,8 +167,12 @@ class DirectHttpAdapter(host: String) extends Adapter {
    * @return
    */
   def describeHashes() : Set[String] = {
-    null
+    val response = asyncHttpClient
+      .prepareGet(_urlDescribeHashes)
+      .execute
+      .get
+    if (response.getStatusCode != HttpResponseStatus.OK.getCode) throw new RuntimeException("unable to describe")
+    val arr = new JSONArray(response.getResponseBody("UTF-8"))
+    Set() ++ (0 until arr.length).par.map(idx => arr.getString(idx))
   }
-
-  def shutdown() {}
 }
