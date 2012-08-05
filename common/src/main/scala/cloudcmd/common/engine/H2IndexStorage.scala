@@ -410,7 +410,9 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
       val bind = new ListBuffer[AnyRef]
 
       if (filter.has("tags")) {
-        sql = "SELECT T.HASH,T.RAWMETA FROM FTL_SEARCH_DATA(?, 0, 0) FTL, FILE_INDEX T WHERE FTL.TABLE='FILE_INDEX' AND T.HASH = FTL.KEYS[0]"
+        val limit = if (filter.has("count")) filter.getInt("count") else 0
+        val offset = if (filter.has("offset")) filter.getInt("offset") else 0
+        sql = "SELECT T.HASH,T.RAWMETA FROM FTL_SEARCH_DATA(?, %d, %d) FTL, FILE_INDEX T WHERE FTL.TABLE='FILE_INDEX' AND T.HASH = FTL.KEYS[0]".format(limit, offset)
         bind.append(filter.getString("tags"))
       }
       else {
@@ -440,9 +442,10 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
         else {
           sql = "SELECT HASH,RAWMETA FROM FILE_INDEX"
         }
+
+        if (filter.has("count")) sql += " LIMIT %d".format(filter.getInt("count"))
+        if (filter.has("offset")) sql += " OFFSET %d".format(filter.getInt("offset"))
       }
-      if (filter.has("count")) sql += " LIMIT %d".format(filter.getInt("count"))
-      if (filter.has("offset")) sql += " OFFSET %d".format(filter.getInt("offset"))
       statement = db.prepareStatement(sql)
       (0 until bind.size).foreach(i => bindVar(statement, i + 1, bind(i)))
 
