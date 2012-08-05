@@ -96,7 +96,7 @@ class DirectFileAdapter extends Adapter {
         if (hash.endsWith(".meta")) {
           val fis = new FileInputStream(file)
           try {
-            val fmd = FileMetaData.fromJson(hash, JsonUtil.loadJson(fis))
+            val fmd = FileMetaData.create(hash, JsonUtil.loadJson(fis))
             ctxs.add(fmd.createBlockContext)
             val blockHashes = fmd.getBlockHashes
             (0 until blockHashes.length()).foreach{i =>

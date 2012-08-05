@@ -6,28 +6,22 @@ import org.json.JSONObject
 import util.{CryptoUtil, JsonUtil}
 
 object FileMetaData {
-  def fromJson(jsonObject: JSONObject): FileMetaData = {
-    fromJson(jsonObject.getString("hash"), jsonObject.getJSONObject("data"))
+  def fromJson(serialized: JSONObject): FileMetaData = {
+    create(serialized.getString("hash"), serialized.getJSONObject("data"))
   }
 
-  def fromJson(hash: String, data: JSONObject): FileMetaData = {
+  def create(hash: String, data: JSONObject): FileMetaData = {
     val meta: FileMetaData = new FileMetaData
     meta._data = data
     meta._hash = hash
     meta
   }
 
-  def toJsonArray(meta: List[FileMetaData]): JSONArray = {
-    val result = new JSONArray
-    meta.foreach(m => result.put(m.toJson))
-    result
+  def create(rawData: JSONObject): FileMetaData = {
+    create(CryptoUtil.computeHashAsString(new ByteArrayInputStream(rawData.toString.getBytes("UTF-8"))) + ".meta", rawData)
   }
 
-  def create(jsonObject: JSONObject): FileMetaData = {
-    fromJson(CryptoUtil.computeHashAsString(new ByteArrayInputStream(jsonObject.toString.getBytes("UTF-8"))) + ".meta", jsonObject)
-  }
-
-  def create(file: File, blockHashes: List[String], tags: Set[String]): FileMetaData = {
+  def create(file: File, blockHashes: List[String], tags: Set[String], properties: JSONObject = new JSONObject): FileMetaData = {
     val fileName = file.getName
     val extIndex = fileName.lastIndexOf(".")
     FileMetaData.create(
@@ -38,14 +32,21 @@ object FileMetaData {
         "filesize", file.length.asInstanceOf[AnyRef],
         "filedate", file.lastModified.asInstanceOf[AnyRef],
         "blocks", JsonUtil.toJsonArray(blockHashes),
-        "tags", JsonUtil.toJsonArray(tags)))
+        "tags", JsonUtil.toJsonArray(tags),
+        "properties", if (properties.length > 0) properties else null))
+  }
+
+  def toJsonArray(meta: List[FileMetaData]): JSONArray = {
+    val result = new JSONArray
+    meta.foreach(m => result.put(m.toJson))
+    result
   }
 
   def deriveMeta(hash: String, data: JSONObject): FileMetaData = {
     val derivedObj: JSONObject = new JSONObject(data.toString)
     derivedObj.put("parent", hash)
     val derivedHash: String = CryptoUtil.computeHashAsString(new ByteArrayInputStream(derivedObj.toString.getBytes("UTF-8"))) + ".meta"
-    val meta: FileMetaData = fromJson(derivedHash, derivedObj)
+    val meta: FileMetaData = create(derivedHash, derivedObj)
     meta
   }
 

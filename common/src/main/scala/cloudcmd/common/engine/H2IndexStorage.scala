@@ -271,7 +271,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     val fmds = cloudEngine.describeMeta.par.flatMap {
       ctx =>
         try {
-          List(FileMetaData.fromJson(ctx.hash, JsonUtil.loadJson(cloudEngine.load(ctx))))
+          List(FileMetaData.create(ctx.hash, JsonUtil.loadJson(cloudEngine.load(ctx))))
         } catch {
           case e: Exception => {
             log.error(ctx, e)
@@ -347,7 +347,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
       i =>
         val hash = selections.getJSONObject(i).getString("hash")
         val data = selections.getJSONObject(i).getJSONObject("data")
-        val oldMeta = FileMetaData.fromJson(hash, data)
+        val oldMeta = FileMetaData.create(hash, data)
 
         val newTags = FileMetaData.applyTags(oldMeta.getTags, tags)
         if (newTags.equals(oldMeta.getTags)) {
@@ -448,7 +448,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
 
       val rs = statement.executeQuery
       while (rs.next) {
-        results.put(FileMetaData.fromJson(rs.getString("HASH"), new JSONObject(rs.getString("RAWMETA"))).toJson)
+        results.put(FileMetaData.create(rs.getString("HASH"), new JSONObject(rs.getString("RAWMETA"))).toJson)
       }
     }
     catch {

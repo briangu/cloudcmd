@@ -4,18 +4,19 @@ import java.io.{ByteArrayInputStream, FileInputStream, File}
 import cloudcmd.common.{FileMetaData, FileUtil}
 import cloudcmd.common.util.{FileTypeUtil, CryptoUtil}
 import cloudcmd.common.config.ConfigStorage
+import org.json.JSONObject
 
 class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngine, indexStorage: IndexStorage) extends FileProcessor {
 
-  def add(file: File, tags: Set[String]) {
+  def add(file: File, tags: Set[String], properties: JSONObject) {
     addAll(Set(file), tags)
   }
 
-  def addAll(fileSet: Set[File], tags: Set[String]) {
-    indexStorage.addAll(fileSet.par.map(processFile(_, tags)).toList)
+  def addAll(fileSet: Set[File], tags: Set[String], properties: JSONObject) {
+    indexStorage.addAll(fileSet.par.map(processFile(_, tags, properties)).toList)
   }
 
-  def processFile(file: File, tags: Set[String]) : FileMetaData = {
+  def processFile(file: File, tags: Set[String], properties: JSONObject) : FileMetaData = {
     var blockHash: String = null
 
     val startTime = System.currentTimeMillis
@@ -31,7 +32,7 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
       val fileExt = if (extIdx > -1) file.getName.substring(extIdx + 1) else ""
       val fileType = FileTypeUtil.instance.getTypeFromExtension(fileExt)
       val derivedTags = tags ++ Set(fileExt) ++ (if (fileType.length > 0) Set(fileType) else Set())
-      val fmd = FileMetaData.create(file, List(blockHash), derivedTags)
+      val fmd = FileMetaData.create(file, List(blockHash), derivedTags, properties)
 
       fis = new FileInputStream(file)
       try {
