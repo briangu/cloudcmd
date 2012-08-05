@@ -87,28 +87,31 @@ class DirectFileAdapter extends Adapter {
   }
 
   def describe: Set[BlockContext] = {
-    val hashes = describeHashes
-
     val ctxs = new mutable.HashSet[BlockContext] with mutable.SynchronizedSet[BlockContext]
-    hashes.par.filter(h => h.endsWith(".meta")).par.foreach{ hash =>
-      val file = new File(getDataFileFromHash(hash))
-      if (file.exists()) {
-        val fis = new FileInputStream(file)
-        try {
-          val fmd = FileMetaData.fromJson(hash, JsonUtil.loadJson(fis))
-          ctxs.add(fmd.createBlockContext)
-          val blockHashes = fmd.getBlockHashes
-          (0 until blockHashes.length()).foreach{i =>
-            val blockHash = blockHashes.getString(i)
-            if (hashes.contains(blockHash)) {
-              ctxs.add(fmd.createBlockContext(blockHash))
+
+    FileWalker.enumerateFolders(_dataDir, new FileWalker.FileHandler {
+      def skipDir(file: File): Boolean = false
+      def process(file: File) = {
+        val hash = file.getName
+        if (hash.endsWith(".meta")) {
+          val fis = new FileInputStream(file)
+          try {
+            val fmd = FileMetaData.fromJson(hash, JsonUtil.loadJson(fis))
+            ctxs.add(fmd.createBlockContext)
+            val blockHashes = fmd.getBlockHashes
+            (0 until blockHashes.length()).foreach{i =>
+              val blockHash = blockHashes.getString(i)
+              if (new File(getDataFileFromHash(blockHash)).exists) {
+                ctxs.add(fmd.createBlockContext(blockHash))
+              }
             }
+          } finally {
+            FileUtil.SafeClose(fis)
           }
-        } finally {
-          FileUtil.SafeClose(fis)
         }
       }
-    }
+    })
+
     ctxs.toSet
   }
 
