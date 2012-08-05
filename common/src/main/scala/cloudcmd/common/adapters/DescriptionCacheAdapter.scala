@@ -206,7 +206,6 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
             description.add(new BlockContext(resultSet.getString("HASH"), resultSet.getString("TAGS").split(" ").toSet))
           }
 
-          println(_rootPath)
           _description = description
         }
         catch {
