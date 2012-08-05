@@ -1,5 +1,5 @@
 package cloudcmd.common.adapters
 
-class DataNotFoundException(hash: String) extends Exception {
-  var Hash: String = hash
-}
+import cloudcmd.common.BlockContext
+
+class DataNotFoundException(val ctx: BlockContext) extends Exception {}

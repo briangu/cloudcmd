@@ -57,7 +57,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
   }
 
   def load(ctx: BlockContext, hashProviders: List[Adapter]): (InputStream, Int) = {
-    if (hashProviders.size == 0) throw new DataNotFoundException(ctx.hash)
+    if (hashProviders.size == 0) throw new DataNotFoundException(ctx)
     Random.shuffle(hashProviders).sortBy(x => x.Tier).toList(0).load(ctx)
   }
 
@@ -86,7 +86,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
   def ensure(ctx: BlockContext, hashProviders: List[Adapter], adapters: List[Adapter], blockLevelCheck: Boolean) : Boolean = {
     val consistencyResults = ensureExistingBlocks(ctx, hashProviders, blockLevelCheck)
     val validProviders = consistencyResults.filter{case (adapter:Adapter, consistent: Boolean) => consistent}.keySet.toList
-    if (validProviders.size == 0) throw new DataNotFoundException(ctx.hash)
+    if (validProviders.size == 0) throw new DataNotFoundException(ctx)
     sync(ctx, validProviders, adapters)
   }
 

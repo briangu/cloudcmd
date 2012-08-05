@@ -8,12 +8,10 @@ import java.io._
 import cloudcmd.common.engine.CloudEngine
 import org.jboss.netty.handler.codec.http._
 import org.jboss.netty.channel.{ChannelFutureListener, MessageEvent, ChannelHandlerContext}
-import org.jboss.netty.handler.codec.http2.HttpPostRequestDecoder
-import org.jboss.netty.handler.codec.http2.DefaultHttpDataFactory
-import org.jboss.netty.handler.codec.http2.FileUpload
-import org.jboss.netty.handler.codec.http2.DiskAttribute
 import org.jboss.netty.handler.codec.http.HttpHeaders._
-import org.json.{JSONException, JSONArray}
+import org.json.JSONArray
+import org.jboss.netty.buffer.ChannelBufferInputStream
+import java.net.URI
 
 object CloudServer {
   def main(args: Array[String]) {
@@ -53,29 +51,19 @@ class StoreHandler(route: String, cloudEngine: CloudEngine) extends Route(route)
       return
     }
 
-    val convertedRequest = convertRequest(request)
-    val decoder = new HttpPostRequestDecoder(new DefaultHttpDataFactory(true), convertedRequest)
+    val path = RouteUtil.parsePath(request.getUri)
+    val args = RouteUtil.extractPathArgs(_route, path)
+    args.putAll(RouteUtil.extractQueryParams(new URI(request.getUri)))
+    if (!args.containsKey("hash")) return new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
+    if (!args.containsKey("tags")) return new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
+    val blockContext = new BlockContext(args.get("hash"), args.get("tags").split(",").toSet)
+    val is = new ChannelBufferInputStream(request.getContent)
+
     val response = try {
-      if (decoder.isMultipart) {
-        if (decoder.getBodyHttpDatas.size() == 2) {
-          // TODO: use hybrid mode
-          val fileData = decoder.getBodyHttpData("files[]")
-          val ctxData = decoder.getBodyHttpData("ctx")
-          if (fileData != null && ctxData != null) {
-            val upload  = fileData.asInstanceOf[FileUpload]
-            val ctx = BlockContext.fromJson(FileUtils.readFile(ctxData.asInstanceOf[DiskAttribute].getFile))
-            processFile(upload, ctx)
-          } else {
-            new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
-          }
-        } else {
-          new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
-        }
-      } else {
-        new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
-      }
+      cloudEngine.store(blockContext, is)
+      new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CREATED)
     } finally {
-      decoder.cleanFiles()
+      is.close()
     }
 
     if (isKeepAlive(request)) {
@@ -83,49 +71,12 @@ class StoreHandler(route: String, cloudEngine: CloudEngine) extends Route(route)
     } else {
       response.setHeader(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE)
     }
-    setContentLength(response, response.getContent().readableBytes())
+
+//    setContentLength(response, response.getContent().readableBytes())
 
     val writeFuture = e.getChannel().write(response)
     if (!isKeepAlive(request)) {
       writeFuture.addListener(ChannelFutureListener.CLOSE)
-    }
-  }
-
-  def convertRequest(request: HttpRequest) : org.jboss.netty.handler.codec.http2.HttpRequest = {
-    val convertedRequest =
-      new org.jboss.netty.handler.codec.http2.DefaultHttpRequest(
-        org.jboss.netty.handler.codec.http2.HttpVersion.HTTP_1_0,
-        org.jboss.netty.handler.codec.http2.HttpMethod.POST,
-        request.getUri)
-    convertedRequest.setContent(request.getContent)
-    convertedRequest.setChunked(request.isChunked)
-    import collection.JavaConversions._
-    request.getHeaders.foreach { entry =>
-      convertedRequest.setHeader(entry.getKey, entry.getValue)
-    }
-    convertedRequest
-  }
-
-  def processFile(upload: FileUpload, ctx: BlockContext) : HttpResponse = {
-    var fis: InputStream = null
-    try {
-      fis = new FileInputStream(upload.getFile)
-      cloudEngine.store(ctx, fis)
-      new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CREATED)
-    }
-    catch {
-      case e: JSONException => {
-        e.printStackTrace()
-        new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR)
-      }
-      case e: UnsupportedEncodingException => {
-        e.printStackTrace()
-        new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR)
-      }
-    } finally {
-      if (fis != null) {
-        fis.close()
-      }
     }
   }
 }
@@ -149,7 +100,7 @@ class CloudServer(cloudEngine: CloudEngine) extends ViperServer("res:///cloudser
       }
     })
 
-    addRoute(new StoreHandler("/blocks", cloudEngine))
+    addRoute(new StoreHandler("/blocks/$hash/$tags", cloudEngine))
 
     delete("/blocks/$hash/$tags", new RouteHandler {
       def exec(args: util.Map[String, String]): RouteResponse = {

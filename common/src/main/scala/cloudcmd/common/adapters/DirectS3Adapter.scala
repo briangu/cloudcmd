@@ -106,7 +106,7 @@ class DirectS3Adapter extends Adapter {
   }
 
   def load(ctx: BlockContext): (InputStream, Int) = {
-    if (!contains(ctx)) throw new DataNotFoundException(ctx.hash)
+    if (!contains(ctx)) throw new DataNotFoundException(ctx)
     val obj = _s3Service.getObject(_bucketName, ctx.hash)
     (obj.getDataInputStream, obj.getContentLength.toInt)
   }
