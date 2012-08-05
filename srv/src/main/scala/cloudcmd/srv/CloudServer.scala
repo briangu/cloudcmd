@@ -54,16 +54,19 @@ class StoreHandler(route: String, cloudEngine: CloudEngine) extends Route(route)
     val path = RouteUtil.parsePath(request.getUri)
     val args = RouteUtil.extractPathArgs(_route, path)
     args.putAll(RouteUtil.extractQueryParams(new URI(request.getUri)))
-    if (!args.containsKey("hash")) return new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
-    if (!args.containsKey("tags")) return new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
-    val blockContext = new BlockContext(args.get("hash"), args.get("tags").split(",").toSet)
-    val is = new ChannelBufferInputStream(request.getContent)
 
+    var is: InputStream = null
     val response = try {
-      cloudEngine.store(blockContext, is)
-      new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CREATED)
+      if (args.containsKey("hash") && args.containsKey("tags")) {
+        val blockContext = new BlockContext(args.get("hash"), args.get("tags").split(",").toSet)
+        is = new ChannelBufferInputStream(request.getContent)
+        cloudEngine.store(blockContext, is)
+        new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CREATED)
+      } else {
+        new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
+      }
     } finally {
-      is.close()
+      if (is != null) is.close()
     }
 
     if (isKeepAlive(request)) {

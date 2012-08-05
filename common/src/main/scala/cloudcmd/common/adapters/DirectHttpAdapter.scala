@@ -36,15 +36,10 @@ class DirectHttpAdapter(host: String) extends Adapter {
       .addParameter("ctxs", arr.toString)
       .execute
       .get
+
     // TODO: use boolean or custom exception
     if (response.getStatusCode != HttpResponseStatus.OK.getCode) throw new RuntimeException("failed calling containsAll")
-
-    val rex = new JSONArray(response.getResponseBody("UTF-8"))
-    Map() ++ (0 until rex.length).par.flatMap{
-      idx =>
-        val obj = rex.getJSONObject(idx)
-        Map(BlockContext.fromJson(obj), obj.getBoolean("_status"))
-    }
+    ctxsResponseArrToMap(new JSONArray(response.getResponseBody("UTF-8")))
   }
 
   /***
@@ -53,7 +48,18 @@ class DirectHttpAdapter(host: String) extends Adapter {
    * @return
    */
   def removeAll(ctxs: Set[BlockContext]) : Map[BlockContext, Boolean] = {
-    null
+    val arr = new JSONArray
+    ctxs.foreach(ctx => arr.put(ctx.toJson))
+
+    val response = asyncHttpClient
+      .preparePost("/blocks/removeAll")
+      .addParameter("ctxs", arr.toString)
+      .execute
+      .get
+
+    // TODO: use boolean or custom exception
+    if (response.getStatusCode != HttpResponseStatus.OK.getCode) throw new RuntimeException("failed calling removeAll")
+    ctxsResponseArrToMap(new JSONArray(response.getResponseBody("UTF-8")))
   }
 
   /***
@@ -63,7 +69,26 @@ class DirectHttpAdapter(host: String) extends Adapter {
    * @return
    */
   def ensureAll(ctxs: Set[BlockContext], blockLevelCheck: Boolean) : Map[BlockContext, Boolean] = {
-    null
+    val arr = new JSONArray
+    ctxs.foreach(ctx => arr.put(ctx.toJson))
+
+    val response = asyncHttpClient
+      .preparePost("/blocks/ensureAll")
+      .addParameter("ctxs", arr.toString)
+      .execute
+      .get
+
+    // TODO: use boolean or custom exception
+    if (response.getStatusCode != HttpResponseStatus.OK.getCode) throw new RuntimeException("failed calling ensureAll")
+    ctxsResponseArrToMap(new JSONArray(response.getResponseBody("UTF-8")))
+  }
+
+  private def ctxsResponseArrToMap(arr: JSONArray) : Map[BlockContext, Boolean] = {
+    Map() ++ (0 until arr.length).par.flatMap{
+      idx =>
+        val obj = arr.getJSONObject(idx)
+        Map(BlockContext.fromJson(obj) -> obj.getBoolean("_status"))
+    }
   }
 
   /***
