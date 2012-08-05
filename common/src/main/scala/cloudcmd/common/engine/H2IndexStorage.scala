@@ -271,7 +271,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     val fmds = cloudEngine.describeMeta.par.flatMap {
       ctx =>
         try {
-          List(FileMetaData.create(ctx.hash, JsonUtil.loadJson(cloudEngine.load(ctx))))
+          List(FileMetaData.create(ctx.hash, JsonUtil.loadJson(cloudEngine.load(ctx)._1)))
         } catch {
           case e: Exception => {
             log.error(ctx, e)
@@ -311,7 +311,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     while (!success && retries > 0) {
       var remoteData: InputStream = null
       try {
-        remoteData = cloudEngine.load(fmd.createBlockContext(blockHash))
+        remoteData = cloudEngine.load(fmd.createBlockContext(blockHash))._1
         val destFile = new File(fmd.getPath)
         destFile.getParentFile.mkdirs
         val remoteDataHash = CryptoUtil.digestToString(CryptoUtil.writeAndComputeHash(remoteData, destFile))

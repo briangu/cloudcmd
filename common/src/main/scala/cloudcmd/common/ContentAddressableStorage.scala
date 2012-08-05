@@ -67,7 +67,7 @@ trait ContentAddressableStorage {
    * @param ctx
    * @return
    */
-  def load(ctx: BlockContext) : InputStream
+  def load(ctx: BlockContext) : (InputStream, Int)
 
   /***
    * List all the block hashes stored in the CAS.

@@ -35,7 +35,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
     missingAdapters.par.foreach{ adapter =>
       var is: InputStream = nis
       try {
-        if (is == null) is = load(ctx, containsAdapters)
+        if (is == null) is = load(ctx, containsAdapters)._1
         adapter.store(ctx, is)
         pushedCount.incrementAndGet()
         containsAdapters = containsAdapters ++ List(adapter)
@@ -56,7 +56,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
     }
   }
 
-  def load(ctx: BlockContext, hashProviders: List[Adapter]): InputStream = {
+  def load(ctx: BlockContext, hashProviders: List[Adapter]): (InputStream, Int) = {
     if (hashProviders.size == 0) throw new DataNotFoundException(ctx.hash)
     Random.shuffle(hashProviders).sortBy(x => x.Tier).toList(0).load(ctx)
   }
@@ -95,7 +95,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
 
     var is: InputStream = null
     try {
-      is = load(ctx, hashProviders)
+      is = load(ctx, hashProviders)._1
       store(ctx, is, adapters)
     }
     catch {

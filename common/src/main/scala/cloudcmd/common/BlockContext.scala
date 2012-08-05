@@ -8,6 +8,9 @@ object BlockContext {
     val obj = new JSONObject(json)
     new BlockContext(obj.getString("hash"), JsonUtil.createSet(obj.getJSONArray("tags")))
   }
+  def fromJson(obj: JSONObject) : BlockContext = {
+    new BlockContext(obj.getString("hash"), JsonUtil.createSet(obj.getJSONArray("tags")))
+  }
 }
 
 class BlockContext(val hash: String, val routingTags: Set[String] = Set()) {

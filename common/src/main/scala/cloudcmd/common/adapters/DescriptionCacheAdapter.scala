@@ -114,7 +114,7 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
     addToDb(Set(ctx))
   }
 
-  def load(ctx: BlockContext): InputStream = wrappedAdapter.load(ctx)
+  def load(ctx: BlockContext): (InputStream, Int) = wrappedAdapter.load(ctx)
 
   def removeAll(ctxs : Set[BlockContext]) : Map[BlockContext, Boolean] = {
     val result = wrappedAdapter.removeAll(ctxs)

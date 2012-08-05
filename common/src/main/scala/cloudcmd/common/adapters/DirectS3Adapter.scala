@@ -5,7 +5,7 @@ import cloudcmd.common.{FileMetaData, BlockContext, FileUtil, UriUtil}
 import org.jets3t.service.impl.rest.httpclient.RestS3Service
 import org.jets3t.service.model.S3Object
 import org.jets3t.service.security.AWSCredentials
-import java.io.{File, ByteArrayInputStream, FileInputStream, InputStream}
+import java.io.{ByteArrayInputStream, FileInputStream, InputStream}
 import java.net.URI
 import java.nio.channels.Channels
 import collection.mutable
@@ -105,9 +105,10 @@ class DirectS3Adapter extends Adapter {
     _s3Service.putObject(_bucketName, s3Object)
   }
 
-  def load(ctx: BlockContext): InputStream = {
+  def load(ctx: BlockContext): (InputStream, Int) = {
     if (!contains(ctx)) throw new DataNotFoundException(ctx.hash)
-    _s3Service.getObject(_bucketName, ctx.hash).getDataInputStream
+    val obj = _s3Service.getObject(_bucketName, ctx.hash)
+    (obj.getDataInputStream, obj.getContentLength.toInt)
   }
 
   def describe: Set[BlockContext] = {

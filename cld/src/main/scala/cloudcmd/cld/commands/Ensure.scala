@@ -22,7 +22,7 @@ class Ensure extends Command {
     val selections = if (_syncAll) {
       val arr = new JSONArray
       val metaHashes = CloudServices.CloudEngine.describeMeta()
-      val fmds = metaHashes.par.map{ ctx => FileMetaData.create(ctx.hash, JsonUtil.loadJson(CloudServices.CloudEngine.load(ctx))) }.toList
+      val fmds = metaHashes.par.map{ ctx => FileMetaData.create(ctx.hash, JsonUtil.loadJson(CloudServices.CloudEngine.load(ctx)._1)) }.toList
       fmds.foreach(a => arr.put(a.toJson))
       arr
     } else {

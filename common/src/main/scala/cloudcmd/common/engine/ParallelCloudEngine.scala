@@ -72,7 +72,7 @@ class ParallelCloudEngine(configService: ConfigStorage) extends CloudEngine {
     _storage.store(ctx, is, getAdaptersAccepts(ctx))
   }
 
-  def load(ctx: BlockContext) : InputStream = {
+  def load(ctx: BlockContext) : (InputStream, Int) = {
     _storage.load(ctx, getHashProviders(ctx))
   }
 

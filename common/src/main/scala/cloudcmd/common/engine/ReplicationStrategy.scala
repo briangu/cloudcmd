@@ -9,7 +9,7 @@ trait ReplicationStrategy extends EventSource {
 
   def store(ctx: BlockContext, is: InputStream, adapters: List[Adapter])
 
-  def load(ctx: BlockContext, adapters: List[Adapter]): InputStream
+  def load(ctx: BlockContext, adapters: List[Adapter]): (InputStream, Int)
 
   def remove(ctx: BlockContext, adapters: List[Adapter]) : Boolean
 
