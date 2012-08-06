@@ -58,7 +58,7 @@ class StoreHandler(route: String, cloudEngine: CloudEngine) extends Route(route)
     var is: InputStream = null
     val response = try {
       if (args.containsKey("hash") && args.containsKey("tags")) {
-        val blockContext = new BlockContext(args.get("hash"), args.get("tags").split(",").toSet)
+        val blockContext = new BlockContext(args.get("hash"), args.get("tags").split(",").filter(_.length > 0).toSet)
         is = new ChannelBufferInputStream(request.getContent)
         cloudEngine.store(blockContext, is)
         new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CREATED)
@@ -88,9 +88,10 @@ class CloudServer(cloudEngine: CloudEngine) extends ViperServer("res:///cloudser
 
   override
   def addRoutes {
-    get("/blocks/$hash/$tags", new RouteHandler {
+    get("/blocks/$key", new RouteHandler {
       def exec(args: util.Map[String, String]): RouteResponse = {
-        val ctx = new BlockContext(args.get("hash"), args.get("tags").split(",").toSet)
+        val (hash, tags) = args.get("key").split(",").toList.splitAt(1)
+        val ctx = new BlockContext(hash(0), tags.toSet)
         if (cloudEngine.contains(ctx)) {
           val (is, length) = cloudEngine.load(ctx)
           val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
@@ -105,9 +106,10 @@ class CloudServer(cloudEngine: CloudEngine) extends ViperServer("res:///cloudser
 
     addRoute(new StoreHandler("/blocks/$hash/$tags", cloudEngine))
 
-    delete("/blocks/$hash/$tags", new RouteHandler {
+    delete("/blocks/$hash,$tags", new RouteHandler {
       def exec(args: util.Map[String, String]): RouteResponse = {
-        val ctx = new BlockContext(args.get("hash"), args.get("tags").split(",").toSet)
+        val (hash, tags) = args.get("key").split(",").toList.splitAt(1)
+        val ctx = new BlockContext(hash(0), tags.toSet)
         val success = cloudEngine.remove(ctx)
         if (success) {
           new StatusResponse(HttpResponseStatus.NO_CONTENT)

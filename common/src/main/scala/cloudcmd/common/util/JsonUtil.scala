@@ -80,11 +80,12 @@ object JsonUtil {
   }
 
   def createSet(array: JSONArray): Set[String] = {
-    (0 until array.length).map(array.getString).toSet
+    // TODO: what's the fastest way to do this?
+    (0 until array.length).map(array.getString).filter(_.length > 0).toSet
   }
 
   def createSet(str: String, delimiter: String): Set[String] = {
-    str.split(delimiter).toSet
+    str.split(delimiter).filter(_.length > 0).toSet
   }
 
   def prettyToString(jsonObject: JSONObject): String = {

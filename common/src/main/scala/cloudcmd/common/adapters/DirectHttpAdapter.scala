@@ -34,7 +34,9 @@ class DirectHttpAdapter extends Adapter {
     buildUrls
   }
 
-  def shutdown {}
+  def shutdown {
+    asyncHttpClient.close
+  }
 
   /***
    * Refresh the internal cache, which may be time consuming
@@ -127,7 +129,7 @@ class DirectHttpAdapter extends Adapter {
    */
   def store(ctx: BlockContext, is: InputStream) {
     val response = asyncHttpClient
-      .preparePost("%s/blocks/%s/%s".format(_host, ctx.hash, ctx.routingTags.mkString(",")))
+      .preparePost("%s/blocks/%s,%s".format(_host, ctx.hash, ctx.routingTags.mkString(",")))
       .setBody(is)
       .execute
       .get
@@ -142,10 +144,12 @@ class DirectHttpAdapter extends Adapter {
    */
   def load(ctx: BlockContext) : (InputStream, Int) = {
     val response = asyncHttpClient
-      .prepareGet("%s/blocks/%s/%s".format(_host, ctx.hash, ctx.routingTags.mkString(",")))
+      .prepareGet("%s/blocks/%s,%s".format(_host, ctx.hash, ctx.routingTags.mkString(",")))
       .execute
       .get
-    if (response.getStatusCode != HttpResponseStatus.OK.getCode) throw new DataNotFoundException(ctx)
+    if (response.getStatusCode != HttpResponseStatus.OK.getCode) {
+      throw new DataNotFoundException(ctx)
+    }
     (response.getResponseBodyAsStream, response.getHeader(HttpHeaders.Names.CONTENT_LENGTH).toInt)
   }
 

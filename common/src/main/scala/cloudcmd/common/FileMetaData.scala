@@ -13,6 +13,7 @@ object FileMetaData {
   def create(hash: String, data: JSONObject): FileMetaData = {
     val meta: FileMetaData = new FileMetaData
     meta._data = data
+    meta._tags = JsonUtil.createSet(data.getJSONArray("tags"))
     meta._hash = hash
     meta
   }
@@ -80,9 +81,7 @@ class FileMetaData {
     _data.getJSONArray("blocks")
   }
 
-  def getTags: Set[String] = {
-    JsonUtil.createSet(_data.getJSONArray("tags"))
-  }
+  def getTags: Set[String] = _tags
 
   def toJson: JSONObject = {
     val obj: JSONObject = new JSONObject
@@ -135,6 +134,7 @@ class FileMetaData {
     createBlockContext(getHash)
   }
 
+  private var _tags: Set[String] = null
   private var _data: JSONObject = null
   private var _hash: String = null
 }

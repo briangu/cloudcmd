@@ -86,7 +86,7 @@ class JsonConfigStorage extends ConfigStorage {
   private def getTagsFromUri(adapterUri: URI): Set[String] = {
     val queryParams = UriUtil.parseQueryString(adapterUri)
     if (queryParams.containsKey("tags")) {
-      val parts = queryParams.get("tags").split(",")
+      val parts = queryParams.get("tags").split(",").filter(_.length > 0)
       parts.flatMap(Set(_)).toSet
     } else {
       Set()

@@ -116,7 +116,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
   def flush {}
 
   private val fields = List("HASH", "PATH", "FILENAME", "FILEEXT", "FILESIZE", "FILEDATE", "TAGS", "RAWMETA")
-  private val addMetaSql = "INSERT INTO FILE_INDEX (%s) VALUES (%s)".format(fields.mkString(","), StringUtil.joinRepeat(fields.size, "?", ","))
+  private val addMetaSql = "MERGE INTO FILE_INDEX (%s) VALUES (%s)".format(fields.mkString(","), StringUtil.joinRepeat(fields.size, "?", ","))
 
   private def addMeta(db: Connection, fmds: List[FileMetaData]) {
     var statement: PreparedStatement = null

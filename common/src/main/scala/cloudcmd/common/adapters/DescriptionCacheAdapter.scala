@@ -204,7 +204,9 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
           val description = new mutable.HashSet[BlockContext] with mutable.SynchronizedSet[BlockContext]
           val resultSet = statement.executeQuery
           while (resultSet.next) {
-            description.add(new BlockContext(resultSet.getString("HASH"), resultSet.getString("TAGS").split(" ").toSet))
+            val hash = resultSet.getString("HASH")
+            val tags = resultSet.getString("TAGS").split(" ").filter(_.length > 0).toSet
+            description.add(new BlockContext(hash, tags))
           }
 
           _description = description
