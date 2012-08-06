@@ -33,6 +33,7 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
     super.init(configDir, tier, adapterType, tags, config)
 
     _rootPath = URI.getPath
+    if (_rootPath.length == 0) _rootPath = ConfigDir
     _dbDir = _rootPath + File.separator + "db"
     ConfigDir = _dbDir
     _dataDir = _rootPath + File.separator + "data"

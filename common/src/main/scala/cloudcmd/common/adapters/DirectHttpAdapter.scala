@@ -40,12 +40,14 @@ class DirectHttpAdapter extends Adapter {
    * Refresh the internal cache, which may be time consuming
    */
   def refreshCache() {
+    /*
     val response = asyncHttpClient
       .preparePost(_urlRefreshCache)
       .execute
       .get
     // TODO: use boolean or custom exception
     if (response.getStatusCode != HttpResponseStatus.OK.getCode) throw new RuntimeException("failed to refresh cache")
+    */
   }
 
   /***

@@ -187,6 +187,7 @@ public class FileChannelBuffer extends AbstractChannelBuffer implements WrappedC
     ByteBuffer byteBuffer = ByteBuffer.allocate(length);
     try {
       _channel.read(byteBuffer);
+      byteBuffer.flip();
     } catch (IOException e) {
       e.printStackTrace();
     }
