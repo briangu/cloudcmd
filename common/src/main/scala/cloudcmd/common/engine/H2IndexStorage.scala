@@ -332,6 +332,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
       }
 
       if (!success) {
+        retries -= 1
         cloudEngine.ensure(fmd.createBlockContext(blockHash), true)
         if (!cloudEngine.contains(fmd.createBlockContext(blockHash))) {
           onMessage("giving up on %s, block %s not currently available!".format(fmd.getFilename, blockHash))
