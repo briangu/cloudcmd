@@ -13,11 +13,6 @@
 
   <dependencies>
     <dependency>
-      <groupId>NettyExtension</groupId>
-      <artifactId>NettyExtension</artifactId>
-      <version>1.1.9</version>
-    </dependency>
-    <dependency>
       <groupId>io.viper</groupId>
       <artifactId>io.viper.core</artifactId>
       <version>0.1.2-SNAPSHOT</version>
