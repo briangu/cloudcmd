@@ -12,6 +12,7 @@ import org.jboss.netty.handler.codec.http.HttpHeaders._
 import org.json.JSONArray
 import org.jboss.netty.buffer.ChannelBufferInputStream
 import java.net.URI
+import io.viper.core.server.router.RouteResponse.RouteResponseDispose
 
 object CloudServer {
   def main(args: Array[String]) {
@@ -97,7 +98,9 @@ class CloudServer(cloudEngine: CloudEngine) extends ViperServer("res:///cloudser
           val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
           response.setContent(new FileChannelBuffer(is, length))
           response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, length)
-          new RouteResponse(response)
+          new RouteResponse(response, new RouteResponseDispose{
+            def dispose() {is.close}
+          })
         } else {
           new StatusResponse(HttpResponseStatus.NOT_FOUND)
         }
