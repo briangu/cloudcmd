@@ -13,6 +13,8 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
 
   private val log = Logger.getLogger(classOf[DefaultFileProcessor])
 
+  final val THUMBNAIL_CREATE_THRESHOLD = 128 * 1024 // TODO: come from config
+
   def add(file: File, tags: Set[String], properties: JSONObject) {
     addAll(Set(file), tags)
   }
@@ -36,11 +38,6 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
       val extIdx = file.getName.lastIndexOf(".")
       val fileExt = if (extIdx > -1) file.getName.substring(extIdx + 1) else null
       val mimeType = FileTypeUtil.instance.getTypeFromExtension(fileExt)
-      val derivedTags = if (fileExt == null) {
-        tags
-      } else {
-        tags ++ Set(fileExt) ++ mimeType.split("/")
-      }
 
       val rawFmd =
         JsonUtil.createJsonObject(
@@ -50,22 +47,27 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
           "filesize", file.length.asInstanceOf[AnyRef],
           "filedate", file.lastModified.asInstanceOf[AnyRef],
           "blocks", JsonUtil.toJsonArray(List(blockHash)),
-          "tags", JsonUtil.toJsonArray(derivedTags),
+          "tags", JsonUtil.toJsonArray(tags),
           "properties", if (properties.length > 0) properties else null)
 
       if (mimeType.startsWith("image")) {
-        val ba = createThumbnail(file, thumbWidth, thumbHeight)
-        if (ba != null) {
-          val bis = new ByteArrayInputStream(ba)
-          val thumbHash = CryptoUtil.computeHashAsString(bis)
-          bis.reset()
-          try {
-            cloudEngine.store(new BlockContext(thumbHash), bis)
-          } finally {
-            bis.close
+        if (file.length < THUMBNAIL_CREATE_THRESHOLD) {
+          rawFmd.put("thumbHash", blockHash)
+          rawFmd.put("thumbSize", file.length)
+        } else {
+          val ba = createThumbnail(file, thumbWidth, thumbHeight)
+          if (ba != null) {
+            val bis = new ByteArrayInputStream(ba)
+            val thumbHash = CryptoUtil.computeHashAsString(bis)
+            bis.reset()
+            try {
+              cloudEngine.store(new BlockContext(thumbHash), bis)
+            } finally {
+              bis.close
+            }
+            rawFmd.put("thumbHash", thumbHash)
+            rawFmd.put("thumbSize", ba.length.toLong)
           }
-          rawFmd.put("thumbHash", thumbHash)
-          rawFmd.put("thumbSize", ba.length.toLong)
         }
       }
       rawFmd.put("mimeType", mimeType)

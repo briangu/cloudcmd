@@ -14,7 +14,6 @@ object CloudServices {
     CloudServices.ConfigService.init(configRoot)
     CloudServices.CloudEngine.init
     CloudServices.IndexStorage.init(configRoot)
-//    AsyncScalr.setServiceThreadCount(2)
   }
 
   def shutdown() {

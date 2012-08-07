@@ -141,6 +141,7 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
         statement.setString(1, ctx.hash)
         statement.setString(2, ctx.routingTags.mkString(" "))
         statement.addBatch
+        _description.add(ctx)
 
         k += 1
         if (k > BATCH_SIZE) {
