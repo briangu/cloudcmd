@@ -22,8 +22,7 @@ object CloudServer {
       new File(configRoot).mkdir
     }
 
-    CloudServices.ConfigService.init(configRoot)
-    CloudServices.CloudEngine.init
+    CloudServices.init(configRoot)
 
     try {
       NestServer.run(8080, new CloudServer(CloudServices.CloudEngine))

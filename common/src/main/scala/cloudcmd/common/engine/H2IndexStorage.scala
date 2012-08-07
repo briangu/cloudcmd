@@ -421,27 +421,37 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
         val iter = filter.keys
         while (iter.hasNext) {
           val key = iter.next.asInstanceOf[String]
-          val obj = filter.get(key)
-          if (obj.isInstanceOf[Array[String]] || obj.isInstanceOf[Array[Long]]) {
-            val foo = List(obj)
-            list.append(String.format("%s In (%s)", key.toUpperCase, StringUtil.joinRepeat(foo.size, "?", ",")))
-            bind.appendAll(foo)
-          }
-          else {
-            if (obj.toString.contains("%")) {
-              list.append(String.format("%s LIKE ?", key))
+          if (key != "orderBy" && key != "count" && key != "offset") {
+            val obj = filter.get(key)
+            if (obj.isInstanceOf[Array[String]] || obj.isInstanceOf[Array[Long]]) {
+              val foo = List(obj)
+              list.append(String.format("%s In (%s)", key.toUpperCase, StringUtil.joinRepeat(foo.size, "?", ",")))
+              bind.appendAll(foo)
             }
             else {
-              list.append(String.format("%s IN (?)", key))
+              if (obj.toString.contains("%")) {
+                list.append(String.format("%s LIKE ?", key))
+              }
+              else {
+                list.append(String.format("%s IN (?)", key))
+              }
+              bind.append(obj)
             }
-            bind.append(obj)
           }
         }
+
         if (list.size > 0) {
           sql = "SELECT HASH,RAWMETA FROM FILE_INDEX WHERE %s".format(list.mkString(" AND "))
         }
         else {
           sql = "SELECT HASH,RAWMETA FROM FILE_INDEX"
+        }
+
+        if (filter.has("orderBy")) {
+          val orderBy = filter.getJSONObject("orderBy")
+          sql += " ORDER BY %s".format(orderBy.getString("name"))
+          if (orderBy.has("asc")) sql += " ASC"
+          if (orderBy.has("desc")) sql += " DESC"
         }
 
         if (filter.has("count")) sql += " LIMIT %d".format(filter.getInt("count"))
