@@ -7,7 +7,7 @@ object CloudServices {
   val ConfigService = new JsonConfigStorage
   val CloudEngine = new ParallelCloudEngine(ConfigService)
   val IndexStorage = new H2IndexStorage(CloudEngine)
-  val FileProcessor = new DefaultFileProcessor(ConfigService, CloudEngine, IndexStorage)
+  val FileProcessor = new DefaultFileProcessor(ConfigService, CloudEngine, IndexStorage, 640, 480)
 
   def shutdown() {
     IndexStorage.shutdown
