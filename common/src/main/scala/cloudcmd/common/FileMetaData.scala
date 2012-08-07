@@ -116,6 +116,10 @@ class FileMetaData {
     _data.getLong("filedate")
   }
 
+  def getCreatedDate: Long = {
+    if (_data.has("createdDate")) _data.getLong("createdDate") else getFileDate
+  }
+
   def getFileSize: Long = {
     _data.getLong("filesize")
   }

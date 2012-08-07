@@ -8,6 +8,7 @@ import org.json.JSONObject
 import javax.imageio.ImageIO
 import org.apache.log4j.Logger
 import com.thebuzzmedia.imgscalr.{Scalr, AsyncScalr}
+import java.util.Date
 
 class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngine, indexStorage: IndexStorage, thumbWidth: Int, thumbHeight: Int) extends FileProcessor {
 
@@ -46,6 +47,7 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
           "fileext", fileExt,
           "filesize", file.length.asInstanceOf[AnyRef],
           "filedate", file.lastModified.asInstanceOf[AnyRef],
+          "createdDate", new Date().getTime.asInstanceOf[AnyRef],
           "blocks", JsonUtil.toJsonArray(List(blockHash)),
           "tags", JsonUtil.toJsonArray(tags),
           "properties", if (properties.length > 0) properties else null)

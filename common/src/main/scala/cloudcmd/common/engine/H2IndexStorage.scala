@@ -63,7 +63,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
       db = getDbConnection
       st = db.createStatement
       st.execute("DROP TABLE if exists FILE_INDEX")
-      st.execute("CREATE TABLE FILE_INDEX ( HASH VARCHAR, PATH VARCHAR, FILENAME VARCHAR, FILEEXT VARCHAR, FILESIZE BIGINT, FILEDATE BIGINT, TAGS VARCHAR, RAWMETA VARCHAR, PRIMARY KEY (HASH, TAGS))")
+      st.execute("CREATE TABLE FILE_INDEX ( HASH VARCHAR, PATH VARCHAR, FILENAME VARCHAR, FILEEXT VARCHAR, FILESIZE BIGINT, FILEDATE BIGINT, CREATEDDATE BIGINT, TAGS VARCHAR, RAWMETA VARCHAR, PRIMARY KEY (HASH, TAGS))")
       db.commit
 
       createLuceneIndex(db)
@@ -115,7 +115,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
 
   def flush {}
 
-  private val fields = List("HASH", "PATH", "FILENAME", "FILEEXT", "FILESIZE", "FILEDATE", "TAGS", "RAWMETA")
+  private val fields = List("HASH", "PATH", "FILENAME", "FILEEXT", "FILESIZE", "FILEDATE", "CREATEDDATE", "TAGS", "RAWMETA")
   private val addMetaSql = "MERGE INTO FILE_INDEX (%s) VALUES (%s)".format(fields.mkString(","), StringUtil.joinRepeat(fields.size, "?", ","))
 
   private def addMeta(db: Connection, fmds: List[FileMetaData]) {
@@ -134,6 +134,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
         bind.append(meta.getFileExt)
         bind.append(meta.getFileSize.asInstanceOf[AnyRef])
         bind.append(meta.getFileDate.asInstanceOf[AnyRef])
+        bind.append(meta.getCreatedDate.asInstanceOf[AnyRef])
         bind.append(buildTags(meta))
         bind.append(meta.getDataAsString)
         (0 until bind.size).foreach(i => bindVar(statement, i + 1, bind(i)))
