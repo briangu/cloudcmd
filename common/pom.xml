@@ -13,6 +13,12 @@
 
   <dependencies>
     <dependency>
+      <groupId>com.thebuzzmedia</groupId>
+      <artifactId>imgscalr-lib</artifactId>
+      <version>3.2</version>
+      <type>jar</type>
+    </dependency>
+    <dependency>
       <groupId>com.ning</groupId>
       <artifactId>async-http-client</artifactId>
       <version>1.7.4</version>
@@ -129,6 +135,10 @@
   </build>
 
   <repositories>
+    <repository>
+      <id>The Buzz Media Maven Repository</id>
+      <url>http://maven.thebuzzmedia.com</url>
+    </repository>
     <repository>
       <id>scala-tools.org</id>
       <name>Scala-tools Maven2 Repository</name>

@@ -13,7 +13,7 @@ object FileTypeUtil {
         if (_instance == null) {
           val ftu: FileTypeUtil = new FileTypeUtil
           try {
-            ftu._typeMap = ResourceUtil.loadJson("filetypes.json")
+            ftu._typeMap = ResourceUtil.loadJson("mimeTypes.json")
             val skipMap: JSONObject = ResourceUtil.loadJson("skipMap.json")
             ftu._skipDir = JsonUtil.createSet(skipMap.getJSONArray("dirs"))
             ftu._skipExt = JsonUtil.createSet(skipMap.getJSONArray("exts"))
@@ -56,7 +56,8 @@ class FileTypeUtil {
   }
 
   def getTypeFromExtension(ext: String): String = {
+    if (ext == null) return "applicaton/octet-stream"
     val lcext = ext.toLowerCase
-    if (_typeMap.has(lcext)) _typeMap.getString(lcext) else ""
+    if (_typeMap.has(lcext)) _typeMap.getString(lcext) else "applicaton/octet-stream"
   }
 }

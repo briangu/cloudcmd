@@ -2,13 +2,16 @@ package cloudcmd.common.engine
 
 import java.io.{ByteArrayOutputStream, ByteArrayInputStream, FileInputStream, File}
 import cloudcmd.common.{BlockContext, FileMetaData, FileUtil}
-import cloudcmd.common.util.{FileTypeUtil, CryptoUtil}
+import cloudcmd.common.util.{JsonUtil, FileTypeUtil, CryptoUtil}
 import cloudcmd.common.config.ConfigStorage
 import org.json.JSONObject
 import javax.imageio.ImageIO
-import org.imgscalr.{Scalr, AsyncScalr}
+import org.apache.log4j.Logger
+import com.thebuzzmedia.imgscalr.{Scalr, AsyncScalr}
 
 class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngine, indexStorage: IndexStorage, thumbWidth: Int, thumbHeight: Int) extends FileProcessor {
+
+  private val log = Logger.getLogger(classOf[DefaultFileProcessor])
 
   def add(file: File, tags: Set[String], properties: JSONObject) {
     addAll(Set(file), tags)
@@ -31,28 +34,43 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
       }
 
       val extIdx = file.getName.lastIndexOf(".")
-      val fileExt = if (extIdx > -1) file.getName.substring(extIdx + 1) else ""
-      val fileType = FileTypeUtil.instance.getTypeFromExtension(fileExt)
-      val derivedTags = tags ++ Set(fileExt) ++ (if (fileType.length > 0) Set(fileType) else Set())
-      val fmd = FileMetaData.create(file, List(blockHash), derivedTags, properties)
+      val fileExt = if (extIdx > -1) file.getName.substring(extIdx + 1) else null
+      val mimeType = FileTypeUtil.instance.getTypeFromExtension(fileExt)
+      val derivedTags = if (fileExt == null) {
+        tags
+      } else {
+        tags ++ Set(fileExt) ++ mimeType.split("/")
+      }
 
-      val mimeType = getMimeType(fmd)
+      val rawFmd =
+        JsonUtil.createJsonObject(
+          "path", file.getCanonicalPath,
+          "filename", file.getName,
+          "fileext", fileExt,
+          "filesize", file.length.asInstanceOf[AnyRef],
+          "filedate", file.lastModified.asInstanceOf[AnyRef],
+          "blocks", JsonUtil.toJsonArray(List(blockHash)),
+          "tags", JsonUtil.toJsonArray(derivedTags),
+          "properties", if (properties.length > 0) properties else null)
+
       if (mimeType.startsWith("image")) {
         val ba = createThumbnail(file, thumbWidth, thumbHeight)
         if (ba != null) {
           val bis = new ByteArrayInputStream(ba)
-          val hash = CryptoUtil.computeHashAsString(bis)
+          val thumbHash = CryptoUtil.computeHashAsString(bis)
           bis.reset()
           try {
-            cloudEngine.store(new BlockContext(hash), bis)
+            cloudEngine.store(new BlockContext(thumbHash), bis)
           } finally {
             bis.close
           }
-          fmd.getRawData.put("thumbHash", hash)
-          fmd.getRawData.put("thumbSize",  ba.length.toLong)
+          rawFmd.put("thumbHash", thumbHash)
+          rawFmd.put("thumbSize", ba.length.toLong)
         }
       }
-      fmd.getRawData.put("type", mimeType)
+      rawFmd.put("mimeType", mimeType)
+
+      val fmd = FileMetaData.create(rawFmd)
 
       fis = new FileInputStream(file)
       try {
@@ -61,7 +79,7 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
         FileUtil.SafeClose(fis)
       }
 
-      cloudEngine.store(fmd.createBlockContext(fmd.getHash), new ByteArrayInputStream(fmd.getDataAsString.getBytes("UTF-8")))
+      cloudEngine.store(fmd.createBlockContext, new ByteArrayInputStream(fmd.getDataAsString.getBytes("UTF-8")))
 
       fmd
     }
@@ -99,23 +117,12 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
       }
       catch {
         case e: Exception => {
-          e.printStackTrace
+          log.info("failed to create thumbnail for " + srcFile.getPath)
           null
         }
       }
     } else {
       null
-    }
-  }
-
-  // TODO: use a more canonical set
-  private def getMimeType(fmd: FileMetaData) : String = {
-    if (fmd.getType != null) return fmd.getType
-    Option(fmd.getFileExt) match {
-      case Some("jpg") => "image/jpg"
-      case Some("gif") => "image/gif"
-      case Some("png") => "image/png"
-      case _ => "application/octet-stream"
     }
   }
 }

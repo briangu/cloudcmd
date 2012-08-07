@@ -30,8 +30,7 @@ object Main {
             System.err.println(msg)
           }
           catch {
-            case e: InterruptedException => {
-            }
+            case e: InterruptedException => ;
           }
         }
       }
@@ -46,9 +45,7 @@ object Main {
       CloudServices.IndexStorage.registerListener(listener)
       CloudServices.FileProcessor.registerListener(listener)
 
-      CloudServices.ConfigService.init(configRoot)
-      CloudServices.CloudEngine.init
-      CloudServices.IndexStorage.init(configRoot)
+      CloudServices.init(configRoot)
 
       msgPump.start
       CloudServices.CloudEngine.run
@@ -71,6 +68,7 @@ object Main {
       CloudServices.shutdown
       event(0) = true
       msgPump.interrupt
+      msgPump.join()
     }
 
     println("took %6d ms to run".format(((System.currentTimeMillis - startTime))))

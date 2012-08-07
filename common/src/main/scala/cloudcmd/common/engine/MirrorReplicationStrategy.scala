@@ -29,13 +29,33 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
       dis
     }
 
-    val missingAdapters = adapters -- containsAdapters
+    var missingAdapters = adapters -- containsAdapters
     val pushedCount = new AtomicInteger(containsAdapters.size)
 
-    missingAdapters.par.foreach{ adapter =>
-      var is: InputStream = nis
+    if (missingAdapters.size > 0 && nis != null) {
+      val adapter = missingAdapters(0)
+      val is: InputStream = nis
       try {
-        if (is == null) is = load(ctx, containsAdapters)._1
+        adapter.store(ctx, is)
+        pushedCount.incrementAndGet()
+        containsAdapters = containsAdapters ++ List(adapter)
+      }
+      catch {
+        case e: Exception => {
+          onMessage(String.format("failed to sync block %s to %s", ctx, adapter.URI.toString))
+          log.error(ctx, e)
+        }
+      }
+      finally {
+        FileUtil.SafeClose(is)
+      }
+
+      missingAdapters = missingAdapters.drop(1)
+    }
+
+    missingAdapters.par.foreach{ adapter =>
+      val is: InputStream = load(ctx, containsAdapters)._1
+      try {
         adapter.store(ctx, is)
         pushedCount.incrementAndGet()
         containsAdapters = containsAdapters ++ List(adapter)

@@ -102,7 +102,7 @@ class FileMetaData {
     _data.getString("path")
   }
 
-  def getType: String = if (_data.has("type")) _data.getString("type") else null
+  def getType: String = if (_data.has("mimeType")) _data.getString("mimeType") else null
 
   def getFilename: String = {
     _data.getString("filename")

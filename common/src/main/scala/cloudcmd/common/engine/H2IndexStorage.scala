@@ -44,13 +44,13 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     val file: File = new File(getDbFile + ".h2.db")
     if (!file.exists) {
       purge
-      bootstrapDb
     }
   }
 
   def shutdown {
     flush
     if (_cp != null) {
+      FullText.closeAll()
       _cp.dispose
       _cp = null
     }
@@ -63,7 +63,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
       db = getDbConnection
       st = db.createStatement
       st.execute("DROP TABLE if exists FILE_INDEX")
-      st.execute("CREATE TABLE FILE_INDEX ( HASH VARCHAR PRIMARY KEY, PATH VARCHAR, FILENAME VARCHAR, FILEEXT VARCHAR, FILESIZE BIGINT, FILEDATE BIGINT, TAGS VARCHAR, RAWMETA VARCHAR )")
+      st.execute("CREATE TABLE FILE_INDEX ( HASH VARCHAR, PATH VARCHAR, FILENAME VARCHAR, FILEEXT VARCHAR, FILESIZE BIGINT, FILEDATE BIGINT, TAGS VARCHAR, RAWMETA VARCHAR, PRIMARY KEY (HASH, TAGS))")
       db.commit
 
       createLuceneIndex(db)
@@ -92,7 +92,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
       FullText.closeAll
     }
     catch {
-      case e: SQLException => log.error(e)
+      case e: SQLException => ;
     }
     finally {
       SqlUtil.SafeClose(db)
