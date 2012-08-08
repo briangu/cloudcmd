@@ -16,17 +16,11 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
 
   final val THUMBNAIL_CREATE_THRESHOLD = 128 * 1024 // TODO: come from config
 
-  def add(file: File, tags: Set[String], mimeType: String = null, properties: JSONObject = null) : FileMetaData = {
-    processFile(file, tags, null, properties)
+  def add(file: File, fileName: String, tags: Set[String], properties: JSONObject = null, mimeType: String = null) : FileMetaData = {
+    processFile(file, fileName, tags, null, properties)
   }
 
-  def addAll(fileSet: Set[File], tags: Set[String], properties: JSONObject = null) : Set[FileMetaData] = {
-    val fmds = Set() ++ fileSet.par.map(processFile(_, tags, null, properties))
-    indexStorage.addAll(fmds.toList)
-    fmds
-  }
-
-  def processFile(file: File, tags: Set[String], providedMimeType: String = null, properties: JSONObject = null) : FileMetaData = {
+  def processFile(file: File, fileName: String, tags: Set[String], providedMimeType: String = null, properties: JSONObject = null) : FileMetaData = {
     var blockHash: String = null
 
     val startTime = System.currentTimeMillis
@@ -49,16 +43,16 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
       val rawFmd =
         JsonUtil.createJsonObject(
           "path", file.getCanonicalPath,
-          "filename", file.getName,
+          "filename", fileName,
           "fileext", fileExt,
           "filesize", file.length.asInstanceOf[AnyRef],
           "filedate", file.lastModified.asInstanceOf[AnyRef],
-          "createdDate", new Date().getTime.asInstanceOf[AnyRef],
+          "createdDate", new Date().getTime.asInstanceOf[AnyRef],  // TODO: this is not ideal as it forces duplicates
           "blocks", JsonUtil.toJsonArray(List(blockHash)),
           "tags", JsonUtil.toJsonArray(tags))
 
       if (properties != null && properties.length() > 0) {
-        rawFmd.put("properties", if (properties.length > 0) properties else null)
+        rawFmd.put("properties", properties)
       }
 
       if (mimeType.startsWith("image")) {
@@ -94,6 +88,8 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
       }
 
       cloudEngine.store(fmd.createBlockContext, new ByteArrayInputStream(fmd.getDataAsString.getBytes("UTF-8")))
+
+      indexStorage.add(fmd)
 
       fmd
     }

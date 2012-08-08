@@ -432,6 +432,11 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
               list.append(String.format("%s In (%s)", key.toUpperCase, StringUtil.joinRepeat(foo.size, "?", ",")))
               bind.appendAll(foo)
             }
+            else if (obj.isInstanceOf[JSONArray]) {
+              val foo = obj.asInstanceOf[JSONArray]
+              list.append(String.format("%s In (%s)", key.toUpperCase, StringUtil.joinRepeat(foo.length, "?", ",")))
+              bind.appendAll(JsonUtil.createSet(foo))
+            }
             else {
               if (obj.toString.contains("%")) {
                 list.append(String.format("%s LIKE ?", key))
