@@ -1,18 +1,9 @@
 package cloudcmd.srv
 
 import io.viper.common.{NestServer, ViperServer}
-import io.viper.core.server.router._
-import java.util
-import cloudcmd.common.{FileChannelBuffer, BlockContext, FileUtil}
+import cloudcmd.common.{ContentAddressableStorage, FileUtil}
 import java.io._
-import cloudcmd.common.engine.CloudEngine
-import org.jboss.netty.handler.codec.http._
-import org.jboss.netty.channel.{ChannelFutureListener, MessageEvent, ChannelHandlerContext}
-import org.jboss.netty.handler.codec.http.HttpHeaders._
-import org.json.JSONArray
-import org.jboss.netty.buffer.ChannelBufferInputStream
-import java.net.URI
-import io.viper.core.server.router.RouteResponse.RouteResponseDispose
+import cloudcmd.common.srv.{SimpleAuthSessionService, CloudAdapter, HmacRouteConfig}
 
 object CloudServer {
   def main(args: Array[String]) {
@@ -25,180 +16,20 @@ object CloudServer {
     CloudServices.init(configRoot)
 
     try {
-      NestServer.run(8080, new CloudServer(CloudServices.CloudEngine))
+      val apiConfig = new HmacRouteConfig(SimpleAuthSessionService.instance)
+      NestServer.run(8080, new CloudServer(CloudServices.CloudEngine, apiConfig))
     } finally {
       CloudServices.shutdown
     }
   }
 }
 
-class StoreHandler(route: String, cloudEngine: CloudEngine) extends Route(route) {
+class CloudServer(cas: ContentAddressableStorage, apiConfig: HmacRouteConfig) extends ViperServer("res:///cloudserver") {
 
-  final val THUMBNAIL_CREATE_THRESHOLD = 128 * 1024 // TODO: come from config
-
-  override
-  def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
-    val msg = e.getMessage
-
-    if (!(msg.isInstanceOf[HttpMessage]) && !(msg.isInstanceOf[HttpChunk])) {
-      ctx.sendUpstream(e)
-      return
-    }
-
-    val request = e.getMessage.asInstanceOf[org.jboss.netty.handler.codec.http.HttpRequest]
-    if (request.getMethod != HttpMethod.POST) {
-      ctx.sendUpstream(e)
-      return
-    }
-
-    val path = RouteUtil.parsePath(request.getUri)
-    val args = RouteUtil.extractPathArgs(_route, path)
-    args.putAll(RouteUtil.extractQueryParams(new URI(request.getUri)))
-
-    var is: InputStream = null
-    val response = try {
-      if (args.containsKey("hash") && args.containsKey("tags")) {
-        val blockContext = new BlockContext(args.get("hash"), args.get("tags").split(",").filter(_.length > 0).toSet)
-        is = new ChannelBufferInputStream(request.getContent)
-        cloudEngine.store(blockContext, is)
-        new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CREATED)
-      } else {
-        new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
-      }
-    } finally {
-      if (is != null) is.close()
-    }
-
-    if (isKeepAlive(request)) {
-      response.setHeader(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE)
-    } else {
-      response.setHeader(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE)
-    }
-
-//    setContentLength(response, response.getContent().readableBytes())
-
-    val writeFuture = e.getChannel().write(response)
-    if (!isKeepAlive(request)) {
-      writeFuture.addListener(ChannelFutureListener.CLOSE)
-    }
-  }
-}
-
-class CloudServer(cloudEngine: CloudEngine) extends ViperServer("res:///cloudserver") {
+  val _apiHandler = new CloudAdapter(cas, apiConfig)
 
   override
   def addRoutes {
-    get("/blocks/$key", new RouteHandler {
-      def exec(args: util.Map[String, String]): RouteResponse = {
-        val (hash, tags) = args.get("key").split(",").toList.splitAt(1)
-        val ctx = new BlockContext(hash(0), tags.toSet)
-        if (cloudEngine.contains(ctx)) {
-          val (is, length) = cloudEngine.load(ctx)
-          val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
-          response.setContent(new FileChannelBuffer(is, length))
-          response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, length)
-          new RouteResponse(response, new RouteResponseDispose{
-            def dispose() {is.close}
-          })
-        } else {
-          new StatusResponse(HttpResponseStatus.NOT_FOUND)
-        }
-      }
-    })
-
-    addRoute(new StoreHandler("/blocks/$hash/$tags", cloudEngine))
-
-    delete("/blocks/$hash,$tags", new RouteHandler {
-      def exec(args: util.Map[String, String]): RouteResponse = {
-        val (hash, tags) = args.get("key").split(",").toList.splitAt(1)
-        val ctx = new BlockContext(hash(0), tags.toSet)
-        val success = cloudEngine.remove(ctx)
-        if (success) {
-          new StatusResponse(HttpResponseStatus.NO_CONTENT)
-        } else {
-          new StatusResponse(HttpResponseStatus.NOT_FOUND)
-        }
-      }
-    })
-
-    // ACTIONS
-
-    post("/cache/refresh", new RouteHandler {
-      def exec(args: util.Map[String, String]): RouteResponse = {
-        cloudEngine.refreshCache()
-        new StatusResponse(HttpResponseStatus.OK)
-      }
-    })
-
-    get("/blocks", new RouteHandler {
-      def exec(args: util.Map[String, String]): RouteResponse = {
-        val arr = new JSONArray
-        cloudEngine.describe.foreach(ctx => arr.put(ctx.toJson))
-        new JsonResponse(arr)
-      }
-    })
-
-    get("/blocks/meta", new RouteHandler {
-      def exec(args: util.Map[String, String]): RouteResponse = {
-        val arr = new JSONArray
-        cloudEngine.describeMeta.foreach(ctx => arr.put(ctx.toJson))
-        new JsonResponse(arr)
-      }
-    })
-
-    get("/blocks/hashes", new RouteHandler {
-      def exec(args: util.Map[String, String]): RouteResponse = {
-        val arr = new JSONArray
-        cloudEngine.describeHashes.foreach(arr.put)
-        new JsonResponse(arr)
-      }
-    })
-
-    post("/blocks/containsAll", new RouteHandler {
-      def exec(args: util.Map[String, String]): RouteResponse = {
-        val ctxs = fromJsonArray(new JSONArray(args.get("ctxs")))
-        val res = cloudEngine.containsAll(ctxs)
-        val arr = new JSONArray
-        res.map{ case (ctx: BlockContext, status: Boolean) =>
-          val obj = ctx.toJson
-          obj.put("_status", status)
-          arr.put(obj)
-        }
-        new JsonResponse(arr)
-      }
-    })
-
-    post("/blocks/ensureAll", new RouteHandler {
-      def exec(args: util.Map[String, String]): RouteResponse = {
-        val ctxs = fromJsonArray(new JSONArray(args.get("ctxs")))
-        val blockLevelCheck = if (args.containsKey("blockLevelCheck")) args.get("blockLevelCheck").toBoolean else false
-        val res = cloudEngine.ensureAll(ctxs, blockLevelCheck)
-        val arr = new JSONArray
-        res.map{ case (ctx: BlockContext, status: Boolean) =>
-          val obj = ctx.toJson
-          obj.put("_status", status)
-          arr.put(obj)
-        }
-        new JsonResponse(arr)
-      }
-    })
-
-    post("/blocks/removeAll", new RouteHandler {
-      def exec(args: util.Map[String, String]): RouteResponse = {
-        val ctxs = fromJsonArray(new JSONArray(args.get("ctxs")))
-        val res = cloudEngine.removeAll(ctxs)
-        val arr = new JSONArray
-        res.map{ case (ctx: BlockContext, status: Boolean) =>
-          val obj = ctx.toJson
-          obj.put("_status", status)
-          arr.put(obj)
-        }
-        new JsonResponse(arr)
-      }
-    })
-  }
-
-  private def fromJsonArray(arr: JSONArray) : Set[BlockContext] = {
-    Set() ++ (0 until arr.length).par.map(idx => BlockContext.fromJson(arr.getJSONObject(idx)))
+    _apiHandler.addRoutes(this)
   }
 }

@@ -13,6 +13,11 @@
 
   <dependencies>
     <dependency>
+      <groupId>io.viper</groupId>
+      <artifactId>io.viper.core</artifactId>
+      <version>0.1.2-SNAPSHOT</version>
+    </dependency>
+    <dependency>
       <groupId>com.thebuzzmedia</groupId>
       <artifactId>imgscalr-lib</artifactId>
       <version>3.2</version>

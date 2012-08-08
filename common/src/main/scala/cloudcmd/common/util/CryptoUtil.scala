@@ -105,6 +105,10 @@ object CryptoUtil {
     }
   }
 
+  def computeMD5HashAsString(is: InputStream) : String = {
+    digestToString(computeMD5Hash(Channels.newChannel(is)))
+  }
+
   def computeMD5Hash(channel: ReadableByteChannel): Array[Byte] = {
     try {
       computeDigest(channel, "MD5")
