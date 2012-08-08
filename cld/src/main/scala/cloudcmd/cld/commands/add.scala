@@ -3,10 +3,7 @@ package cloudcmd.cld.commands
 import cloudcmd.common.util.FileTypeUtil
 import cloudcmd.common.FileUtil
 import cloudcmd.common.util.FileWalker
-import jpbetz.cli.Arg
-import jpbetz.cli.Command
-import jpbetz.cli.CommandContext
-import jpbetz.cli.SubCommand
+import jpbetz.cli._
 import java.io.File
 import collection.mutable
 import cloudcmd.cld.CloudServices
@@ -16,9 +13,12 @@ class Add extends Command {
 
   @Arg(name = "path", optional = false) var _path: String = null
   @Arg(name = "tags", optional = true, isVararg = true) var _tags: java.util.List[String] = null
+  @Opt(opt = "p", longOpt = "properties", description = "file meta properties JSON file", required = false) private var _inputFilePath: String = null
 
   def exec(commandLine: CommandContext) {
     if (_path == null) _path = FileUtil.getCurrentWorkingDirectory
+
+    val properties = if (_inputFilePath != null) { FileUtil.readJson(_inputFilePath) } else { null }
 
     val fileSet = new mutable.HashSet[File] with mutable.SynchronizedSet[File]
     val fileTypeUtil: FileTypeUtil = FileTypeUtil.instance
@@ -43,6 +43,6 @@ class Add extends Command {
     })
 
     import scala.collection.JavaConversions._
-    CloudServices.FileProcessor.addAll(fileSet.toSet, _tags.toSet)
+    CloudServices.FileProcessor.addAll(fileSet.toSet, _tags.toSet, properties)
   }
 }

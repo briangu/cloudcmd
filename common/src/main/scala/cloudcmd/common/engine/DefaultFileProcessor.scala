@@ -16,15 +16,17 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
 
   final val THUMBNAIL_CREATE_THRESHOLD = 128 * 1024 // TODO: come from config
 
-  def add(file: File, tags: Set[String], properties: JSONObject) {
-    addAll(Set(file), tags)
+  def add(file: File, tags: Set[String], mimeType: String = null, properties: JSONObject = null) : FileMetaData = {
+    processFile(file, tags, null, properties)
   }
 
-  def addAll(fileSet: Set[File], tags: Set[String], properties: JSONObject) {
-    indexStorage.addAll(fileSet.par.map(processFile(_, tags, properties)).toList)
+  def addAll(fileSet: Set[File], tags: Set[String], properties: JSONObject = null) : Set[FileMetaData] = {
+    val fmds = Set() ++ fileSet.par.map(processFile(_, tags, null, properties))
+    indexStorage.addAll(fmds.toList)
+    fmds
   }
 
-  def processFile(file: File, tags: Set[String], properties: JSONObject) : FileMetaData = {
+  def processFile(file: File, tags: Set[String], providedMimeType: String = null, properties: JSONObject = null) : FileMetaData = {
     var blockHash: String = null
 
     val startTime = System.currentTimeMillis
@@ -38,7 +40,11 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
 
       val extIdx = file.getName.lastIndexOf(".")
       val fileExt = if (extIdx > -1) file.getName.substring(extIdx + 1) else null
-      val mimeType = FileTypeUtil.instance.getTypeFromExtension(fileExt)
+      val mimeType = if (providedMimeType == null) {
+        FileTypeUtil.instance.getTypeFromExtension(fileExt)
+      } else {
+        providedMimeType
+      }
 
       val rawFmd =
         JsonUtil.createJsonObject(
@@ -49,8 +55,11 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
           "filedate", file.lastModified.asInstanceOf[AnyRef],
           "createdDate", new Date().getTime.asInstanceOf[AnyRef],
           "blocks", JsonUtil.toJsonArray(List(blockHash)),
-          "tags", JsonUtil.toJsonArray(tags),
-          "properties", if (properties.length > 0) properties else null)
+          "tags", JsonUtil.toJsonArray(tags))
+
+      if (properties != null && properties.length() > 0) {
+        rawFmd.put("properties", if (properties.length > 0) properties else null)
+      }
 
       if (mimeType.startsWith("image")) {
         if (file.length < THUMBNAIL_CREATE_THRESHOLD) {
@@ -63,7 +72,7 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
             val thumbHash = CryptoUtil.computeHashAsString(bis)
             bis.reset()
             try {
-              cloudEngine.store(new BlockContext(thumbHash), bis)
+              cloudEngine.store(new BlockContext(thumbHash, tags), bis)
             } finally {
               bis.close
             }
@@ -72,6 +81,7 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
           }
         }
       }
+
       rawFmd.put("mimeType", mimeType)
 
       val fmd = FileMetaData.create(rawFmd)

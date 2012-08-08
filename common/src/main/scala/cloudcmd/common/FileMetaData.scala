@@ -140,6 +140,14 @@ class FileMetaData {
     createBlockContext(getHash)
   }
 
+  def hasProperties() : Boolean = _data.has("properties")
+
+  def getProperties() : JSONObject = _data.getJSONObject("properties")
+
+  def hasProperty(name: String) : Boolean = {
+    hasProperties && getProperties.has(name)
+  }
+
   private var _tags: Set[String] = null
   private var _data: JSONObject = null
   private var _hash: String = null
