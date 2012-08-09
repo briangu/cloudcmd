@@ -13,6 +13,16 @@ import cloudcmd.common.util.CryptoUtil
 import java.io.{File, ByteArrayInputStream}
 import cloudcmd.common.FileUtil
 
+/*
+{
+  "<appKey>": {
+    "key": "<appKey",
+    "secret": "<appSecret>",
+    "userId": "1234"
+  }
+}
+*/
+
 class AuthSession(session: JSONObject) {
   def getAppKey(): String = session.getString("key")
 
@@ -70,12 +80,16 @@ class HmacPutRestRoute(config: HmacRouteConfig, route: String, handler: HmacRout
 class HmacDeleteRestRoute(config: HmacRouteConfig, route: String, handler: HmacRouteHandler) extends HmacAuthRestRoute(route, handler, HttpMethod.DELETE, config) {}
 
 object HmacAuthRestRoute {
+
+  val APP_KEY_HEADER = "X-APPKEY"
+  val HMAC_MD5_SIGNATURE_HEADER = "X-HMAC-MD5"
+
   // NOTE: this only does a partial validation of the request and doesn't check the post body
   // TODO: in cases where the post body isn't a block, we should validate it with an md5sum header
   //       otherwise, we rely on the SHA-256 hash that comes with the block as it's id
   def isValid(config: HmacRouteConfig, request: HttpRequest): (Boolean, AuthSession) = {
     // get app key from header
-    val appKey = request.getHeader("X-APPKEY")
+    val appKey = request.getHeader(APP_KEY_HEADER)
 
     // attempt to get session from app key
     val session = config.sessions.getSession(appKey)
@@ -85,13 +99,28 @@ object HmacAuthRestRoute {
       val requestDate = request.getHeader(HttpHeaders.Names.DATE)
       val canonical = request.getUri + appKey + contentLength + requestDate
 
-      val challengeMd5 = request.getHeader("X-HMAC-MD5")
+      val challengeMd5 = request.getHeader(HMAC_MD5_SIGNATURE_HEADER)
 
       // hash with secret
-      val localHmac = CryptoUtil.computeMD5HashAsString(new ByteArrayInputStream(canonical.getBytes("UTF-8")))
-      (localHmac.equals(challengeMd5), session)
+      val bais = new ByteArrayInputStream(canonical.getBytes("UTF-8"))
+      try {
+        val localHmac = CryptoUtil.computeMD5HashAsString(bais)
+        (localHmac.equals(challengeMd5), session)
+      } finally {
+        bais.close
+      }
     } else {
       (false, null)
+    }
+  }
+
+  def signRequest(appKey: String, appSecret: String, uri: String, dateHeader: String, contentLengthHeader: String) : String = {
+    val canonical = uri + appKey + contentLengthHeader + dateHeader
+    val bais = new ByteArrayInputStream(canonical.getBytes("UTF-8"))
+    try {
+      CryptoUtil.computeMD5HashAsString(bais)
+    } finally {
+      bais.close
     }
   }
 }

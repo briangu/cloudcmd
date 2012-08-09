@@ -6,6 +6,9 @@ import com.ning.http.client.AsyncHttpClient
 import org.jboss.netty.handler.codec.http.{HttpResponseStatus, HttpHeaders}
 import org.json.JSONArray
 import java.net.URI
+import com.ning.http.client.oauth.{RequestToken, ConsumerKey, OAuthSignatureCalculator}
+
+// http://consumerKey:consumerSecret:userKey:userSecret@host:port/<path>
 
 class DirectHttpAdapter extends Adapter {
 
@@ -31,7 +34,19 @@ class DirectHttpAdapter extends Adapter {
   override def init(configDir: String, tier: Int, adapterType: String, acceptsTags: Set[String], uri: URI) {
     super.init(configDir, tier, adapterType, acceptsTags, uri)
     _host = "http://%s:%d".format(uri.getHost, uri.getPort)
+    val (consumerKey : ConsumerKey, requestToken: RequestToken) = parseOAuthInfo(uri)
+    initOAuth(consumerKey, requestToken)
     buildUrls
+  }
+
+  def parseOAuthInfo(adapterUri: URI): (ConsumerKey, RequestToken) = {
+    val parts = adapterUri.getAuthority.split("@")
+    if (parts.length != 4) throw new IllegalArgumentException("authority format: consumerKey:consumerSecret:userKey:userSecret")
+    (new ConsumerKey(parts(0), parts(1)), new RequestToken(parts(2), parts(3)))
+  }
+
+  private def initOAuth(consumerKey : ConsumerKey, requestToken: RequestToken) {
+    asyncHttpClient.setSignatureCalculator(new OAuthSignatureCalculator(consumerKey, requestToken))
   }
 
   def shutdown {
