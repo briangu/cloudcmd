@@ -83,6 +83,8 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
       fis = new FileInputStream(file)
       try {
         cloudEngine.store(fmd.createBlockContext(blockHash), fis)
+      } catch {
+        case e:Exception => log.error(e)
       } finally {
         FileUtil.SafeClose(fis)
       }
