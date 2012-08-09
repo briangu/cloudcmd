@@ -151,16 +151,18 @@ object OAuthRestRoute {
   def getFormParams(request: HttpRequest) : FluentStringsMap = {
     val map = new FluentStringsMap()
     if (request.getMethod == HttpMethod.POST || request.getMethod == HttpMethod.PUT) {
-      val content = request.getContent()
-      if (content.hasArray()) {
-        val body = content.array()
-        val contentLengthHeader = request.getHeader(HttpHeaders.Names.CONTENT_LENGTH)
-        val contentLength = if (contentLengthHeader != null) contentLengthHeader.toInt else body.length
-        if (contentLength == body.length) {
-          val rawContent = new String(body, "UTF-8")
-          val formParams = RouteUtil.extractQueryParams(rawContent)
-          import scala.collection.JavaConversions._
-          formParams.foreach{ case (key, value) => map.put(key, List(value))}
+      if (request.getHeader("x-streampost") != null) {
+        val content = request.getContent()
+        if (content.hasArray()) {
+          val body = content.array()
+          val contentLengthHeader = request.getHeader(HttpHeaders.Names.CONTENT_LENGTH)
+          val contentLength = if (contentLengthHeader != null) contentLengthHeader.toInt else body.length
+          if (contentLength == body.length) {
+            val rawContent = new String(body, "UTF-8")
+            val formParams = RouteUtil.extractQueryParams(rawContent)
+            import scala.collection.JavaConversions._
+            formParams.foreach{ case (key, value) => map.put(key, List(value))}
+          }
         }
       }
     }

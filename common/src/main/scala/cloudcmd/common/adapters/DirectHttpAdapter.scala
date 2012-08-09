@@ -145,6 +145,7 @@ class DirectHttpAdapter extends Adapter {
   def store(ctx: BlockContext, is: InputStream) {
     val response = asyncHttpClient
       .preparePost("%s/blocks/%s,%s".format(_host, ctx.hash, ctx.routingTags.mkString(",")))
+      .setHeader("x-streampost", "true")
       .setBody(is)
       .execute
       .get
