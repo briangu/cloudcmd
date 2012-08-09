@@ -19,6 +19,7 @@ class ParallelCloudEngine(configService: ConfigStorage) extends CloudEngine {
   }
 
   def run {}
+
   def shutdown {}
 
   def filterAdapters(minTier: Int, maxTier: Int) {

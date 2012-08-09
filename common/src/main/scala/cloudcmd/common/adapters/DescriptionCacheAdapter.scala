@@ -46,9 +46,13 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
   }
 
   def shutdown {
-    if (_cp != null) {
-      _cp.dispose
-      _cp = null
+    try {
+      wrappedAdapter.shutdown()
+    } finally {
+      if (_cp != null) {
+        _cp.dispose
+        _cp = null
+      }
     }
   }
 
