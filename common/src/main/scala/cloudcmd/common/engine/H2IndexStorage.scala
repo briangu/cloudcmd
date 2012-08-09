@@ -411,22 +411,33 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     try {
       db = getReadOnlyDbConnection
 
-      var sql: String = null
+//      var sql: String = null
       val bind = new ListBuffer[AnyRef]
+      var prefix = ""
+      var handledOffset = false
 
-      if (filter.has("tags")) {
+      var sql = if (filter.has("tags")) {
+        bind.append(filter.getString("tags"))
+        prefix = "T."
+        handledOffset = true
         val limit = if (filter.has("count")) filter.getInt("count") else 0
         val offset = if (filter.has("offset")) filter.getInt("offset") else 0
-        sql = "SELECT T.HASH,T.RAWMETA FROM FTL_SEARCH_DATA(?, %d, %d) FTL, FILE_INDEX T WHERE FTL.TABLE='FILE_INDEX' AND T.HASH = FTL.KEYS[0]".format(limit, offset)
-        bind.append(filter.getString("tags"))
+        "SELECT T.HASH,T.RAWMETA FROM FTL_SEARCH_DATA(?, %d, %d) FTL, FILE_INDEX T WHERE FTL.TABLE='FILE_INDEX' AND T.HASH = FTL.KEYS[0]".format(limit, offset)
       }
       else {
-        val list = new ListBuffer[String]
-        val iter = filter.keys
-        while (iter.hasNext) {
-          val key = iter.next.asInstanceOf[String]
-          if (key != "orderBy" && key != "count" && key != "offset") {
-            val obj = filter.get(key)
+        "SELECT HASH,RAWMETA FROM FILE_INDEX"
+      }
+
+      val list = new ListBuffer[String]
+
+      val iter = filter.keys
+      while (iter.hasNext) {
+        iter.next.asInstanceOf[String] match {
+          case "orderBy" | "count" | "offset" | "tags" => ;
+          case rawKey => {
+            val key = prefix + rawKey
+
+            val obj = filter.get(rawKey)
             if (obj.isInstanceOf[Array[String]] || obj.isInstanceOf[Array[Long]]) {
               val foo = List(obj)
               list.append(String.format("%s In (%s)", key.toUpperCase, StringUtil.joinRepeat(foo.size, "?", ",")))
@@ -448,24 +459,25 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
             }
           }
         }
+      }
 
-        if (list.size > 0) {
-          sql = "SELECT HASH,RAWMETA FROM FILE_INDEX WHERE %s".format(list.mkString(" AND "))
-        }
-        else {
-          sql = "SELECT HASH,RAWMETA FROM FILE_INDEX"
-        }
+      if (list.size > 0) {
+        sql += (if (sql.contains("WHERE")) " AND" else " WHERE")
+        sql += " %s".format(list.mkString(" AND "))
+      }
 
-        if (filter.has("orderBy")) {
-          val orderBy = filter.getJSONObject("orderBy")
-          sql += " ORDER BY %s".format(orderBy.getString("name"))
-          if (orderBy.has("asc")) sql += " ASC"
-          if (orderBy.has("desc")) sql += " DESC"
-        }
+      if (filter.has("orderBy")) {
+        val orderBy = filter.getJSONObject("orderBy")
+        sql += " ORDER BY %s".format(prefix + orderBy.getString("name"))
+        if (orderBy.has("asc")) sql += " ASC"
+        if (orderBy.has("desc")) sql += " DESC"
+      }
 
+      if (!handledOffset) {
         if (filter.has("count")) sql += " LIMIT %d".format(filter.getInt("count"))
         if (filter.has("offset")) sql += " OFFSET %d".format(filter.getInt("offset"))
       }
+
       statement = db.prepareStatement(sql)
       (0 until bind.size).foreach(i => bindVar(statement, i + 1, bind(i)))
 
