@@ -5,6 +5,7 @@ import cloudcmd.common.{ContentAddressableStorage, FileUtil}
 import java.io._
 import cloudcmd.common.srv.{SimpleOAuthSessionService, OAuthSessionService, CloudAdapter, OAuthRouteConfig}
 import java.net.InetAddress
+import cloudcmd.common.engine.IndexStorage
 
 object CloudServer {
   def getIpAddress: String = {
@@ -27,16 +28,16 @@ object CloudServer {
     try {
       val baseHostPort = "http://%s:%d".format(ipAddress, port)
       val apiConfig = new OAuthRouteConfig(baseHostPort, SimpleOAuthSessionService.instance)
-      NestServer.run(8080, new CloudServer(CloudServices.CloudEngine, apiConfig))
+      NestServer.run(8080, new CloudServer(CloudServices.CloudEngine, CloudServices.IndexStorage, apiConfig))
     } finally {
       CloudServices.shutdown
     }
   }
 }
 
-class CloudServer(cas: ContentAddressableStorage, apiConfig: OAuthRouteConfig) extends ViperServer("res:///cloudserver") {
+class CloudServer(cas: ContentAddressableStorage, indexStorage: IndexStorage, apiConfig: OAuthRouteConfig) extends ViperServer("res:///cloudserver") {
 
-  val _apiHandler = new CloudAdapter(cas, apiConfig)
+  val _apiHandler = new CloudAdapter(cas, indexStorage, apiConfig)
 
   override
   def addRoutes {

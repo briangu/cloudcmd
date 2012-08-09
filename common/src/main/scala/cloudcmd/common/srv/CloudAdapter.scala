@@ -2,16 +2,18 @@ package cloudcmd.common.srv
 
 import org.jboss.netty.channel.{ChannelFutureListener, MessageEvent, ChannelHandlerContext}
 import org.jboss.netty.handler.codec.http._
-import java.io.InputStream
-import cloudcmd.common.{ContentAddressableStorage, FileChannelBuffer, BlockContext}
+import java.io.{ByteArrayInputStream, InputStream}
+import cloudcmd.common.{FileMetaData, ContentAddressableStorage, FileChannelBuffer, BlockContext}
 import org.jboss.netty.buffer.ChannelBufferInputStream
 import org.jboss.netty.handler.codec.http.HttpHeaders._
 import io.viper.core.server.router.RouteResponse.RouteResponseDispose
 import org.json.JSONArray
 import io.viper.common.ViperServer
 import io.viper.core.server.router._
+import cloudcmd.common.engine.IndexStorage
+import cloudcmd.common.util.JsonUtil
 
-class StoreHandler(config: OAuthRouteConfig, route: String, cas: ContentAddressableStorage) extends Route(route) {
+class StoreHandler(config: OAuthRouteConfig, route: String, cas: ContentAddressableStorage, indexStorage: IndexStorage) extends Route(route) {
 
   override
   def isMatch(request: HttpRequest) : Boolean = {
@@ -43,8 +45,20 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: ContentAddressa
       try {
         if (handlerArgs.contains("key")) {
           val ctx = CloudAdapter.getBlockContext(handlerArgs)
+/*
+          if (ctx.hash.endsWith(".meta")) {
+            is = new ChannelBufferInputStream(request.getContent, request.getHeader(HttpHeaders.Names.CONTENT_LENGTH).toInt)
+            val rawJson =  JsonUtil.loadJson(is)
+            val fmd = FileMetaData.create(ctx.hash, JsonUtil.loadJson(is))
+            indexStorage.add(fmd)
+            is = new ByteArrayInputStream(rawJson.toString.getBytes("UTF-8"))
+          }
+*/
           is = new ChannelBufferInputStream(request.getContent, request.getHeader(HttpHeaders.Names.CONTENT_LENGTH).toInt)
           cas.store(ctx, is)
+          if (ctx.hash.endsWith(".meta")) {
+            indexStorage.add(FileMetaData.create(ctx.hash, JsonUtil.loadJson(cas.load(ctx)._1)))
+          }
           val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CREATED)
           response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, 0)
           response
@@ -78,7 +92,7 @@ object CloudAdapter {
   }
 }
 
-class CloudAdapter(cas: ContentAddressableStorage, config: OAuthRouteConfig) {
+class CloudAdapter(cas: ContentAddressableStorage, indexStorage: IndexStorage, config: OAuthRouteConfig) {
 
   def addRoutes(server: ViperServer) {
     server.addRoute(new OAuthGetRestRoute(config, "/blocks/$key", new OAuthRouteHandler {
@@ -100,7 +114,7 @@ class CloudAdapter(cas: ContentAddressableStorage, config: OAuthRouteConfig) {
       }
     }))
 
-    server.addRoute(new StoreHandler(config, "/blocks/$key", cas))
+    server.addRoute(new StoreHandler(config, "/blocks/$key", cas, indexStorage))
 
     server.addRoute(new OAuthDeleteRestRoute(config, "/blocks/$key", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
