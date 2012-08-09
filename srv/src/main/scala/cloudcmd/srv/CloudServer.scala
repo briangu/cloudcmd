@@ -3,10 +3,19 @@ package cloudcmd.srv
 import io.viper.common.{NestServer, ViperServer}
 import cloudcmd.common.{ContentAddressableStorage, FileUtil}
 import java.io._
-import cloudcmd.common.srv.{SimpleAuthSessionService, CloudAdapter, HmacRouteConfig}
+import cloudcmd.common.srv.{SimpleOAuthSessionService, OAuthSessionService, CloudAdapter, OAuthRouteConfig}
+import java.net.InetAddress
 
 object CloudServer {
+  def getIpAddress: String = {
+    InetAddress.getLocalHost.getHostAddress
+  }
+
   def main(args: Array[String]) {
+    val ipAddress = getIpAddress
+    val port = 8080
+    println("booting at http://%s:%d".format(ipAddress, port))
+
     var configRoot: String = FileUtil.findConfigDir(FileUtil.getCurrentWorkingDirectory, ".cld")
     if (configRoot == null) {
       configRoot = System.getenv("HOME") + File.separator + ".cld"
@@ -16,7 +25,8 @@ object CloudServer {
     CloudServices.init(configRoot)
 
     try {
-      val apiConfig = new HmacRouteConfig(SimpleAuthSessionService.instance)
+      val baseHostPort = "http://%s:%d".format(ipAddress, port)
+      val apiConfig = new OAuthRouteConfig(baseHostPort, SimpleOAuthSessionService.instance)
       NestServer.run(8080, new CloudServer(CloudServices.CloudEngine, apiConfig))
     } finally {
       CloudServices.shutdown
@@ -24,7 +34,7 @@ object CloudServer {
   }
 }
 
-class CloudServer(cas: ContentAddressableStorage, apiConfig: HmacRouteConfig) extends ViperServer("res:///cloudserver") {
+class CloudServer(cas: ContentAddressableStorage, apiConfig: OAuthRouteConfig) extends ViperServer("res:///cloudserver") {
 
   val _apiHandler = new CloudAdapter(cas, apiConfig)
 

@@ -12,7 +12,7 @@ import org.json.JSONArray
 import io.viper.common.ViperServer
 import io.viper.core.server.router._
 
-class StoreHandler(config: HmacRouteConfig, route: String, cas: ContentAddressableStorage) extends Route(route) {
+class StoreHandler(config: OAuthRouteConfig, route: String, cas: ContentAddressableStorage) extends Route(route) {
 
   override
   def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
@@ -29,7 +29,7 @@ class StoreHandler(config: HmacRouteConfig, route: String, cas: ContentAddressab
       return
     }
 
-    val (isValid, session) = HmacAuthRestRoute.isValid(config, request)
+    val (isValid, session) = OAuthRestRoute.isValid(config, request)
     val response = if (isValid) {
       val path = RouteUtil.parsePath(request.getUri)
       val args = RouteUtil.extractPathArgs(_route, path)
@@ -65,11 +65,11 @@ class StoreHandler(config: HmacRouteConfig, route: String, cas: ContentAddressab
   }
 }
 
-class CloudAdapter(cas: ContentAddressableStorage, config: HmacRouteConfig) {
+class CloudAdapter(cas: ContentAddressableStorage, config: OAuthRouteConfig) {
 
   def addRoutes(server: ViperServer) {
-    server.addRoute(new HmacGetRestRoute(config, "/blocks/$key", new HmacRouteHandler {
-      def exec(session: AuthSession, args: java.util.Map[String, String]): RouteResponse = {
+    server.addRoute(new OAuthGetRestRoute(config, "/blocks/$key", new OAuthRouteHandler {
+      def exec(session: OAuthSession, args: java.util.Map[String, String]): RouteResponse = {
         val (hash, tags) = args.get("key").split(",").toList.splitAt(1)
         val ctx = new BlockContext(hash(0), tags.toSet)
         if (cas.contains(ctx)) {
@@ -90,8 +90,8 @@ class CloudAdapter(cas: ContentAddressableStorage, config: HmacRouteConfig) {
 
     server.addRoute(new StoreHandler(config, "/blocks/$hash/$tags", cas))
 
-    server.addRoute(new HmacDeleteRestRoute(config, "/blocks/$hash,$tags", new HmacRouteHandler {
-      def exec(session: AuthSession, args: java.util.Map[String, String]): RouteResponse = {
+    server.addRoute(new OAuthDeleteRestRoute(config, "/blocks/$hash,$tags", new OAuthRouteHandler {
+      def exec(session: OAuthSession, args: java.util.Map[String, String]): RouteResponse = {
         val (hash, tags) = args.get("key").split(",").toList.splitAt(1)
         val ctx = new BlockContext(hash(0), tags.toSet)
         val success = cas.remove(ctx)
@@ -105,31 +105,31 @@ class CloudAdapter(cas: ContentAddressableStorage, config: HmacRouteConfig) {
 
     // ACTIONS
 
-    server.addRoute(new HmacPostRestRoute(config, "/cache/refresh", new HmacRouteHandler {
-      def exec(session: AuthSession, args: java.util.Map[String, String]): RouteResponse = {
+    server.addRoute(new OAuthPostRestRoute(config, "/cache/refresh", new OAuthRouteHandler {
+      def exec(session: OAuthSession, args: java.util.Map[String, String]): RouteResponse = {
         cas.refreshCache()
         new StatusResponse(HttpResponseStatus.OK)
       }
     }))
 
-    server.addRoute(new HmacGetRestRoute(config, "/blocks", new HmacRouteHandler {
-      def exec(session: AuthSession, args: java.util.Map[String, String]): RouteResponse = {
+    server.addRoute(new OAuthGetRestRoute(config, "/blocks", new OAuthRouteHandler {
+      def exec(session: OAuthSession, args: java.util.Map[String, String]): RouteResponse = {
         val arr = new JSONArray
         cas.describe.foreach(ctx => arr.put(ctx.toJson))
         new JsonResponse(arr)
       }
     }))
 
-    server.addRoute(new HmacGetRestRoute(config, "/blocks/hashes", new HmacRouteHandler {
-      def exec(session: AuthSession, args: java.util.Map[String, String]): RouteResponse = {
+    server.addRoute(new OAuthGetRestRoute(config, "/blocks/hashes", new OAuthRouteHandler {
+      def exec(session: OAuthSession, args: java.util.Map[String, String]): RouteResponse = {
         val arr = new JSONArray
         cas.describeHashes.foreach(arr.put)
         new JsonResponse(arr)
       }
     }))
 
-    server.addRoute(new HmacPostRestRoute(config, "/blocks/containsAll", new HmacRouteHandler {
-      def exec(session: AuthSession, args: java.util.Map[String, String]): RouteResponse = {
+    server.addRoute(new OAuthPostRestRoute(config, "/blocks/containsAll", new OAuthRouteHandler {
+      def exec(session: OAuthSession, args: java.util.Map[String, String]): RouteResponse = {
         val ctxs = fromJsonArray(new JSONArray(args.get("ctxs")))
         val res = cas.containsAll(ctxs)
         val arr = new JSONArray
@@ -143,8 +143,8 @@ class CloudAdapter(cas: ContentAddressableStorage, config: HmacRouteConfig) {
       }
     }))
 
-    server.addRoute(new HmacPostRestRoute(config, "/blocks/ensureAll", new HmacRouteHandler {
-      def exec(session: AuthSession, args: java.util.Map[String, String]): RouteResponse = {
+    server.addRoute(new OAuthPostRestRoute(config, "/blocks/ensureAll", new OAuthRouteHandler {
+      def exec(session: OAuthSession, args: java.util.Map[String, String]): RouteResponse = {
         val ctxs = fromJsonArray(new JSONArray(args.get("ctxs")))
         val blockLevelCheck = if (args.containsKey("blockLevelCheck")) args.get("blockLevelCheck").toBoolean else false
         val res = cas.ensureAll(ctxs, blockLevelCheck)
@@ -159,8 +159,8 @@ class CloudAdapter(cas: ContentAddressableStorage, config: HmacRouteConfig) {
       }
     }))
 
-    server.addRoute(new HmacPostRestRoute(config, "/blocks/removeAll", new HmacRouteHandler {
-      def exec(session: AuthSession, args: java.util.Map[String, String]): RouteResponse = {
+    server.addRoute(new OAuthPostRestRoute(config, "/blocks/removeAll", new OAuthRouteHandler {
+      def exec(session: OAuthSession, args: java.util.Map[String, String]): RouteResponse = {
         val ctxs = fromJsonArray(new JSONArray(args.get("ctxs")))
         val res = cas.removeAll(ctxs)
         val arr = new JSONArray
