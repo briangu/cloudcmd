@@ -43,7 +43,7 @@ class Add extends Command {
     })
 
     import scala.collection.JavaConversions._
-    val tagSet = _tags.toSet
-    fileSet.toList.par.foreach{ file : File => CloudServices.FileProcessor.add(file, file.getName, tagSet, properties) }
+    val tagList = _tags.toList
+    fileSet.toList.par.foreach{ file : File => CloudServices.FileProcessor.add(file, file.getName, tagList, properties) }
   }
 }

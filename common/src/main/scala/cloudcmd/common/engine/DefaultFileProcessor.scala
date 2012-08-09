@@ -16,11 +16,11 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
 
   final val THUMBNAIL_CREATE_THRESHOLD = 128 * 1024 // TODO: come from config
 
-  def add(file: File, fileName: String, tags: Set[String], properties: JSONObject = null, mimeType: String = null) : FileMetaData = {
+  def add(file: File, fileName: String, tags: List[String], properties: JSONObject = null, mimeType: String = null) : FileMetaData = {
     processFile(file, fileName, tags, null, properties)
   }
 
-  def processFile(file: File, fileName: String, tags: Set[String], providedMimeType: String = null, properties: JSONObject = null) : FileMetaData = {
+  def processFile(file: File, fileName: String, tags: List[String], providedMimeType: String = null, properties: JSONObject = null) : FileMetaData = {
     var blockHash: String = null
 
     val startTime = System.currentTimeMillis
@@ -66,7 +66,7 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
             val thumbHash = CryptoUtil.computeHashAsString(bis)
             bis.reset()
             try {
-              cloudEngine.store(new BlockContext(thumbHash, tags), bis)
+              cloudEngine.store(new BlockContext(thumbHash, tags.toSet), bis)
             } finally {
               bis.close
             }

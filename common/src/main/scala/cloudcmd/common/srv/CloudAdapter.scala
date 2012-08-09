@@ -2,16 +2,16 @@ package cloudcmd.common.srv
 
 import org.jboss.netty.channel.{ChannelFutureListener, MessageEvent, ChannelHandlerContext}
 import org.jboss.netty.handler.codec.http._
-import java.io.{ByteArrayInputStream, InputStream}
-import cloudcmd.common.{FileMetaData, ContentAddressableStorage, FileChannelBuffer, BlockContext}
+import java.io.{FileInputStream, ByteArrayInputStream, InputStream}
+import cloudcmd.common._
 import org.jboss.netty.buffer.ChannelBufferInputStream
 import org.jboss.netty.handler.codec.http.HttpHeaders._
 import io.viper.core.server.router.RouteResponse.RouteResponseDispose
-import org.json.JSONArray
+import org.json.{JSONObject, JSONArray}
 import io.viper.common.ViperServer
 import io.viper.core.server.router._
 import cloudcmd.common.engine.IndexStorage
-import cloudcmd.common.util.JsonUtil
+import cloudcmd.common.util.{StreamUtil, JsonUtil}
 
 class StoreHandler(config: OAuthRouteConfig, route: String, cas: ContentAddressableStorage, indexStorage: IndexStorage) extends Route(route) {
 
@@ -45,23 +45,25 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: ContentAddressa
       try {
         if (handlerArgs.contains("key")) {
           val ctx = CloudAdapter.getBlockContext(handlerArgs)
-/*
-          if (ctx.hash.endsWith(".meta")) {
-            is = new ChannelBufferInputStream(request.getContent, request.getHeader(HttpHeaders.Names.CONTENT_LENGTH).toInt)
-            val rawJson =  JsonUtil.loadJson(is)
-            val fmd = FileMetaData.create(ctx.hash, JsonUtil.loadJson(is))
-            indexStorage.add(fmd)
-            is = new ByteArrayInputStream(rawJson.toString.getBytes("UTF-8"))
-          }
-*/
           is = new ChannelBufferInputStream(request.getContent, request.getHeader(HttpHeaders.Names.CONTENT_LENGTH).toInt)
-          cas.store(ctx, is)
-          if (ctx.hash.endsWith(".meta")) {
-            indexStorage.add(FileMetaData.create(ctx.hash, JsonUtil.loadJson(cas.load(ctx)._1)))
+          val (hash, file) = StreamUtil.spoolStream(is)
+          try {
+            if (ctx.hashEquals(hash)) {
+              is.close
+              is = new FileInputStream(file)
+              cas.store(ctx, is)
+              if (ctx.isMeta()) {
+                indexStorage.add(FileMetaData.create(ctx.hash, new JSONObject(FileUtil.readFile(file))))
+              }
+              val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CREATED)
+              response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, 0)
+              response
+            } else {
+              new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
+            }
+          } finally {
+            file.delete
           }
-          val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CREATED)
-          response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, 0)
-          response
         } else {
           new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
         }
