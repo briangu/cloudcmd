@@ -34,19 +34,19 @@ class DirectHttpAdapter extends Adapter {
   override def init(configDir: String, tier: Int, adapterType: String, acceptsTags: Set[String], uri: URI) {
     super.init(configDir, tier, adapterType, acceptsTags, uri)
     _host = "http://%s:%d".format(uri.getHost, uri.getPort)
-    val (consumerKey : ConsumerKey, requestToken: RequestToken) = parseOAuthInfo(uri)
-    initOAuth(consumerKey, requestToken)
+    initOAuthInfo(uri)
     buildUrls
   }
 
-  def parseOAuthInfo(adapterUri: URI): (ConsumerKey, RequestToken) = {
+  def initOAuthInfo(adapterUri: URI): Boolean = {
     val parts = adapterUri.getAuthority.split("@")
-    if (parts.length != 4) throw new IllegalArgumentException("authority format: consumerKey:consumerSecret:userKey:userSecret")
-    (new ConsumerKey(parts(0), parts(1)), new RequestToken(parts(2), parts(3)))
-  }
-
-  private def initOAuth(consumerKey : ConsumerKey, requestToken: RequestToken) {
+    if (parts.length != 2) return false
+    val keys = parts(0).split(':')
+    if (keys.length != 4) return false
+    val consumerKey = new ConsumerKey(keys(0), keys(1))
+    val requestToken = new RequestToken(keys(2), keys(3))
     asyncHttpClient.setSignatureCalculator(new OAuthSignatureCalculator(consumerKey, requestToken))
+    true
   }
 
   def shutdown {
