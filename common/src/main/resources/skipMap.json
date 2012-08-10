@@ -1,10 +1,12 @@
 {
   "dirs": [
     ".svn",
-    ".git"
+    ".git",
+    ".DS_Store"
   ],
   "exts": [
     ".obj",
-    ".class"
+    ".class",
+    ".DS_Store"
   ]
 }

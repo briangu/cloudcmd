@@ -81,6 +81,14 @@ class FileMetaData {
     _data.getJSONArray("blocks")
   }
 
+  def getThumbHash: String = {
+    if (_data.has("thumbHash")) _data.getString("thumbHash") else null
+  }
+
+  def getThumbSize: Int = {
+    if (_data.has("thumbSize")) _data.getInt("thumbSize") else -1
+  }
+
   def getTags: Set[String] = _tags
 
   def toJson: JSONObject = {
