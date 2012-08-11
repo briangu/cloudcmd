@@ -13,8 +13,8 @@ object CloudServer {
   }
 
   def main(args: Array[String]) {
-    val ipAddress = getIpAddress
-    val port = 8080
+    val ipAddress = args(0)
+    val port = args(1).toInt
     println("booting at http://%s:%d".format(ipAddress, port))
 
     var configRoot: String = FileUtil.findConfigDir(FileUtil.getCurrentWorkingDirectory, ".cld")
@@ -22,6 +22,8 @@ object CloudServer {
       configRoot = System.getenv("HOME") + File.separator + ".cld"
       new File(configRoot).mkdir
     }
+
+    println("config root = %s".format(configRoot))
 
     CloudServices.init(configRoot)
 
