@@ -13,6 +13,17 @@ object CloudServices {
     CloudServices.ConfigService.init(configRoot)
     CloudServices.CloudEngine.init
     CloudServices.IndexStorage.init(configRoot)
+
+    println("refreshing adapter caches")
+    CloudEngine.refreshCache()
+
+    println("initializing adapters with describe()")
+    CloudEngine.describe()
+
+    println("reindexing index storage")
+    IndexStorage.reindex()
+
+    println("ready!")
   }
 
   def shutdown() {
