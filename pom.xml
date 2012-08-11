@@ -11,6 +11,7 @@
   <name>cloudcmd client and server applications</name>
 
   <modules>
+    <module>viper.io</module>
     <module>common</module>
     <module>cld</module>
     <module>srv</module>
