@@ -1,7 +1,7 @@
 package cloudcmd.common.srv
 
 import io.viper.core.server.router.{RouteResponse, RouteUtil, Route}
-import org.jboss.netty.channel.{ChannelFutureListener, MessageEvent, ChannelEvent, ChannelHandlerContext}
+import org.jboss.netty.channel._
 import org.jboss.netty.handler.codec.http.HttpVersion._
 import java.net.URLDecoder
 import org.jboss.netty.buffer.ChannelBuffers._
@@ -219,7 +219,8 @@ class OAuthRestRoute(route: String, handler: OAuthRouteHandler, method: HttpMeth
             response.setHeader(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE)
           }
 
-          response
+          writeResponse(request, routeResponse, e)
+          null
         }
       } catch {
         case e: Exception => new DefaultHttpResponse(HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
@@ -231,10 +232,20 @@ class OAuthRestRoute(route: String, handler: OAuthRouteHandler, method: HttpMeth
     if (response != null) writeResponse(request, response, e)
   }
 
-  def writeResponse(request: HttpRequest, response: HttpResponse, e: ChannelEvent) {
+  def writeResponse(request: HttpRequest, response: HttpResponse, e: ChannelEvent) : ChannelFuture = {
     val writeFuture = e.getChannel().write(response)
     if (response.getStatus != HttpResponseStatus.OK || !isKeepAlive(request)) {
       writeFuture.addListener(ChannelFutureListener.CLOSE)
     }
+    writeFuture
+  }
+
+  def writeResponse(request: HttpRequest, routeResponse: RouteResponse, e: ChannelEvent) {
+    val writeFuture = writeResponse(request, routeResponse.HttpResponse, e)
+    writeFuture.addListener(new ChannelFutureListener {
+      def operationComplete(channelFuture: ChannelFuture) {
+        routeResponse.dispose
+      }
+    })
   }
 }
