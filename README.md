@@ -141,6 +141,6 @@ Lastly, Make sure the JAVA_HOME environment variable is pointing to a JDK.
 For bash style shells: 
 
     export CLOUDCMD_HOME=~/scm/cloudcmd
-    export PATH=$CLOUDCMD_HOME/cld/bin
+    export PATH=$CLOUDCMD_HOME/cld/bin:$PATH
 
 
