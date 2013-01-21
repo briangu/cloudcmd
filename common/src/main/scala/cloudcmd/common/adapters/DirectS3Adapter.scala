@@ -71,7 +71,7 @@ class DirectS3Adapter extends Adapter {
         buffer.close()
       }
     }
-    else if (is.isInstanceOf[FileInputStream]) {
+    else if (is.isInstanceOf[FileInputStream] && is.markSupported()) {
       val buffer = is.asInstanceOf[FileInputStream]
       try {
         buffer.mark(0)
