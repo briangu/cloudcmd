@@ -84,15 +84,23 @@ class DirectS3Adapter extends Adapter {
     }
     else {
       val (hash, tmpFile) = StreamUtil.spoolStream(is)
-      if (hash != ctx.hash) throw new RuntimeException("retrieved data hash %s not equal to expected %s".format(hash, ctx.hash))
+      if (hash != getHashFromDataFile(ctx.hash)) throw new RuntimeException("retrieved data hash %s not equal to expected %s".format(hash, ctx.hash))
       val fis = new FileInputStream(tmpFile)
+      val buffer = new FileInputStream(tmpFile)
       try {
-        store(ctx, fis)
+        val md5Hash = CryptoUtil.computeMD5Hash(fis.getChannel)
+        store(ctx, buffer, md5Hash, buffer.available)
       } finally {
         fis.close()
+        buffer.close()
         FileUtil.delete(tmpFile)
       }
     }
+  }
+
+  private def getHashFromDataFile(hash: String): String = {
+    val idx = hash.lastIndexOf(".")
+    if (idx >= 0) hash.substring(0, idx) else hash
   }
 
   private def store(ctx: BlockContext, data: InputStream, md5Digest: Array[Byte], length: Long) {
