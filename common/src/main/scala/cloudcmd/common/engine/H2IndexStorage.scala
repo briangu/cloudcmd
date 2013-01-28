@@ -203,6 +203,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
   }
 
   def pruneHistory(selections: List[FileMetaData]) {
+//    removeAll(selections.filter(_.getParent != null).map(_.getParent).toSet)
     removeAll(Set() ++ selections.flatMap(fmd => if (fmd.getParent == null) {
       Nil
     } else {
@@ -375,8 +376,11 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
   def ensure(selections: JSONArray, blockLevelCheck: Boolean) {
     (0 until selections.length()).par.foreach{
       i =>
-        val fmd = FileMetaData.fromJson(selections.getJSONObject(i))
-        val hashes = Set(fmd.getHash) ++ (0 until fmd.getBlockHashes.length).map(fmd.getBlockHashes.getString)
+        val selection = selections.getJSONObject(i)
+        val fmd = FileMetaData.fromJson(selection)
+        val selectionData = selection.getJSONObject("data")
+        val thumbHash = if (selectionData.has("thumbHash")) Set(selectionData.getString("thumbHash")) else Set()
+        val hashes = Set(fmd.getHash) ++ (0 until fmd.getBlockHashes.length).map(fmd.getBlockHashes.getString) ++ thumbHash
         hashes.foreach{ hash =>
           if (!cloudEngine.ensure(fmd.createBlockContext(hash), blockLevelCheck)) {
             onMessage("%s: found incosistent block %s".format(fmd.getFilename, hash))
