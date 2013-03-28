@@ -173,6 +173,9 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     else if (obj.isInstanceOf[Long]) {
       statement.setLong(idx, obj.asInstanceOf[Long])
     }
+    else if (obj.isInstanceOf[java.lang.Integer]) {
+      statement.setInt(idx, obj.asInstanceOf[java.lang.Integer])
+    }
     else if (obj == null) {
       statement.setString(idx, null)
     }

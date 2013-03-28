@@ -9,6 +9,7 @@ import java.io.{ByteArrayInputStream, FileInputStream, InputStream}
 import java.net.URI
 import java.nio.channels.Channels
 import collection.mutable
+import org.jets3t.service.io.RepeatableInputStream
 
 //     "s3://<aws id>@<bucket>?tier=2&tags=s3&secret=<aws secret>"
 
@@ -104,9 +105,9 @@ class DirectS3Adapter extends Adapter {
   }
 
   private def store(ctx: BlockContext, data: InputStream, md5Digest: Array[Byte], length: Long) {
-    if (contains(ctx)) return
+//    if (contains(ctx)) return
     val s3Object: S3Object = new S3Object(ctx.hash)
-    s3Object.setDataInputStream(data)
+    s3Object.setDataInputStream(new RepeatableInputStream(data, length.toInt))
     s3Object.setContentLength(length)
     s3Object.setMd5Hash(md5Digest)
     s3Object.setBucketName(_bucketName)
@@ -114,7 +115,7 @@ class DirectS3Adapter extends Adapter {
   }
 
   def load(ctx: BlockContext): (InputStream, Int) = {
-    if (!contains(ctx)) throw new DataNotFoundException(ctx)
+//    if (!contains(ctx)) throw new DataNotFoundException(ctx)
     val obj = _s3Service.getObject(_bucketName, ctx.hash)
     (obj.getDataInputStream, obj.getContentLength.toInt)
   }
