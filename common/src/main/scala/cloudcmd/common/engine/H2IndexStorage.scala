@@ -289,7 +289,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     }.toList
 
     addAll(fmds)
-    pruneHistory(fmds)
+//    pruneHistory(fmds)
   }
 
   def get(selections: JSONArray) {

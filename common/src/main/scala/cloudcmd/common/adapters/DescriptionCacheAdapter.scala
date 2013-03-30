@@ -17,6 +17,7 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
   protected var _rootPath: String = null
   private var _cp: JdbcConnectionPool = null
   @volatile private var _description: mutable.HashSet[BlockContext] with mutable.SynchronizedSet[BlockContext] = null
+  @volatile private var _descriptionHashes: mutable.HashSet[String] with mutable.SynchronizedSet[String] = null
   protected var _dbDir: String = null
   protected var _dataDir: String = null
 
@@ -88,7 +89,7 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
   def refreshCache {
     wrappedAdapter.refreshCache
 
-    val foundContexts = wrappedAdapter.describe
+    val foundContexts = wrappedAdapter.describe()
     val cachedContexts = getDescription.toSet
     val newContexts = foundContexts -- cachedContexts
     addToDb(newContexts)
@@ -96,7 +97,10 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
     deleteFromDb(deletedContexts)
   }
 
-  override def contains(ctx: BlockContext) : Boolean = getDescription.contains(ctx)
+  override def contains(ctx: BlockContext) : Boolean = {
+    if (_description == null) getDescription
+    _descriptionHashes.contains(ctx.hash)
+  }
 
   def containsAll(ctxs: Set[BlockContext]) : Map[BlockContext, Boolean] = {
     val present = getDescription.intersect(ctxs)
@@ -145,7 +149,10 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
         statement.setString(1, ctx.hash)
         statement.setString(2, ctx.routingTags.mkString(" "))
         statement.addBatch
-        _description.add(ctx)
+
+        if (_description != null) {
+          _description.add(ctx)
+        }
 
         k += 1
         if (k > BATCH_SIZE) {
@@ -156,6 +163,25 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
 
       statement.executeBatch
       db.commit
+    }
+    catch {
+      case e: SQLException => log.error(e)
+    }
+    finally {
+      SqlUtil.SafeClose(statement)
+      SqlUtil.SafeClose(db)
+    }
+  }
+
+  private def purgeDb() {
+    var db: Connection = null
+    var statement: PreparedStatement = null
+    try {
+      db = getDbConnection
+      db.setAutoCommit(false)
+      statement = db.prepareStatement("DELETE FROM BLOCK_INDEX")
+      statement.execute
+      db.commit()
     }
     catch {
       case e: SQLException => log.error(e)
@@ -207,14 +233,18 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
           statement = db.prepareStatement("SELECT HASH,TAGS FROM BLOCK_INDEX")
 
           val description = new mutable.HashSet[BlockContext] with mutable.SynchronizedSet[BlockContext]
+          val descriptionHashes = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
+
           val resultSet = statement.executeQuery
           while (resultSet.next) {
             val hash = resultSet.getString("HASH")
             val tags = resultSet.getString("TAGS").split(" ").filter(_.length > 0).toSet
             description.add(new BlockContext(hash, tags))
+            descriptionHashes.add(hash)
           }
 
           _description = description
+          _descriptionHashes = descriptionHashes
         }
         catch {
           case e: SQLException => log.error(e)

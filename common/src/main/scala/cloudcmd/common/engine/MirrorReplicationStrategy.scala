@@ -62,8 +62,8 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
       }
       catch {
         case e: Exception => {
-          onMessage(String.format("failed to sync block %s to %s", ctx, adapter.URI.toString))
           log.error(ctx, e)
+          onMessage(String.format("failed to sync block %s to %s", ctx, String.valueOf(adapter.URI)))
         }
       }
       finally {
@@ -104,9 +104,14 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
   }
 
   def ensure(ctx: BlockContext, hashProviders: List[Adapter], adapters: List[Adapter], blockLevelCheck: Boolean) : Boolean = {
+    if (hashProviders.size == 0) {
+      return false
+    }
     val consistencyResults = ensureExistingBlocks(ctx, hashProviders, blockLevelCheck)
     val validProviders = consistencyResults.filter{case (adapter:Adapter, consistent: Boolean) => consistent}.keySet.toList
-    if (validProviders.size == 0) throw new DataNotFoundException(ctx)
+    if (validProviders.size == 0) {
+      throw new DataNotFoundException(ctx)
+    }
     sync(ctx, validProviders, adapters)
   }
 

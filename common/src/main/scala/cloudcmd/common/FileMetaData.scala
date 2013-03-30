@@ -64,7 +64,11 @@ object FileMetaData {
   }
 
   def createBlockContext(hash: String, fmd: FileMetaData) : BlockContext = {
-    new BlockContext(hash, fmd.getTags)
+    createBlockContext(hash, fmd.getTags)
+  }
+
+  def createBlockContext(hash: String, tags: Set[String]) : BlockContext = {
+    new BlockContext(hash, tags)
   }
 }
 
