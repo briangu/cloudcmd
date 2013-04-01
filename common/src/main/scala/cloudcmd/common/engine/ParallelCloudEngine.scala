@@ -31,7 +31,7 @@ class ParallelCloudEngine(configService: ConfigStorage) extends CloudEngine {
   }
 
   def getAdaptersAccepts(ctx: BlockContext) : List[Adapter] = {
-    _adapters.par.filter(_.accepts(ctx)).toList
+    _adapters.filter(_.accepts(ctx)).toList
   }
 
   private def getHashProviders(ctx: BlockContext) : List[Adapter] = {
@@ -51,7 +51,7 @@ class ParallelCloudEngine(configService: ConfigStorage) extends CloudEngine {
   }
 
   override def contains(ctx: BlockContext) : Boolean = {
-    _adapters.par.find(_.contains(ctx)) != None
+    _adapters.find(_.contains(ctx)) != None
   }
 
   def containsAll(ctxs: Set[BlockContext]) : Map[BlockContext, Boolean] = {

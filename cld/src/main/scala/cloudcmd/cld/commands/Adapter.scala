@@ -13,6 +13,7 @@ class Adapter extends Command {
   @Opt(opt = "l", longOpt = "list", description = "list adapters", required = false) private var _list: Boolean = false
   @Opt(opt = "a", longOpt = "add", description = "add adapter", required = false) private var _add: Boolean = false
   @Opt(opt = "u", longOpt = "uri", description = "adapter URI", required = false) private var _uri: String = null
+  @Opt(opt = "d", longOpt = "dump", description = "dump adapter URI", required = false) private var _dumpUri: String = null
 
   def exec(commandLine: CommandContext) {
     if (_remove) {
@@ -36,6 +37,13 @@ class Adapter extends Command {
       val uri: URI = new URI(_uri)
       CloudServices.ConfigService.addAdapter(uri)
       CloudServices.ConfigService.writeConfig
+    }
+    else if (_dumpUri != null) {
+      val uri: URI = new URI(_dumpUri)
+      val adapter = CloudServices.ConfigService.getAdapter(uri)
+      adapter.describe().foreach { blockContext =>
+        println("%s (%s)".format(blockContext.hash, blockContext.routingTags.mkString(",")))
+      }
     }
     else if (_list) {
       System.out.println("Adapters:")

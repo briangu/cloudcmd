@@ -12,15 +12,16 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
   private val log: Logger = Logger.getLogger(classOf[MirrorReplicationStrategy])
 
   def isReplicated(ctx: BlockContext, adapters: List[Adapter]): Boolean = {
-    val acceptsAdapters = adapters.par.filter(_.accepts(ctx))
-    val replicated = acceptsAdapters.filter(!_.contains(ctx)).size == 0
+    val acceptsAdapters = adapters.filter(_.accepts(ctx))
+    val adaptersMissingBlock = acceptsAdapters.filter(!_.contains(ctx))
+    val replicated = adaptersMissingBlock.size == 0
     replicated
   }
 
   def store(ctx: BlockContext, dis: InputStream, adapters: List[Adapter]) {
     if (adapters == null || adapters.size == 0) throw new IllegalArgumentException("no adapters to store to")
 
-    var containsAdapters = adapters.par.filter(_.contains(ctx)).toList
+    var containsAdapters = adapters.filter(_.contains(ctx)).toList
     val nis = if (containsAdapters.size == 0) {
       adapters(0).store(ctx, dis)
       containsAdapters = containsAdapters ++ List(adapters(0))
@@ -141,7 +142,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
   }
 
   private def ensureExistingBlocks(ctx: BlockContext, hashProviders: List[Adapter], blockLevelCheck: Boolean) : Map[Adapter, Boolean] = {
-    Map() ++ hashProviders.par.flatMap {
+    Map() ++ hashProviders.flatMap {
       adapter =>
         var isConsistent = false
         try {
