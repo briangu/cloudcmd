@@ -71,7 +71,7 @@ class DirectFileAdapter extends Adapter {
     Map() ++ ctxs.par.flatMap{ ctx => Map(ctx -> ensure(ctx, blockLevelCheck)) }
   }
 
-  def store(ctx: BlockContext, is: InputStream) = {
+  def store(ctx: BlockContext, is: InputStream) {
     val writeHash = FileUtil.writeFileAndComputeHash(is, new File(getDataFileFromHash(ctx.hash)))
     val success = (writeHash == getHashFromDataFile(ctx.hash))
     if (!success) {
