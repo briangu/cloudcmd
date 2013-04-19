@@ -16,7 +16,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
   private val log = Logger.getLogger(classOf[H2IndexStorage])
 
   private val BATCH_SIZE = 1024
-  private val WHITESPACE = " ,:-._" + File.separator
+  private val WHITESPACE = " ,:-._$/\\"// + File.separator
   private val MAX_FETCH_RETRIES = 3
 
   private var _configRoot: String = null
@@ -28,12 +28,6 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
   private def createConnectionString: String = "jdbc:h2:%s".format(getDbFile)
 
   private def getDbConnection = _cp.getConnection
-
-  private def getReadOnlyDbConnection: Connection = {
-    val conn = getDbConnection
-    conn.setReadOnly(true)
-    conn
-  }
 
   def init(configRoot: String) {
     _configRoot = configRoot
@@ -51,12 +45,12 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     flush
     if (_cp != null) {
       FullText.closeAll()
-      _cp.dispose
+      _cp.dispose()
       _cp = null
     }
   }
 
-  private def bootstrapDb {
+  private def bootstrapDb() {
     var db: Connection = null
     var st: Statement = null
     try {
@@ -64,7 +58,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
       st = db.createStatement
       st.execute("DROP TABLE if exists FILE_INDEX")
       st.execute("CREATE TABLE FILE_INDEX ( HASH VARCHAR, PATH VARCHAR, FILENAME VARCHAR, FILEEXT VARCHAR, FILESIZE BIGINT, FILEDATE BIGINT, CREATEDDATE BIGINT, TAGS VARCHAR, PROPERTIES__OWNERID BIGINT, RAWMETA VARCHAR, PRIMARY KEY (HASH, TAGS))")
-      db.commit
+      db.commit()
 
       createLuceneIndex(db)
     }
@@ -80,7 +74,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
   private def createLuceneIndex(db: Connection) {
     FullTextLucene.init(db)
     FullText.setWhitespaceChars(db, WHITESPACE)
-    FullTextLucene.createIndex(db, "PUBLIC", "FILE_INDEX", "TAGS")
+    FullTextLucene.createIndex(db, "PUBLIC", "FILE_INDEX", "PATH,FILENAME,FILEEXT,TAGS")
   }
 
   def purge {
@@ -89,7 +83,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
       db = getDbConnection
       FullText.dropIndex(db, "PUBLIC", "FILE_INDEX")
       FullTextLucene.dropAll(db)
-      FullText.closeAll
+      FullText.closeAll()
     }
     catch {
       case e: SQLException => ;
@@ -110,7 +104,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
 
     _cp = JdbcConnectionPool.create(createConnectionString, "sa", "sa")
 
-    bootstrapDb
+    bootstrapDb()
   }
 
   def flush {}
@@ -127,7 +121,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
       var k = 0
 
       for (meta <- fmds) {
-        bind.clear
+        bind.clear()
         bind.append(meta.getHash)
         bind.append(meta.getPath)
         bind.append(meta.getFilename)
@@ -140,7 +134,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
         bind.append(if (meta.hasProperty("ownerId")) meta.getProperties().getLong("ownerId").asInstanceOf[AnyRef] else 0.asInstanceOf[AnyRef])
         bind.append(meta.getDataAsString)
         (0 until bind.size).foreach(i => bindVar(statement, i + 1, bind(i)))
-        statement.addBatch
+        statement.addBatch()
 
         k += 1
         if (k > BATCH_SIZE) {
@@ -159,11 +153,9 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
   }
 
   private def buildTags(meta: FileMetaData): String = {
-    var tagSet = meta.getTags ++ Set(meta.getPath)
+    var tagSet = meta.getTags
     if (meta.getType != null) tagSet = tagSet ++ meta.getType.split("/")
-    var tags = tagSet.mkString(" ")
-    WHITESPACE.toCharArray.foreach { ch => tags = tags.replace(ch, ' ') }
-    tags
+    tagSet.mkString(" ")
   }
 
   private def bindVar(statement: PreparedStatement, idx: Int, obj: AnyRef) {
@@ -190,7 +182,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
       db = getDbConnection
       db.setAutoCommit(false)
       addMeta(db, List(meta))
-      db.commit
+      db.commit()
     }
     catch {
       case e: JSONException => log.error(e)
@@ -226,7 +218,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
       hashes.foreach {
         hash =>
           bindVar(statement, 1, hash)
-          statement.addBatch
+          statement.addBatch()
 
           k += 1
           if (k > BATCH_SIZE) {
@@ -236,7 +228,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
       }
 
       statement.executeBatch
-      db.commit
+      db.commit()
     }
     catch {
       case e: JSONException => log.error(e)
@@ -255,11 +247,11 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
       db = getDbConnection
       FullText.dropIndex(db, "PUBLIC", "FILE_INDEX")
       FullTextLucene.dropAll(db)
-      FullText.closeAll
+      FullText.closeAll()
 
       db.setAutoCommit(false)
       addMeta(db, meta)
-      db.commit
+      db.commit()
 
       Class.forName("org.h2.fulltext.FullTextLucene")
       createLuceneIndex(db)
@@ -416,9 +408,8 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     var db: Connection = null
     var statement: PreparedStatement = null
     try {
-      db = getReadOnlyDbConnection
+      db = getDbConnection
 
-//      var sql: String = null
       val bind = new ListBuffer[AnyRef]
       var prefix = ""
       var handledOffset = false
@@ -427,7 +418,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
         bind.append(filter.getString("tags"))
         prefix = "T."
         handledOffset = true
-        val limit = if (filter.has("count")) filter.getInt("count") else 0
+        val limit = if (filter.has("count")) filter.getInt("count") else Int.MaxValue
         val offset = if (filter.has("offset")) filter.getInt("offset") else 0
         "SELECT T.HASH,T.RAWMETA FROM FTL_SEARCH_DATA(?, %d, %d) FTL, FILE_INDEX T WHERE FTL.TABLE='FILE_INDEX' AND T.HASH = FTL.KEYS[0]".format(limit, offset)
       }

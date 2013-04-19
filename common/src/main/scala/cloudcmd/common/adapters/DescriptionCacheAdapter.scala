@@ -24,11 +24,6 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
   private def getDbFileName(dbPath: String): String = "%s%sindex".format(dbPath, File.separator)
   private def createConnectionString(dbPath: String): String = "jdbc:h2:%s".format(getDbFileName(dbPath))
   private def getDbConnection: Connection = _cp.getConnection
-  private def getReadOnlyDbConnection: Connection = {
-    val conn: Connection = getDbConnection
-    conn.setReadOnly(true)
-    conn
-  }
 
   override def init(configDir: String, tier: Int, adapterType: String, tags: Set[String], config: URI) {
     super.init(configDir, tier, adapterType, tags, config)
