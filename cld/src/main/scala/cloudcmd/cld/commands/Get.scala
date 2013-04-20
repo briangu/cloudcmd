@@ -12,6 +12,7 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
 import cloudcmd.cld.CloudServices
+import scala.collection.mutable
 
 @SubCommand(name = "get", description = "Fetch files from the cloud and store locally.")
 class Get extends Command {
@@ -24,6 +25,7 @@ class Get extends Command {
   @Opt(opt = "i", longOpt = "input", description = "input file", required = false) private var _inputFilePath: String = null
   @Opt(opt = "n", longOpt = "minTier", description = "min tier to verify to", required = false) private var _minTier: Number = 0
   @Opt(opt = "m", longOpt = "maxTier", description = "max tier to verify to", required = false) private var _maxTier: Number = Integer.MAX_VALUE
+  @Opt(opt = "u", longOpt = "unique", description = "only retrieve unique files", required = false) private var _uniqueOnly: Boolean = false
 
   def exec(commandLine: CommandContext) {
     var selections: JSONArray = null
@@ -43,6 +45,7 @@ class Get extends Command {
     if (_removePaths) removePaths(selections)
     if (_prefix != null) prefixPaths(_prefix, selections)
     if (_outdir == null) _outdir = FileUtil.getCurrentWorkingDirectory
+    if (_uniqueOnly) selections = removeDuplicates(selections)
     prefixPaths(_outdir, selections)
     if (!_dryrun) {
       CloudServices.CloudEngine.filterAdapters(_minTier.intValue, _maxTier.intValue)
@@ -51,6 +54,23 @@ class Get extends Command {
     else {
       System.out.print(selections.toString)
     }
+  }
+
+  private def removeDuplicates(selections: JSONArray): JSONArray = {
+    val dedupMap = new mutable.HashMap[String, JSONObject]()
+    (0 until selections.length()).foreach{ i =>
+      val data: JSONObject = selections.getJSONObject(i).getJSONObject("data")
+      val blocks: JSONArray = data.getJSONArray("blocks")
+      val sb = new mutable.StringBuilder()
+      (0 until blocks.length()).foreach{ j => sb.append(blocks.getString(j)) }
+      dedupMap.put(sb.toString(), selections.getJSONObject(i))
+    }
+    val result = new JSONArray()
+    dedupMap.values.map(obj => result.put(obj))
+    if (result.length() < selections.length()) {
+      println("removed %d duplicates".format(selections.length() - result.length()))
+    }
+    result
   }
 
   private def removePaths(selections: JSONArray) {
