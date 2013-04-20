@@ -17,13 +17,15 @@ class DirectS3Adapter extends Adapter {
 
   private var _bucketName: String = null
   private var _s3Service: RestS3Service = null
+  private var _useReducedRedundancy: Boolean = true
 
   override def init(configDir: String, tier: Int, adapterType: String, tags: Set[String], uri: URI) {
     super.init(configDir, tier, adapterType, tags, uri)
-    val (awsKey, awsSecret, awsBucketName) = parseAwsInfo(uri)
+    val (awsKey, awsSecret, awsBucketName, useRRS) = parseAwsInfo(uri)
     val creds = new AWSCredentials(awsKey, awsSecret)
     _s3Service = new RestS3Service(creds)
     _bucketName = awsBucketName
+    _useReducedRedundancy = useRRS
 
     if (!_s3Service.isBucketAccessible(_bucketName)) {
       _s3Service.getOrCreateBucket(_bucketName)
@@ -33,12 +35,16 @@ class DirectS3Adapter extends Adapter {
 
   def shutdown {}
 
-  def parseAwsInfo(adapterUri: URI): (String, String, String) = {
+  def parseAwsInfo(adapterUri: URI): (String, String, String, Boolean) = {
     val parts = adapterUri.getAuthority.split("@")
     if (parts.length != 2) throw new IllegalArgumentException("authority format: awsKey@bucketname")
     val queryParams = UriUtil.parseQueryString(adapterUri)
     if (!queryParams.containsKey("secret")) throw new IllegalArgumentException("missing aws secret")
-    (parts(0), queryParams.get("secret"), parts(1))
+    val useRRS = Option(queryParams.get("useRRS")) match {
+      case Some(param) => param.toBoolean
+      case None => true // default
+    }
+    (parts(0), queryParams.get("secret"), parts(1), useRRS)
   }
 
   def refreshCache {}
@@ -113,6 +119,7 @@ class DirectS3Adapter extends Adapter {
     s3Object.setContentLength(length)
     s3Object.setMd5Hash(md5Digest)
     s3Object.setBucketName(_bucketName)
+    if (_useReducedRedundancy) s3Object.setStorageClass(S3Object.STORAGE_CLASS_REDUCED_REDUNDANCY)
     _s3Service.putObject(_bucketName, s3Object)
   }
 
