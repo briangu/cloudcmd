@@ -67,31 +67,12 @@ class DirectS3Adapter extends Adapter {
   }
 
   def store(ctx: BlockContext, is: InputStream) {
-    if (is.isInstanceOf[ByteArrayInputStream]) {
-      val buffer = is.asInstanceOf[ByteArrayInputStream]
-      try {
-        buffer.mark(is.available() + 1)
-        val md5Hash = CryptoUtil.computeMD5Hash(Channels.newChannel(buffer))
-        buffer.reset()
-        store(ctx, buffer, md5Hash, buffer.available)
-      } finally {
-        buffer.close()
-      }
-    }
-//    else if (is.isInstanceOf[FileInputStream]) {
-//      val fis = is.asInstanceOf[FileInputStream]
-//      val bis = new BufferedInputStream(is)
-//      try {
-//        bis.mark(fis.available() + 1)
-//        val md5Hash = CryptoUtil.computeMD5Hash(Channels.newChannel(bis))
-//        bis.reset()
-//        store(ctx, bis, md5Hash, bis.available)
-//      } finally {
-//        bis.close()
-//        fis.close()
-//      }
-//    }
-    else {
+    if (is.markSupported()) {
+      is.mark(0)
+      val md5Hash = CryptoUtil.computeMD5Hash(Channels.newChannel(is))
+      is.reset()
+      store(ctx, is, md5Hash, is.available)
+    } else {
       val (hash, tmpFile) = StreamUtil.spoolStream(is)
       if (hash != getHashFromDataFile(ctx.hash)) throw new RuntimeException("retrieved data hash %s not equal to expected %s".format(hash, ctx.hash))
       val fis = new FileInputStream(tmpFile)

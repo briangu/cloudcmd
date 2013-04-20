@@ -83,7 +83,7 @@ class DirectFileAdapter extends Adapter {
   def load(ctx: BlockContext): (InputStream, Int) = {
     val file = new File(getDataFileFromHash(ctx.hash))
     if (!file.exists) throw new DataNotFoundException(ctx)
-    (new FileInputStream(file), file.length.toInt)
+    (RandomAccessFileInputStream.create(file), file.length.toInt)
   }
 
   def describe: Set[BlockContext] = {

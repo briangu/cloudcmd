@@ -11,6 +11,9 @@ import java.util.concurrent.SynchronousQueue
 object Main {
   @SuppressWarnings(Array("unchecked"))
   def main(args: Array[String]) {
+
+    //collection.parallel.ForkJoinTasks.defaultForkJoinPool.setParallelism(2)
+
     var configRoot: String = FileUtil.findConfigDir(FileUtil.getCurrentWorkingDirectory, ".cld")
     if (configRoot == null) {
       configRoot = System.getenv("HOME") + File.separator + ".cld"
