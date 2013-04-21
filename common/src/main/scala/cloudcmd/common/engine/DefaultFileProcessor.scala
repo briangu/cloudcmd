@@ -1,7 +1,7 @@
 package cloudcmd.common.engine
 
 import java.io.{ByteArrayOutputStream, ByteArrayInputStream, FileInputStream, File}
-import cloudcmd.common.{BlockContext, FileMetaData, FileUtil}
+import cloudcmd.common.{RandomAccessFileInputStream, BlockContext, FileMetaData, FileUtil}
 import cloudcmd.common.util.{JsonUtil, FileTypeUtil, CryptoUtil}
 import cloudcmd.common.config.ConfigStorage
 import org.json.JSONObject
@@ -25,7 +25,7 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
 
     val startTime = System.currentTimeMillis
     try {
-      var fis = new FileInputStream(file)
+      var fis = RandomAccessFileInputStream.create(file)
       try {
         blockHash = CryptoUtil.computeHashAsString(fis)
       } finally {
@@ -80,7 +80,7 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
 
       val fmd = FileMetaData.create(rawFmd)
 
-      fis = new FileInputStream(file)
+      fis = RandomAccessFileInputStream.create(file)
       try {
         cloudEngine.store(fmd.createBlockContext(blockHash), fis)
       } catch {
