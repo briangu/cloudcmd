@@ -131,7 +131,7 @@ class DirectS3Adapter extends Adapter {
               referencedBlockHashes.add(blockHash)
             } else {
               // TODO: log as we should have the blockHash in the description on the same adapter
-              println("missing %s on adapter".format(blockHash))
+              println("missing blockhash %s (%s) on adapter: %s".format(blockHash, fmd.getPath, this.URI))
             }
           }
         } finally {
