@@ -12,8 +12,13 @@ import java.security.NoSuchAlgorithmException
 
 object CryptoUtil {
 
+  val SHA256_ID = "SHA-256"
+
   private val buffer = new ThreadLocal[ByteBuffer] {
     override def initialValue = ByteBuffer.allocate(1024 * 1024)
+  }
+  private val sha256 = new ThreadLocal[MessageDigest] {
+    override def initialValue = MessageDigest.getInstance(SHA256_ID)
   }
 
   def digestToString(digest: Array[Byte]): String = {
@@ -32,11 +37,11 @@ object CryptoUtil {
     var fis: FileInputStream = null
     try {
       fis = new FileInputStream(targetFile)
-      computeDigest(Channels.newChannel(fis), "SHA-256")
+      computeDigest(Channels.newChannel(fis), SHA256_ID)
     }
     catch {
       case e: NoSuchAlgorithmException => {
-        throw new RuntimeException("SHA-256 is not supported")
+        throw new RuntimeException("%s is not supported".format(SHA256_ID))
       }
     }
     finally {
@@ -52,7 +57,7 @@ object CryptoUtil {
     }
     catch {
       case e: NoSuchAlgorithmException => {
-        throw new RuntimeException("SHA-256 is not supported")
+        throw new RuntimeException("%s is not supported".format("MD5"))
       }
     }
     finally {
@@ -73,17 +78,17 @@ object CryptoUtil {
 
   def writeAndComputeHash(is: InputStream, os: OutputStream): Array[Byte] = {
     try {
-      writeAndComputeHash(Channels.newChannel(is), Channels.newChannel(os), "SHA-256")
+      writeAndComputeHash(Channels.newChannel(is), Channels.newChannel(os), SHA256_ID)
     }
     catch {
       case e: NoSuchAlgorithmException => {
-        throw new RuntimeException("SHA-256 is not supported")
+        throw new RuntimeException("%s is not supported".format(SHA256_ID))
       }
     }
   }
 
   def writeAndComputeHash(in: ReadableByteChannel, out: WritableByteChannel, digestId: String): Array[Byte] = {
-    val md = MessageDigest.getInstance(digestId)
+    val md = if (digestId == SHA256_ID) sha256.get else MessageDigest.getInstance(digestId)
     val buff = buffer.get
     while (in.read(buff) != -1) {
       buff.flip
@@ -101,11 +106,11 @@ object CryptoUtil {
 
   def computeHash(is: InputStream): Array[Byte] = {
     try {
-      computeDigest(Channels.newChannel(is), "SHA-256")
+      computeDigest(Channels.newChannel(is), SHA256_ID)
     }
     catch {
       case e: NoSuchAlgorithmException => {
-        throw new RuntimeException("SHA-256 is not supported")
+        throw new RuntimeException("%s is not supported".format(SHA256_ID))
       }
     }
   }
@@ -126,7 +131,7 @@ object CryptoUtil {
   }
 
   private def computeDigest(channel: ReadableByteChannel, digestId: String): Array[Byte] = {
-    val md = MessageDigest.getInstance(digestId)
+    val md = if (digestId == SHA256_ID) sha256.get else MessageDigest.getInstance(digestId)
     val buff = buffer.get
     while (channel.read(buff) != -1) {
       buff.flip
