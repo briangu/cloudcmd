@@ -55,6 +55,7 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
         rawFmd.put("properties", properties)
       }
 
+/*
       if (mimeType.startsWith("image")) {
         if (file.length < THUMBNAIL_CREATE_THRESHOLD) {
           rawFmd.put("thumbHash", blockHash)
@@ -75,6 +76,7 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
           }
         }
       }
+*/
 
       rawFmd.put("mimeType", mimeType)
 
