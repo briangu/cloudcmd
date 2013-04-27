@@ -46,7 +46,6 @@ class DirectHttpAdapter extends Adapter {
     val consumerKey = new ConsumerKey(keys(0), keys(1))
     val requestToken = new RequestToken(keys(2), keys(3))
     asyncHttpClient.setSignatureCalculator(new OAuthSignatureCalculator(consumerKey, requestToken))
-    asyncHttpClient
     true
   }
 

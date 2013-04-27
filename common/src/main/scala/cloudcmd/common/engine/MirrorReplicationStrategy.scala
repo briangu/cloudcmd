@@ -30,7 +30,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
       dis
     }
 
-    var missingAdapters = adapters -- containsAdapters
+    var missingAdapters = adapters.diff(containsAdapters)
     val pushedCount = new AtomicInteger(containsAdapters.size)
 
     if (missingAdapters.size > 0 && nis != null) {

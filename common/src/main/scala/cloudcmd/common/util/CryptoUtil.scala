@@ -11,6 +11,11 @@ import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 
 object CryptoUtil {
+
+  private val buffer = new ThreadLocal[ByteBuffer] {
+    override def initialValue = ByteBuffer.allocate(1024 * 1024)
+  }
+
   def digestToString(digest: Array[Byte]): String = {
     if (digest == null) return null
     val bigInt: BigInteger = new BigInteger(1, digest)
@@ -79,7 +84,7 @@ object CryptoUtil {
 
   def writeAndComputeHash(in: ReadableByteChannel, out: WritableByteChannel, digestId: String): Array[Byte] = {
     val md = MessageDigest.getInstance(digestId)
-    val buff = ByteBuffer.allocate(1024 * 1024)
+    val buff = buffer.get
     while (in.read(buff) != -1) {
       buff.flip
       md.update(buff)
@@ -122,7 +127,7 @@ object CryptoUtil {
 
   private def computeDigest(channel: ReadableByteChannel, digestId: String): Array[Byte] = {
     val md = MessageDigest.getInstance(digestId)
-    val buff = ByteBuffer.allocate(1024 * 1024)
+    val buff = buffer.get
     while (channel.read(buff) != -1) {
       buff.flip
       md.update(buff)
