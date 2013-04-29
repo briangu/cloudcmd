@@ -1,7 +1,7 @@
 package cloudcmd.common.adapters
 
 import java.net.URI
-import cloudcmd.common.{BlockContext, ContentAddressableStorage}
+import cloudcmd.common.ContentAddressableStorage
 
 trait Adapter extends ContentAddressableStorage {
 
@@ -32,9 +32,12 @@ trait Adapter extends ContentAddressableStorage {
   protected var KeepTags: Set[String] = Set()
   protected var IgnoreTags: Set[String] = Set()
 
-  def accepts(ctx: BlockContext): Boolean = {
-    if (IgnoreTags.intersect(ctx.routingTags).size > 0) return false
+  def accepts(hash: String): Boolean = {
+/*
+    if (IgnoreTags.intersect(hash.routingTags).size > 0) return false
     if (KeepTags.size == 0) return true
-    KeepTags.intersect(ctx.routingTags).size > 0
+    KeepTags.intersect(hash.routingTags).size > 0
+*/
+    true
   }
 }

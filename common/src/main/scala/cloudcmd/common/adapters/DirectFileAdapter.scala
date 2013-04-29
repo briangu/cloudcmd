@@ -1,7 +1,7 @@
 package cloudcmd.common.adapters
 
 import cloudcmd.common._
-import util.{JsonUtil, CryptoUtil, FileWalker}
+import util.{CryptoUtil, FileWalker}
 import java.io._
 import java.net.URI
 import collection.mutable
@@ -38,25 +38,24 @@ class DirectFileAdapter extends Adapter {
 
   def refreshCache {}
 
-  def containsAll(ctxs: Set[BlockContext]): Map[BlockContext, Boolean] = {
-    Map() ++ ctxs.par.flatMap( ctx => Map(ctx -> new File(getDataFileFromHash(ctx.hash)).exists()))
+  def containsAll(hashes: Set[String]): Map[String, Boolean] = {
+    Map() ++ hashes.par.flatMap( hash => Map(hash -> new File(getDataFileFromHash(hash)).exists()))
   }
 
-  def removeAll(ctxs: Set[BlockContext]): Map[BlockContext, Boolean] = {
-    Map() ++ ctxs.par.flatMap{ ctx =>
-      val file = new File(getDataFileFromHash(ctx.hash))
+  def removeAll(hashes: Set[String]): Map[String, Boolean] = {
+    Map() ++ hashes.par.flatMap{ hash =>
+      val file = new File(getDataFileFromHash(hash))
       if (file.exists) FileUtil.delete(file)
-      Map(ctx -> true)
+      Map(hash -> true)
     }
   }
 
-  override
-  def ensure(ctx: BlockContext, blockLevelCheck: Boolean) : Boolean = {
-    val file = new File(getDataFileFromHash(ctx.hash))
+  override def ensure(hash: String, blockLevelCheck: Boolean) : Boolean = {
+    val file = new File(getDataFileFromHash(hash))
     val valid = if (blockLevelCheck) {
       if (file.exists) {
-        val idx = ctx.hash.lastIndexOf(".")
-        val testHash = if (idx >= 0) ctx.hash.substring(0, idx) else ctx.hash
+        val idx = hash.lastIndexOf(".")
+        val testHash = if (idx >= 0) hash.substring(0, idx) else hash
         CryptoUtil.computeHashAsString(file) == testHash
       } else {
         false
@@ -67,65 +66,32 @@ class DirectFileAdapter extends Adapter {
     valid
   }
 
-  def ensureAll(ctxs: Set[BlockContext], blockLevelCheck: Boolean): Map[BlockContext, Boolean] = {
-    Map() ++ ctxs.par.flatMap{ ctx => Map(ctx -> ensure(ctx, blockLevelCheck)) }
+  def ensureAll(hashes: Set[String], blockLevelCheck: Boolean): Map[String, Boolean] = {
+    Map() ++ hashes.par.flatMap{ hash => Map(hash -> ensure(hash, blockLevelCheck)) }
   }
 
-  def store(ctx: BlockContext, is: InputStream) {
-    val writeHash = FileUtil.writeFileAndComputeHash(is, new File(getDataFileFromHash(ctx.hash)))
-    val success = (writeHash == getHashFromDataFile(ctx.hash))
+  def store(hash: String, is: InputStream) {
+    val writeHash = FileUtil.writeFileAndComputeHash(is, new File(getDataFileFromHash(hash)))
+    val success = (writeHash == getHashFromDataFile(hash))
     if (!success) {
-      FileUtil.delete(new File(getDataFileFromHash(ctx.hash)))
-      throw new RuntimeException("failed to store data: expected %s got %s".format(ctx.hash, writeHash))
+      FileUtil.delete(new File(getDataFileFromHash(hash)))
+      throw new RuntimeException("failed to store data: expected %s got %s".format(hash, writeHash))
     }
   }
 
-  def load(ctx: BlockContext): (InputStream, Int) = {
-    val file = new File(getDataFileFromHash(ctx.hash))
-    if (!file.exists) throw new DataNotFoundException(ctx)
+  def load(hash: String): (InputStream, Int) = {
+    val file = new File(getDataFileFromHash(hash))
+    if (!file.exists) throw new DataNotFoundException(hash)
     (RandomAccessFileInputStream.create(file), file.length.toInt)
   }
 
-  def describe: Set[BlockContext] = {
-    val ctxs = new mutable.HashSet[BlockContext] with mutable.SynchronizedSet[BlockContext]
-
-    FileWalker.enumerateFolders(_dataDir, new FileWalker.FileHandler {
-      def skipDir(file: File): Boolean = false
-      def process(file: File) = {
-        val hash = file.getName
-        if (hash.endsWith(".meta")) {
-          val fis = new FileInputStream(file)
-          try {
-            val fmd = FileMetaData.create(hash, JsonUtil.loadJson(fis))
-            ctxs.add(fmd.createBlockContext)
-
-            val thumbHash = fmd.getThumbHash
-            if (thumbHash != null) {
-              ctxs.add(fmd.createBlockContext(thumbHash))
-            }
-
-            val blockHashes = fmd.getBlockHashes
-            (0 until blockHashes.length()).foreach{i =>
-              val blockHash = blockHashes.getString(i)
-              if (new File(getDataFileFromHash(blockHash)).exists) {
-                ctxs.add(fmd.createBlockContext(blockHash))
-              }
-            }
-          } finally {
-            FileUtil.SafeClose(fis)
-          }
-        }
-      }
-    })
-
-    ctxs.toSet
-  }
-
-  def describeHashes: Set[String] = {
+  def describe(): Set[String] = {
     val hashes = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
     FileWalker.enumerateFolders(_dataDir, new FileWalker.FileHandler {
       def skipDir(file: File): Boolean = false
-      def process(file: File) = hashes.add(file.getName)
+      def process(file: File) {
+        hashes.add(file.getName)
+      }
     })
     hashes.toSet
   }

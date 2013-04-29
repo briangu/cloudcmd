@@ -1,6 +1,5 @@
 package cloudcmd.common.adapters
 
-import cloudcmd.common.BlockContext
 import java.io.{FileInputStream, File, InputStream}
 import java.net.URI
 import org.apache.log4j.Logger
@@ -92,43 +91,43 @@ class LRUFileCacheAdapter(underlying: Adapter) extends Adapter {
 
   /** *
     * Gets if the CAS contains the specified blocks.
-    * @param ctxs
+    * @param hashes
     * @return
     */
-  def containsAll(ctxs: Set[BlockContext]): Map[BlockContext, Boolean] = underlying.containsAll(ctxs)
+  def containsAll(hashes: Set[String]): Map[String, Boolean] = underlying.containsAll(hashes)
 
   /** *
     * Removes the specified blocks.
-    * @param ctxs
+    * @param hashes
     * @return
     */
-  def removeAll(ctxs: Set[BlockContext]): Map[BlockContext, Boolean] = underlying.removeAll(ctxs)
+  def removeAll(hashes: Set[String]): Map[String, Boolean] = underlying.removeAll(hashes)
 
   /** *
     * Ensure block level consistency with respect to the CAS implementation
-    * @param ctxs
+    * @param hashes
     * @param blockLevelCheck
     * @return
     */
-  def ensureAll(ctxs: Set[BlockContext], blockLevelCheck: Boolean): Map[BlockContext, Boolean] = underlying.ensureAll(ctxs)
+  def ensureAll(hashes: Set[String], blockLevelCheck: Boolean): Map[String, Boolean] = underlying.ensureAll(hashes)
 
   /** *
     * Store the specified block in accordance with the CAS implementation.
-    * @param ctx
+    * @param hash
     * @param is
     * @return
     */
-  def store(ctx: BlockContext, is: InputStream) {
-    underlying.store(ctx, is)
+  def store(hash: String, is: InputStream) {
+    underlying.store(hash, is)
   }
 
   /** *
     * Load the specified block from the CAS.
-    * @param ctx
+    * @param hash
     * @return
     */
-  def load(ctx: BlockContext): (InputStream, Int) = {
-    val file = _cacheMap.get(ctx.getId()) match {
+  def load(hash: String): (InputStream, Int) = {
+    val file = _cacheMap.get(hash) match {
       case Some(fileInfo) => {
         fileInfo.date = new Date().getTime
         fileFromParts(_cacheDir, fileInfo.name)
@@ -138,23 +137,26 @@ class LRUFileCacheAdapter(underlying: Adapter) extends Adapter {
         // verify hash
         // add reference to top of file list
         // add reference to map
-        val (is, size) = underlying.load(ctx)
+        val (is, size) = underlying.load(hash)
         if ((_cacheSize + size) > _maxCacheSize) {
           pruneFiles // TODO: do async
         }
-        val (hash, tmpFile) = StreamUtil.spoolStream(is, _cacheDirFile)
-        val realFile = fileFromParts(_cacheDir, ctx.getId())
+        val (spoolHash, tmpFile) = StreamUtil.spoolStream(is, _cacheDirFile)
+        if (spoolHash != hash) {
+          throw new DataNotFoundException(hash)
+        }
+        val realFile = fileFromParts(_cacheDir, spoolHash)
         val success = tmpFile.renameTo(realFile)
         if (!success) {
           log.warn("failed to rename file: " + realFile.getAbsolutePath)
         }
-        val fileInfo = FileInfo(ctx.getId(), realFile.length(), realFile.lastModified())
+        val fileInfo = FileInfo(hash, realFile.length(), realFile.lastModified())
         _cacheMap.put(fileInfo.name, fileInfo)
         tmpFile
       }
     }
 
-    if (!file.exists) throw new DataNotFoundException(ctx)
+    if (!file.exists) throw new DataNotFoundException(hash)
     (new FileInputStream(file), file.length.toInt)
   }
 
@@ -162,14 +164,7 @@ class LRUFileCacheAdapter(underlying: Adapter) extends Adapter {
     * List all the block hashes stored in the CAS.
     * @return
     */
-  def describe(): Set[BlockContext] = underlying.describe()
-
-  /** *
-    * List all hashes stored in the CAS without regard to block context.  There may be hashes stored in the CAS which are
-    * not returned in describe(), so this method can help identify unreferenced blocks.
-    * @return
-    */
-  def describeHashes(): Set[String] = underlying.describeHashes()
+  def describe(): Set[String] = underlying.describe()
 
   def shutdown() {
     underlying.shutdown()

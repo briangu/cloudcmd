@@ -1,7 +1,7 @@
 package cloudcmd.common.engine
 
-import java.io.{ByteArrayOutputStream, ByteArrayInputStream, FileInputStream, File}
-import cloudcmd.common.{RandomAccessFileInputStream, BlockContext, FileMetaData, FileUtil}
+import java.io.{ByteArrayOutputStream, ByteArrayInputStream, File}
+import cloudcmd.common.{RandomAccessFileInputStream, FileMetaData, FileUtil}
 import cloudcmd.common.util.{JsonUtil, FileTypeUtil, CryptoUtil}
 import cloudcmd.common.config.ConfigStorage
 import org.json.JSONObject
@@ -84,14 +84,14 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
 
       fis = RandomAccessFileInputStream.create(file)
       try {
-        cloudEngine.store(fmd.createBlockContext(blockHash), fis)
+        cloudEngine.store(blockHash, fis)
       } catch {
         case e:Exception => log.error(e)
       } finally {
         FileUtil.SafeClose(fis)
       }
 
-      cloudEngine.store(fmd.createBlockContext, new ByteArrayInputStream(fmd.getDataAsString.getBytes("UTF-8")))
+      cloudEngine.store(blockHash, new ByteArrayInputStream(fmd.getDataAsString.getBytes("UTF-8")))
 
       indexStorage.add(fmd)
 

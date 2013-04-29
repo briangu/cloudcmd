@@ -182,15 +182,15 @@ class OAuthRestRoute(route: String, handler: OAuthRouteHandler, method: HttpMeth
   }
 
   override
-  def handleUpstream(ctx: ChannelHandlerContext, e: ChannelEvent) {
+  def handleUpstream(hash: ChannelHandlerContext, e: ChannelEvent) {
     if (!(e.isInstanceOf[MessageEvent]) || !(e.asInstanceOf[MessageEvent].getMessage.isInstanceOf[HttpRequest])) {
-      super.handleUpstream(ctx, e)
+      super.handleUpstream(hash, e)
       return
     }
 
     val request = e.asInstanceOf[MessageEvent].getMessage.asInstanceOf[HttpRequest]
     if (!super.isMatch(request) || !request.getMethod().equals(method)) {
-      super.handleUpstream(ctx, e)
+      super.handleUpstream(hash, e)
       return
     }
 

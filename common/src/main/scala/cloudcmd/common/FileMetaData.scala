@@ -62,14 +62,6 @@ object FileMetaData {
     val addTags = modTags -- subTags
     (tags -- rmTags) ++ addTags
   }
-
-  def createBlockContext(hash: String, fmd: FileMetaData) : BlockContext = {
-    createBlockContext(hash, fmd.getTags)
-  }
-
-  def createBlockContext(hash: String, tags: Set[String]) : BlockContext = {
-    new BlockContext(hash, tags)
-  }
 }
 
 class FileMetaData {
@@ -142,14 +134,6 @@ class FileMetaData {
 
   def getDataAsString: String = {
     _data.toString
-  }
-
-  def createBlockContext(hash: String) : BlockContext = {
-    new BlockContext(hash, this.getTags)
-  }
-
-  def createBlockContext : BlockContext = {
-    createBlockContext(getHash)
   }
 
   def hasProperties() : Boolean = _data.has("properties")

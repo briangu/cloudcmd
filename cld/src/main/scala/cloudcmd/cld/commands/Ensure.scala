@@ -1,6 +1,6 @@
 package cloudcmd.cld.commands
 
-import cloudcmd.common.{BlockContext, FileMetaData}
+import cloudcmd.common.FileMetaData
 import cloudcmd.common.util.JsonUtil
 import jpbetz.cli.Command
 import jpbetz.cli.CommandContext
@@ -22,7 +22,7 @@ class Ensure extends Command {
     val selections = if (_syncAll) {
       val arr = new JSONArray
       val metaHashes = CloudServices.CloudEngine.describeMeta()
-      val fmds = metaHashes.par.map{ ctx => FileMetaData.create(ctx.hash, JsonUtil.loadJson(CloudServices.CloudEngine.load(ctx)._1)) }.toList
+      val fmds = metaHashes.par.map{ hash => FileMetaData.create(hash, JsonUtil.loadJson(CloudServices.CloudEngine.load(hash)._1)) }.toList
       fmds.foreach(a => arr.put(a.toJson))
       arr
     } else {

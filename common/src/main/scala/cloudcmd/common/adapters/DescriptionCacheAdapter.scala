@@ -1,6 +1,6 @@
 package cloudcmd.common.adapters
 
-import cloudcmd.common.{BlockContext, SqlUtil}
+import cloudcmd.common.SqlUtil
 import org.h2.jdbcx.JdbcConnectionPool
 import java.io._
 import java.net.URI
@@ -16,8 +16,7 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
   
   protected var _rootPath: String = null
   private var _cp: JdbcConnectionPool = null
-  private var _description: mutable.HashSet[BlockContext] with mutable.SynchronizedSet[BlockContext] = null
-  private var _descriptionHashes: mutable.HashSet[String] with mutable.SynchronizedSet[String] = null
+  private var _description: mutable.HashSet[String] with mutable.SynchronizedSet[String] = null
   protected var _dbDir: String = null
   protected var _dataDir: String = null
 
@@ -68,8 +67,7 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
       db = getDbConnection
       st = db.createStatement
       st.execute("DROP TABLE if exists BLOCK_INDEX")
-      st.execute("CREATE TABLE BLOCK_INDEX ( HASH VARCHAR, TAGS VARCHAR, PRIMARY KEY(HASH, TAGS) )")
-      st.execute("CREATE INDEX IDX_BI ON BLOCK_INDEX (HASH, TAGS)")
+      st.execute("CREATE TABLE BLOCK_INDEX ( HASH VARCHAR PRIMARY KEY )")
       db.commit()
     }
     catch {
@@ -92,62 +90,56 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
     deleteFromDb(deletedContexts)
   }
 
-  override def contains(ctx: BlockContext) : Boolean = {
-    if (_description == null) getDescription
-    _descriptionHashes.contains(ctx.hash)
+  override def contains(hash: String) : Boolean = {
+    getDescription.contains(hash)
   }
 
-  def containsAll(ctxs: Set[BlockContext]) : Map[BlockContext, Boolean] = {
-    val present = getDescription.intersect(ctxs)
-    val missing = ctxs -- present
+  def containsAll(hashes: Set[String]) : Map[String, Boolean] = {
+    val present = getDescription.intersect(hashes)
+    val missing = hashes -- present
     // TODO: which way is faster? hashes.flatmap or this
     Map() ++ present.par.flatMap(h => Map(h -> true)) ++ missing.par.flatMap(h => Map(h -> false))
   }
 
-  override
-  def ensure(ctx: BlockContext, blockLevelCheck: Boolean): Boolean = wrappedAdapter.ensure(ctx, blockLevelCheck)
+  override def ensure(hash: String, blockLevelCheck: Boolean): Boolean = wrappedAdapter.ensure(hash, blockLevelCheck)
 
-  def ensureAll(ctxs: Set[BlockContext], blockLevelCheck: Boolean): Map[BlockContext, Boolean] = {
-    Map() ++ ctxs.par.flatMap{ ctx =>
-      Map(ctx -> wrappedAdapter.ensure(ctx, blockLevelCheck))
+  def ensureAll(hashes: Set[String], blockLevelCheck: Boolean): Map[String, Boolean] = {
+    Map() ++ hashes.par.flatMap{ hash =>
+      Map(hash -> wrappedAdapter.ensure(hash, blockLevelCheck))
     }
   }
 
-  def store(ctx: BlockContext, is: InputStream) {
-    wrappedAdapter.store(ctx, is)
-    addToDb(Set(ctx))
+  def store(hash: String, is: InputStream) {
+    wrappedAdapter.store(hash, is)
+    addToDb(Set(hash))
   }
 
-  def load(ctx: BlockContext): (InputStream, Int) = wrappedAdapter.load(ctx)
+  def load(hash: String): (InputStream, Int) = wrappedAdapter.load(hash)
 
-  def removeAll(ctxs : Set[BlockContext]) : Map[BlockContext, Boolean] = {
-    val result = wrappedAdapter.removeAll(ctxs)
-    val wasRemoved = Set() ++ result.par.flatMap{ case (ctx, removed) =>  if (removed) Set(ctx) else Nil }
+  def removeAll(hashes : Set[String]) : Map[String, Boolean] = {
+    val result = wrappedAdapter.removeAll(hashes)
+    val wasRemoved = Set() ++ result.par.flatMap{ case (hash, removed) =>  if (removed) Set(hash) else Nil }
     deleteFromDb(wasRemoved)
     result
   }
 
-  def describe(): Set[BlockContext] = getDescription.toSet
+  def describe(): Set[String] = getDescription.toSet
 
-  def describeHashes(): Set[String] = wrappedAdapter.describeHashes()
-
-  private def addToDb(ctxs: Set[BlockContext]) {
+  private def addToDb(hashes: Set[String]) {
     var db: Connection = null
     var statement: PreparedStatement = null
     try {
       db = getDbConnection
       db.setAutoCommit(false)
-      statement = db.prepareStatement("MERGE INTO BLOCK_INDEX VALUES (?,?)")
+      statement = db.prepareStatement("MERGE INTO BLOCK_INDEX VALUES (?)")
 
       var k = 0
-      for (ctx <- ctxs) {
-        statement.setString(1, ctx.hash)
-        statement.setString(2, ctx.routingTags.mkString(" "))
+      for (hash <- hashes) {
+        statement.setString(1, hash)
         statement.addBatch()
 
         if (_description != null) {
-          _description.add(ctx)
-          _descriptionHashes.add(ctx.hash)
+          _description.add(hash)
         }
 
         k += 1
@@ -169,7 +161,7 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
     }
   }
 
-  private def deleteFromDb(ctxs: Set[BlockContext]) {
+  private def deleteFromDb(hashes: Set[String]) {
     var db: Connection = null
     var statement: PreparedStatement = null
     try {
@@ -177,8 +169,8 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
       db.setAutoCommit(false)
       statement = db.prepareStatement("DELETE FROM BLOCK_INDEX WHERE HASH = ?")
       var k = 0
-      for (ctx <- ctxs) {
-        statement.setString(1, ctx.hash)
+      for (hash <- hashes) {
+        statement.setString(1, hash)
         statement.addBatch()
         k += 1
         if (k > BATCH_SIZE) {
@@ -198,7 +190,7 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
     }
   }
 
-  private def getDescription: mutable.HashSet[BlockContext] with mutable.SynchronizedSet[BlockContext] = {
+  private def getDescription: mutable.HashSet[String] with mutable.SynchronizedSet[String] = {
     if (_description != null) return _description
 
     this synchronized {
@@ -207,21 +199,17 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
         var statement: PreparedStatement = null
         try {
           db = getDbConnection
-          statement = db.prepareStatement("SELECT HASH,TAGS FROM BLOCK_INDEX")
+          statement = db.prepareStatement("SELECT HASH FROM BLOCK_INDEX")
 
-          val description = new mutable.HashSet[BlockContext] with mutable.SynchronizedSet[BlockContext]
-          val descriptionHashes = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
+          val description = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
 
           val resultSet = statement.executeQuery
           while (resultSet.next) {
             val hash = resultSet.getString("HASH")
-            val tags = resultSet.getString("TAGS").split(" ").filter(_.length > 0).toSet
-            description.add(new BlockContext(hash, tags))
-            descriptionHashes.add(hash)
+            description.add(hash)
           }
 
           _description = description
-          _descriptionHashes = descriptionHashes
         }
         catch {
           case e: SQLException => log.error(e)

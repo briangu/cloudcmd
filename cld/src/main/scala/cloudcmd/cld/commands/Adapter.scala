@@ -41,8 +41,8 @@ class Adapter extends Command {
     else if (_dumpUri != null) {
       val uri: URI = new URI(_dumpUri)
       val adapter = CloudServices.ConfigService.getAdapter(uri)
-      adapter.describe().foreach { blockContext =>
-        println("%s (%s)".format(blockContext.hash, blockContext.routingTags.mkString(",")))
+      adapter.describe().foreach { hash =>
+        println("%s".format(hash))
       }
     }
     else if (_list) {
@@ -54,7 +54,7 @@ class Adapter extends Command {
         System.out.println("  ConfigDir: " + adapter.ConfigDir)
         System.out.println("  IsOnline: " + adapter.IsOnLine)
         System.out.println("  IsFull: " + adapter.IsFull)
-        System.out.println
+        System.out.println()
       }
     }
   }

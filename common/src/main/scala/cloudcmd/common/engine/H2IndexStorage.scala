@@ -269,12 +269,12 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     purge
 
     val fmds = cloudEngine.describeMeta.par.flatMap {
-      ctx =>
+      hash =>
         try {
-          List(FileMetaData.create(ctx.hash, JsonUtil.loadJson(cloudEngine.load(ctx)._1)))
+          List(FileMetaData.create(hash, JsonUtil.loadJson(cloudEngine.load(hash)._1)))
         } catch {
           case e: Exception => {
-            log.error(ctx, e)
+            log.error(hash, e)
             Nil
           }
         }
@@ -293,7 +293,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
   def fetch(fmd: FileMetaData) {
     val blockHashes = (0 until fmd.getBlockHashes.length).map(fmd.getBlockHashes.getString)
     if (blockHashes.size == 0) throw new IllegalArgumentException("no block hashes found!")
-    if (blockHashes.find(h => !cloudEngine.contains(fmd.createBlockContext(h))) == None) {
+    if (blockHashes.find(h => !cloudEngine.contains(h)) == None) {
       if (blockHashes.size == 1) {
         attemptSingleBlockFetch(blockHashes(0), fmd)
       } else {
@@ -311,7 +311,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     while (!success && retries > 0) {
       var remoteData: InputStream = null
       try {
-        remoteData = cloudEngine.load(fmd.createBlockContext(blockHash))._1
+        remoteData = cloudEngine.load(blockHash)._1
         val destFile = new File(fmd.getPath)
         destFile.getParentFile.mkdirs
         val remoteDataHash = CryptoUtil.digestToString(CryptoUtil.writeAndComputeHash(remoteData, destFile))
@@ -333,8 +333,8 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
 
       if (!success) {
         retries -= 1
-        cloudEngine.ensure(fmd.createBlockContext(blockHash), true)
-        if (!cloudEngine.contains(fmd.createBlockContext(blockHash))) {
+        cloudEngine.ensure(blockHash, true)
+        if (!cloudEngine.contains(blockHash)) {
           onMessage("giving up on %s, block %s not currently available!".format(fmd.getFilename, blockHash))
           retries = 0
         }
@@ -357,7 +357,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
           data.put("tags", new JSONArray(newTags))
 
           val derivedMeta = FileMetaData.deriveMeta(hash, data)
-          cloudEngine.store(derivedMeta.createBlockContext, new ByteArrayInputStream(derivedMeta.getDataAsString.getBytes("UTF-8")))
+          cloudEngine.store(hash, new ByteArrayInputStream(derivedMeta.getDataAsString.getBytes("UTF-8")))
           List(derivedMeta)
         }
     }.toList
@@ -377,7 +377,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
         val thumbHash = if (selectionData.has("thumbHash")) Set(selectionData.getString("thumbHash")) else Set()
         val hashes = Set(fmd.getHash) ++ (0 until fmd.getBlockHashes.length).map(fmd.getBlockHashes.getString) ++ thumbHash
         hashes.foreach{ hash =>
-          if (!cloudEngine.ensure(fmd.createBlockContext(hash), blockLevelCheck)) {
+          if (!cloudEngine.ensure(hash, blockLevelCheck)) {
             onMessage("%s: found incosistent block %s".format(fmd.getFilename, hash))
           }
         }
@@ -389,12 +389,12 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     (0 until selections.length).par.foreach {
       i =>
         val fmd = FileMetaData.fromJson(selections.getJSONObject(i))
-        cloudEngine.remove(fmd.createBlockContext)
+        cloudEngine.remove(fmd.getHash)
 
         // TODO: only delete if there are no other files referencing these blocks
         if (false) {
           val blocks = fmd.getBlockHashes
-          (0 until blocks.length).foreach(j => cloudEngine.remove(fmd.createBlockContext(blocks.getString(j))))
+          (0 until blocks.length).foreach(j => cloudEngine.remove(blocks.getString(j)))
         }
 
          // TODO: we should only do this if we are sure the rest happened correctly (although at worst we could reindex)

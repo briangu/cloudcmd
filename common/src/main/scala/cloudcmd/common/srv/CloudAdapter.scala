@@ -2,7 +2,7 @@ package cloudcmd.common.srv
 
 import org.jboss.netty.channel.{ChannelFutureListener, MessageEvent, ChannelHandlerContext}
 import org.jboss.netty.handler.codec.http._
-import java.io.{FileInputStream, ByteArrayInputStream, InputStream}
+import java.io.{FileInputStream, InputStream}
 import cloudcmd.common._
 import org.jboss.netty.buffer.ChannelBufferInputStream
 import org.jboss.netty.handler.codec.http.HttpHeaders._
@@ -11,13 +11,13 @@ import org.json.{JSONObject, JSONArray}
 import io.viper.common.ViperServer
 import io.viper.core.server.router._
 import cloudcmd.common.engine.IndexStorage
-import cloudcmd.common.util.{StreamUtil, JsonUtil}
+import cloudcmd.common.util.StreamUtil
 
 class StoreHandler(config: OAuthRouteConfig, route: String, cas: ContentAddressableStorage, indexStorage: IndexStorage) extends Route(route) {
 
   override
   def isMatch(request: HttpRequest) : Boolean = {
-    (super.isMatch(request) && request.getMethod().equals(HttpMethod.POST))
+    (super.isMatch(request) && request.getMethod.equals(HttpMethod.POST))
   }
 
   override
@@ -30,7 +30,7 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: ContentAddressa
     }
 
     val request = e.getMessage.asInstanceOf[org.jboss.netty.handler.codec.http.HttpRequest]
-    if (!super.isMatch(request) || !request.getMethod().equals(HttpMethod.POST)) {
+    if (!super.isMatch(request) || !request.getMethod.equals(HttpMethod.POST)) {
       ctx.sendUpstream(e)
       return
     }
@@ -38,34 +38,36 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: ContentAddressa
     val (isValid, session, args) = OAuthRestRoute.validate(config, request)
     val response = if (isValid) {
       import scala.collection.JavaConversions._
-      val path = RouteUtil.parsePath(request.getUri())
+      val path = RouteUtil.parsePath(request.getUri)
       val handlerArgs = args ++ RouteUtil.extractPathArgs(_route, path)
 
       var is: InputStream = null
       try {
-        if (handlerArgs.contains("key")) {
-          val ctx = CloudAdapter.getBlockContext(handlerArgs)
-          is = new ChannelBufferInputStream(request.getContent, request.getHeader(HttpHeaders.Names.CONTENT_LENGTH).toInt)
-          val (hash, file) = StreamUtil.spoolStream(is)
-          try {
-            if (ctx.hashEquals(hash)) {
-              is.close
-              is = new FileInputStream(file)
-              cas.store(ctx, is)
-              if (ctx.isMeta()) {
-                indexStorage.add(FileMetaData.create(ctx.hash, new JSONObject(FileUtil.readFile(file))))
+        handlerArgs.get("key") match {
+          case Some(hash) => {
+            is = new ChannelBufferInputStream(request.getContent, request.getHeader(HttpHeaders.Names.CONTENT_LENGTH).toInt)
+            val (streamHash, file) = StreamUtil.spoolStream(is)
+            try {
+              if (streamHash.equals(hash)) {
+                is.close()
+                is = new FileInputStream(file)
+                cas.store(hash, is)
+                if (hash.endsWith(".meta")) {
+                  indexStorage.add(FileMetaData.create(hash, new JSONObject(FileUtil.readFile(file))))
+                }
+                val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CREATED)
+                response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, 0)
+                response
+              } else {
+                new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
               }
-              val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CREATED)
-              response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, 0)
-              response
-            } else {
-              new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
+            } finally {
+              file.delete
             }
-          } finally {
-            file.delete
           }
-        } else {
-          new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
+          case None => {
+            new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
+          }
         }
       } finally {
         if (is != null) is.close()
@@ -80,17 +82,10 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: ContentAddressa
       response.setHeader(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE)
     }
 
-    val writeFuture = e.getChannel().write(response)
+    val writeFuture = e.getChannel.write(response)
     if (!isKeepAlive(request)) {
       writeFuture.addListener(ChannelFutureListener.CLOSE)
     }
-  }
-}
-
-object CloudAdapter {
-  def getBlockContext(args: Map[String, String]) : BlockContext = {
-    val (hash, tags) = args.get("key").get.split(",").toList.splitAt(1)
-    new BlockContext(hash(0), tags.filter(_.length > 0).toSet)
   }
 }
 
@@ -99,19 +94,25 @@ class CloudAdapter(cas: ContentAddressableStorage, indexStorage: IndexStorage, c
   def addRoutes(server: ViperServer) {
     server.addRoute(new OAuthGetRestRoute(config, "/blocks/$key", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        val ctx = CloudAdapter.getBlockContext(args)
-        if (cas.contains(ctx)) {
-          val (is, length) = cas.load(ctx)
-          val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
-          response.setContent(new FileChannelBuffer(is, length))
-          response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, length)
-          new RouteResponse(response, new RouteResponseDispose {
-            def dispose() {
-              is.close
+        args.get("key") match {
+          case Some(hash) => {
+            if (cas.contains(hash)) {
+              val (is, length) = cas.load(hash)
+              val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
+              response.setContent(new FileChannelBuffer(is, length))
+              response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, length)
+              new RouteResponse(response, new RouteResponseDispose {
+                def dispose() {
+                  is.close()
+                }
+              })
+            } else {
+              new StatusResponse(HttpResponseStatus.NOT_FOUND)
             }
-          })
-        } else {
-          new StatusResponse(HttpResponseStatus.NOT_FOUND)
+          }
+          case _ => {
+            new StatusResponse(HttpResponseStatus.NOT_FOUND)
+          }
         }
       }
     }))
@@ -120,12 +121,18 @@ class CloudAdapter(cas: ContentAddressableStorage, indexStorage: IndexStorage, c
 
     server.addRoute(new OAuthDeleteRestRoute(config, "/blocks/$key", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        val ctx = CloudAdapter.getBlockContext(args)
-        val success = cas.remove(ctx)
-        if (success) {
-          new StatusResponse(HttpResponseStatus.NO_CONTENT)
-        } else {
-          new StatusResponse(HttpResponseStatus.NOT_FOUND)
+        args.get("key") match {
+          case Some(hash) => {
+            val success = cas.remove(hash)
+            if (success) {
+              new StatusResponse(HttpResponseStatus.NO_CONTENT)
+            } else {
+              new StatusResponse(HttpResponseStatus.NOT_FOUND)
+            }
+          }
+          case None => {
+            new StatusResponse(HttpResponseStatus.NOT_FOUND)
+          }
         }
       }
     }))
@@ -142,7 +149,7 @@ class CloudAdapter(cas: ContentAddressableStorage, indexStorage: IndexStorage, c
     server.addRoute(new OAuthGetRestRoute(config, "/blocks", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
         val arr = new JSONArray
-        cas.describe.foreach(ctx => arr.put(ctx.toJson))
+        cas.describe().foreach(hash => arr.put(hash))
         new JsonResponse(arr)
       }
     }))
@@ -150,59 +157,59 @@ class CloudAdapter(cas: ContentAddressableStorage, indexStorage: IndexStorage, c
     server.addRoute(new OAuthGetRestRoute(config, "/blocks/hashes", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
         val arr = new JSONArray
-        cas.describeHashes.foreach(arr.put)
+        cas.describe().foreach(arr.put)
         new JsonResponse(arr)
       }
     }))
 
     server.addRoute(new OAuthPostRestRoute(config, "/blocks/containsAll", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        val ctxs = fromJsonArray(new JSONArray(args.get("ctxs")))
-        val res = cas.containsAll(ctxs)
-        val arr = new JSONArray
-        res.map {
-          case (ctx: BlockContext, status: Boolean) =>
-            val obj = ctx.toJson
-            obj.put("_status", status)
-            arr.put(obj)
+        val obj = new JSONObject
+        args.get("hashes") match {
+          case Some(hashes) => {
+            val res = cas.containsAll(hashes.split(",").toSet)
+            res.map {
+              case (hash: String, status: Boolean) => obj.put(hash, status)
+            }
+          }
+          case None => ;
         }
-        new JsonResponse(arr)
+        new JsonResponse(obj)
       }
     }))
 
     server.addRoute(new OAuthPostRestRoute(config, "/blocks/ensureAll", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        val ctxs = fromJsonArray(new JSONArray(args.get("ctxs")))
-        val blockLevelCheck = if (args.contains("blockLevelCheck")) args.get("blockLevelCheck").get.toBoolean else false
-        val res = cas.ensureAll(ctxs, blockLevelCheck)
-        val arr = new JSONArray
-        res.map {
-          case (ctx: BlockContext, status: Boolean) =>
-            val obj = ctx.toJson
-            obj.put("_status", status)
-            arr.put(obj)
+        val obj = new JSONObject
+        args.get("hashes") match {
+          case Some(hashes) => {
+            val blockLevelCheck = if (args.contains("blockLevelCheck")) args.get("blockLevelCheck").get.toBoolean else false
+            val res = cas.ensureAll(hashes.split(",").toSet, blockLevelCheck)
+            res.map {
+              case (hash: String, status: Boolean) => obj.put(hash, status)
+            }
+          }
+          case None => ;
         }
-        new JsonResponse(arr)
+        new JsonResponse(obj)
       }
     }))
 
     server.addRoute(new OAuthPostRestRoute(config, "/blocks/removeAll", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        val ctxs = fromJsonArray(new JSONArray(args.get("ctxs")))
-        val res = cas.removeAll(ctxs)
-        val arr = new JSONArray
-        res.map {
-          case (ctx: BlockContext, status: Boolean) =>
-            val obj = ctx.toJson
-            obj.put("_status", status)
-            arr.put(obj)
+        val obj = new JSONObject
+        args.get("hashes") match {
+          case Some(hashes) => {
+            val res = cas.removeAll(hashes.split(",").toSet)
+            val obj = new JSONObject
+            res.map {
+              case (hash: String, status: Boolean) => obj.put(hash, status)
+            }
+          }
+          case None => ;
         }
-        new JsonResponse(arr)
+        new JsonResponse(obj)
       }
     }))
-  }
-
-  private def fromJsonArray(arr: JSONArray): Set[BlockContext] = {
-    Set() ++ (0 until arr.length).par.map(idx => BlockContext.fromJson(arr.getJSONObject(idx)))
   }
 }

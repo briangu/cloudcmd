@@ -1,14 +1,13 @@
 package cloudcmd.common.adapters
 
-import cloudcmd.common.util.{JsonUtil, CryptoUtil, StreamUtil}
-import cloudcmd.common.{FileMetaData, BlockContext, FileUtil, UriUtil}
+import cloudcmd.common.util.{CryptoUtil, StreamUtil}
+import cloudcmd.common.{FileUtil, UriUtil}
 import org.jets3t.service.impl.rest.httpclient.RestS3Service
 import org.jets3t.service.model.S3Object
 import org.jets3t.service.security.AWSCredentials
-import java.io.{BufferedInputStream, ByteArrayInputStream, FileInputStream, InputStream}
+import java.io.{FileInputStream, InputStream}
 import java.net.URI
 import java.nio.channels.Channels
-import collection.mutable
 import org.jets3t.service.io.RepeatableInputStream
 
 //     "s3://<aws id>@<bucket>?tier=2&tags=s3&secret=<aws secret>"
@@ -49,37 +48,37 @@ class DirectS3Adapter extends Adapter {
 
   def refreshCache {}
 
-  def containsAll(ctxs: Set[BlockContext]): Map[BlockContext, Boolean] = {
-    Map() ++ ctxs.par.flatMap{ctx =>
-      Map(ctx -> _s3Service.isObjectInBucket(_bucketName, ctx.hash))
+  def containsAll(hashes: Set[String]): Map[String, Boolean] = {
+    Map() ++ hashes.par.flatMap{hash =>
+      Map(hash -> _s3Service.isObjectInBucket(_bucketName, hash))
     }
   }
 
-  def removeAll(ctxs: Set[BlockContext]): Map[BlockContext, Boolean] = {
-    Map() ++ ctxs.par.flatMap{ctx =>
-      _s3Service.deleteObject(_bucketName, ctx.hash)
-      Map(ctx -> true)
+  def removeAll(hashes: Set[String]): Map[String, Boolean] = {
+    Map() ++ hashes.par.flatMap{hash =>
+      _s3Service.deleteObject(_bucketName, hash)
+      Map(hash -> true)
     }
   }
 
-  def ensureAll(ctxs: Set[BlockContext], blockLevelCheck: Boolean) : Map[BlockContext, Boolean] = {
-    Map() ++ ctxs.par.flatMap(ctxs => Map(ctxs -> true))
+  def ensureAll(hashes: Set[String], blockLevelCheck: Boolean) : Map[String, Boolean] = {
+    Map() ++ hashes.par.flatMap(x => Map(x -> true))
   }
 
-  def store(ctx: BlockContext, is: InputStream) {
+  def store(hash: String, is: InputStream) {
     if (is.markSupported()) {
       is.mark(0)
       val md5Hash = CryptoUtil.computeMD5Hash(Channels.newChannel(is))
       is.reset()
-      store(ctx, is, md5Hash, is.available)
+      store(hash, is, md5Hash, is.available)
     } else {
       val (hash, tmpFile) = StreamUtil.spoolStream(is)
-      if (hash != getHashFromDataFile(ctx.hash)) throw new RuntimeException("retrieved data hash %s not equal to expected %s".format(hash, ctx.hash))
+      if (hash != getHashFromDataFile(hash)) throw new RuntimeException("retrieved data hash %s not equal to expected %s".format(hash, hash))
       val fis = new FileInputStream(tmpFile)
       val buffer = new FileInputStream(tmpFile)
       try {
         val md5Hash = CryptoUtil.computeMD5Hash(fis.getChannel)
-        store(ctx, buffer, md5Hash, buffer.available)
+        store(hash, buffer, md5Hash, buffer.available)
       } finally {
         fis.close()
         buffer.close()
@@ -93,9 +92,8 @@ class DirectS3Adapter extends Adapter {
     if (idx >= 0) hash.substring(0, idx) else hash
   }
 
-  private def store(ctx: BlockContext, data: InputStream, md5Digest: Array[Byte], length: Long) {
-//    if (contains(ctx)) return
-    val s3Object: S3Object = new S3Object(ctx.hash)
+  private def store(hash: String, data: InputStream, md5Digest: Array[Byte], length: Long) {
+    val s3Object: S3Object = new S3Object(hash)
     s3Object.setDataInputStream(new RepeatableInputStream(data, length.toInt))
     s3Object.setContentLength(length)
     s3Object.setMd5Hash(md5Digest)
@@ -104,55 +102,12 @@ class DirectS3Adapter extends Adapter {
     _s3Service.putObject(_bucketName, s3Object)
   }
 
-  def load(ctx: BlockContext): (InputStream, Int) = {
-//    if (!contains(ctx)) throw new DataNotFoundException(ctx)
-    val obj = _s3Service.getObject(_bucketName, ctx.hash)
+  def load(hash: String): (InputStream, Int) = {
+    val obj = _s3Service.getObject(_bucketName, hash)
     (obj.getDataInputStream, obj.getContentLength.toInt)
   }
 
-  def describe: Set[BlockContext] = {
-    val hashes = describeHashes
-
-    val extraHashes = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
-    val referencedBlockHashes = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
-
-    val ctxs = new mutable.HashSet[BlockContext] with mutable.SynchronizedSet[BlockContext]
-    hashes.par.foreach{ hash =>
-      if (hash.endsWith(".meta")) {
-        val fis = _s3Service.getObject(_bucketName, hash).getDataInputStream
-        try {
-          val fmd = FileMetaData.create(hash, JsonUtil.loadJson(fis))
-          ctxs.add(fmd.createBlockContext)
-          val blockHashes = fmd.getBlockHashes
-          (0 until blockHashes.length()).foreach{i =>
-            val blockHash = blockHashes.getString(i)
-            if (hashes.contains(blockHash)) {
-              ctxs.add(fmd.createBlockContext(blockHash))
-              referencedBlockHashes.add(blockHash)
-            } else {
-              // TODO: log as we should have the blockHash in the description on the same adapter
-              println("missing blockhash %s (%s) on adapter: %s".format(blockHash, fmd.getPath, this.URI))
-            }
-          }
-        } finally {
-          FileUtil.SafeClose(fis)
-        }
-      } else {
-        extraHashes.add(hash)
-      }
-    }
-
-    if (extraHashes.size > 0) {
-      val unreferencedHashes = extraHashes.diff(referencedBlockHashes)
-      unreferencedHashes.foreach { hash =>
-        ctxs.add(FileMetaData.createBlockContext(hash, Set[String]()))
-      }
-    }
-
-    ctxs.toSet
-  }
-
-  def describeHashes: Set[String] = {
+  def describe: Set[String] = {
     Set() ++ _s3Service.listObjects(_bucketName).par.map(s3Object => s3Object.getKey)
   }
 }

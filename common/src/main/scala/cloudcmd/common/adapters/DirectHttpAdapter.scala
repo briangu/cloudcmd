@@ -1,10 +1,9 @@
 package cloudcmd.common.adapters
 
-import cloudcmd.common.BlockContext
 import java.io.InputStream
 import com.ning.http.client.AsyncHttpClient
 import org.jboss.netty.handler.codec.http.{HttpResponseStatus, HttpHeaders}
-import org.json.JSONArray
+import org.json.{JSONArray, JSONObject}
 import java.net.URI
 import com.ning.http.client.oauth.{RequestToken, ConsumerKey, OAuthSignatureCalculator}
 
@@ -20,7 +19,7 @@ class DirectHttpAdapter extends Adapter {
   var _urlRemoveAll : String = null
   var _urlEnsureAll : String = null
   var _urlDescribe : String = null
-  var _urlDescribeHashes : String = null
+  var _urldescribe : String = null
 
   private def buildUrls {
     _urlRefreshCache = "%s/refreshCache".format(_host)
@@ -28,7 +27,7 @@ class DirectHttpAdapter extends Adapter {
     _urlRemoveAll = "%s/blocks/removeAll".format(_host)
     _urlEnsureAll = "%s/blocks/ensureAll".format(_host)
     _urlDescribe = "%s/blocks".format(_host)
-    _urlDescribeHashes = "%s/blocks/hashes".format(_host)
+    _urldescribe = "%s/blocks/hashes".format(_host)
   }
 
   override def init(configDir: String, tier: Int, adapterType: String, acceptsTags: Set[String], uri: URI) {
@@ -69,102 +68,99 @@ class DirectHttpAdapter extends Adapter {
 
   /***
    * Gets if the CAS contains the specified blocks.
-   * @param ctxs
+   * @param hashes
    * @return
    */
-  def containsAll(ctxs: Set[BlockContext]) : Map[BlockContext, Boolean] = {
+  def containsAll(hashes: Set[String]) : Map[String, Boolean] = {
     val arr = new JSONArray
-    ctxs.foreach(ctx => arr.put(ctx.toJson))
+    hashes.foreach(hash => arr.put(hash))
 
     val response = asyncHttpClient
       .preparePost(_urlContainsAll)
-      .addParameter("ctxs", arr.toString)
+      .addParameter("hashes", arr.toString)
       .execute
       .get
 
     // TODO: use boolean or custom exception
     if (response.getStatusCode != HttpResponseStatus.OK.getCode) throw new RuntimeException("failed calling containsAll")
-    ctxsResponseArrToMap(new JSONArray(response.getResponseBody("UTF-8")))
+    hashesResponseObjectToBooleanMap(new JSONObject(response.getResponseBody("UTF-8")))
   }
 
   /***
    * Removes the specified blocks.
-   * @param ctxs
+   * @param hashes
    * @return
    */
-  def removeAll(ctxs: Set[BlockContext]) : Map[BlockContext, Boolean] = {
+  def removeAll(hashes: Set[String]) : Map[String, Boolean] = {
     val arr = new JSONArray
-    ctxs.foreach(ctx => arr.put(ctx.toJson))
+    hashes.foreach(hash => arr.put(hash))
 
     val response = asyncHttpClient
       .preparePost(_urlRemoveAll)
-      .addParameter("ctxs", arr.toString)
+      .addParameter("hashes", arr.toString)
       .execute
       .get
 
     // TODO: use boolean or custom exception
     if (response.getStatusCode != HttpResponseStatus.OK.getCode) throw new RuntimeException("failed calling removeAll")
-    ctxsResponseArrToMap(new JSONArray(response.getResponseBody("UTF-8")))
+    hashesResponseObjectToBooleanMap(new JSONObject(response.getResponseBody("UTF-8")))
   }
 
   /***
    * Ensure block level consistency with respect to the CAS implementation
-   * @param ctxs
+   * @param hashes
    * @param blockLevelCheck
    * @return
    */
-  def ensureAll(ctxs: Set[BlockContext], blockLevelCheck: Boolean) : Map[BlockContext, Boolean] = {
+  def ensureAll(hashes: Set[String], blockLevelCheck: Boolean) : Map[String, Boolean] = {
     val arr = new JSONArray
-    ctxs.foreach(ctx => arr.put(ctx.toJson))
+    hashes.foreach(hash => arr.put(hash))
 
     val response = asyncHttpClient
       .preparePost(_urlEnsureAll)
-      .addParameter("ctxs", arr.toString)
+      .addParameter("hashes", arr.toString)
       .execute
       .get
 
     // TODO: use boolean or custom exception
     if (response.getStatusCode != HttpResponseStatus.OK.getCode) throw new RuntimeException("failed calling ensureAll")
-    ctxsResponseArrToMap(new JSONArray(response.getResponseBody("UTF-8")))
+    hashesResponseObjectToBooleanMap(new JSONObject(response.getResponseBody("UTF-8")))
   }
 
-  private def ctxsResponseArrToMap(arr: JSONArray) : Map[BlockContext, Boolean] = {
-    Map() ++ (0 until arr.length).par.flatMap{
-      idx =>
-        val obj = arr.getJSONObject(idx)
-        Map(BlockContext.fromJson(obj) -> obj.getBoolean("_status"))
-    }
+  private def hashesResponseObjectToBooleanMap(obj: JSONObject) : Map[String, Boolean] = {
+    import scala.collection.JavaConversions._
+    Map() ++ obj.keys().toList.asInstanceOf[List[String]].flatMap{key => Map(key -> obj.getBoolean(key))}
   }
 
   /***
    * Store the specified block in accordance with the CAS implementation.
-   * @param ctx
+   * @param hash
    * @param is
    * @return
    */
-  def store(ctx: BlockContext, is: InputStream) {
+  def store(hash: String, is: InputStream) {
     val response = asyncHttpClient
-      .preparePost("%s/blocks/%s,%s".format(_host, ctx.hash, ctx.routingTags.mkString(",")))
+      .preparePost("%s/blocks/%s".format(_host, hash))
       .setHeader("x-streampost", "true")
       .setBody(is)
       .execute
       .get
     // TODO: use boolean or custom exception
-    if (response.getStatusCode != HttpResponseStatus.CREATED.getCode) throw new RuntimeException("failed to store " + ctx)
+    if (response.getStatusCode != HttpResponseStatus.CREATED.getCode) throw new RuntimeException("failed to store " + hash)
   }
 
   /***
    * Load the specified block from the CAS.
-   * @param ctx
+   * @param hash
    * @return
    */
-  def load(ctx: BlockContext) : (InputStream, Int) = {
+  def load(hash: String) : (InputStream, Int) = {
     val response = asyncHttpClient
-      .prepareGet("%s/blocks/%s,%s".format(_host, ctx.hash, ctx.routingTags.mkString(",")))
+      .prepareGet("%s/blocks/%s".format(_host, hash))
       .execute
       .get
     if (response.getStatusCode != HttpResponseStatus.OK.getCode) {
-      throw new DataNotFoundException(ctx)
+      throw new DataNotFoundException(hash)
     }
     (response.getResponseBodyAsStream, response.getHeader(HttpHeaders.Names.CONTENT_LENGTH).toInt)
   }
@@ -173,24 +169,9 @@ class DirectHttpAdapter extends Adapter {
    * List all the block hashes stored in the CAS.
    * @return
    */
-  def describe() : Set[BlockContext] = {
+  def describe() : Set[String] = {
     val response = asyncHttpClient
-      .prepareGet(_urlDescribe)
-      .execute
-      .get
-    if (response.getStatusCode != HttpResponseStatus.OK.getCode) throw new RuntimeException("unable to describe")
-    val arr = new JSONArray(response.getResponseBody("UTF-8"))
-    Set() ++ (0 until arr.length).par.map(idx => BlockContext.fromJson(arr.getJSONObject(idx)))
-  }
-
-  /***
-   * List all hashes stored in the CAS without regard to block context.  There may be hashes stored in the CAS which are
-   * not returned in describe(), so this method can help identify unreferenced blocks.
-   * @return
-   */
-  def describeHashes() : Set[String] = {
-    val response = asyncHttpClient
-      .prepareGet(_urlDescribeHashes)
+      .prepareGet(_urldescribe)
       .execute
       .get
     if (response.getStatusCode != HttpResponseStatus.OK.getCode) throw new RuntimeException("unable to describe")

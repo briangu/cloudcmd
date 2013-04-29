@@ -18,66 +18,62 @@ class ParallelCloudEngine(configService: ConfigStorage) extends CloudEngine {
     _adapters = configService.getAdapters
   }
 
-  def run {}
+  def run() {}
 
-  def shutdown {}
+  def shutdown() {}
 
   def filterAdapters(minTier: Int, maxTier: Int) {
     _adapters = configService.getAdapters.filter(a => a.Tier >= minTier && a.Tier <= maxTier && a.IsOnLine() && !a.IsFull()).toList
   }
 
-  def describeMeta() : Set[BlockContext] = {
-    Set() ++ _adapters.par.flatMap(a => a.describe.filter(_.hash.endsWith(".meta")).toSet)
+  def describeMeta() : Set[String] = {
+    Set() ++ _adapters.par.flatMap(a => a.describe().filter(_.endsWith(".meta")).toSet)
   }
 
-  def getAdaptersAccepts(ctx: BlockContext) : List[Adapter] = {
-    _adapters.filter(_.accepts(ctx)).toList
+  def getAdaptersAccepts(hash: String) : List[Adapter] = {
+    _adapters.filter(_.accepts(hash)).toList
   }
 
-  private def getHashProviders(ctx: BlockContext) : List[Adapter] = {
-    _adapters.par.filter(_.contains(ctx)).toList
+  private def getHashProviders(hash: String) : List[Adapter] = {
+    _adapters.par.filter(_.contains(hash)).toList
   }
 
   def refreshCache() {
     _adapters.par.foreach(_.refreshCache())
   }
 
-  def describe() : Set[BlockContext] = {
-    Set() ++ _adapters.par.flatMap(a => a.describe.toSet)
+  def describe() : Set[String] = {
+    Set() ++ _adapters.par.flatMap(a => a.describe().toSet)
   }
 
-  def describeHashes() : Set[String] = {
-    Set() ++ _adapters.par.flatMap(a => a.describeHashes.toSet)
+  override def contains(hash: String) : Boolean = {
+    _adapters.find(_.contains(hash)) != None
   }
 
-  override def contains(ctx: BlockContext) : Boolean = {
-    _adapters.find(_.contains(ctx)) != None
-  }
-
-  def containsAll(ctxs: Set[BlockContext]) : Map[BlockContext, Boolean] = {
-    Map() ++ ctxs.par.flatMap{ ctx => Map(ctx -> contains(ctx)) }
+  def containsAll(hashes: Set[String]) : Map[String, Boolean] = {
+    Map() ++ hashes.par.flatMap{ hash => Map(hash -> contains(hash)) }
   }
 
   override
-  def ensure(ctx: BlockContext, blockLevelCheck: Boolean) : Boolean = {
-    _storage.ensure(ctx, getHashProviders(ctx), getAdaptersAccepts(ctx), blockLevelCheck)
+  def ensure(hash: String, blockLevelCheck: Boolean) : Boolean = {
+    _storage.ensure(hash, getHashProviders(hash), getAdaptersAccepts(hash), blockLevelCheck)
   }
 
-  def ensureAll(ctxs: Set[BlockContext], blockLevelCheck: Boolean) : Map[BlockContext, Boolean] = {
-    Map() ++ ctxs.par.flatMap( ctx =>
-      Map(ctx -> _storage.ensure(ctx, getHashProviders(ctx), getAdaptersAccepts(ctx), blockLevelCheck))
+  def ensureAll(hashes: Set[String], blockLevelCheck: Boolean) : Map[String, Boolean] = {
+    Map() ++ hashes.par.flatMap( hash =>
+      Map(hash -> _storage.ensure(hash, getHashProviders(hash), getAdaptersAccepts(hash), blockLevelCheck))
     )
   }
 
-  def store(ctx: BlockContext, is: InputStream) {
-    _storage.store(ctx, is, getAdaptersAccepts(ctx))
+  def store(hash: String, is: InputStream) {
+    _storage.store(hash, is, getAdaptersAccepts(hash))
   }
 
-  def load(ctx: BlockContext) : (InputStream, Int) = {
-    _storage.load(ctx, getHashProviders(ctx))
+  def load(hash: String) : (InputStream, Int) = {
+    _storage.load(hash, getHashProviders(hash))
   }
 
-  def removeAll(ctxs: Set[BlockContext]) : Map[BlockContext, Boolean] = {
-    Map() ++ ctxs.par.flatMap( ctx => Map(ctx -> _storage.remove(ctx, getHashProviders(ctx))) )
+  def removeAll(hashes: Set[String]) : Map[String, Boolean] = {
+    Map() ++ hashes.par.flatMap( hash => Map(hash -> _storage.remove(hash, getHashProviders(hash))) )
   }
 }
