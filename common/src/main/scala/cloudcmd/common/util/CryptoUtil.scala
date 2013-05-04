@@ -13,6 +13,7 @@ import java.security.NoSuchAlgorithmException
 object CryptoUtil {
 
   val SHA256_ID = "SHA-256"
+  val MD5_ID = "MD5"
 
   private val buffer = new ThreadLocal[ByteBuffer] {
     override def initialValue = ByteBuffer.allocate(1024 * 1024)
@@ -53,11 +54,11 @@ object CryptoUtil {
     var fis: FileInputStream = null
     try {
       fis = new FileInputStream(targetFile)
-      computeDigest(Channels.newChannel(fis), "MD5")
+      computeDigest(Channels.newChannel(fis), MD5_ID)
     }
     catch {
       case e: NoSuchAlgorithmException => {
-        throw new RuntimeException("%s is not supported".format("MD5"))
+        throw new RuntimeException("%s is not supported".format(MD5_ID))
       }
     }
     finally {
@@ -121,11 +122,11 @@ object CryptoUtil {
 
   def computeMD5Hash(channel: ReadableByteChannel): Array[Byte] = {
     try {
-      computeDigest(channel, "MD5")
+      computeDigest(channel, MD5_ID)
     }
     catch {
       case e: NoSuchAlgorithmException => {
-        throw new RuntimeException("MD5 is not supported")
+        throw new RuntimeException("%s is not supported".format(MD5_ID))
       }
     }
   }
