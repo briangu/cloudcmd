@@ -20,8 +20,11 @@ class Add extends Command {
 
     val properties = if (_inputFilePath != null) { FileUtil.readJson(_inputFilePath) } else { null }
 
-    val fileSet = new mutable.HashSet[File] with mutable.SynchronizedSet[File]
     val fileTypeUtil: FileTypeUtil = FileTypeUtil.instance
+
+    import scala.collection.JavaConversions._
+    val tagList = _tags.toList
+
     FileWalker.enumerateFolders(_path, new FileWalker.FileHandler {
       def skipDir(file: File): Boolean = {
         val skip: Boolean = fileTypeUtil.skipDir(file.getName)
@@ -37,13 +40,9 @@ class Add extends Command {
         val extIndex: Int = fileName.lastIndexOf(".")
         val ext: String = if ((extIndex > 0)) fileName.substring(extIndex + 1) else null
         if (!fileTypeUtil.skipExt(ext)) {
-          fileSet.add(file)
+          CloudServices.FileProcessor.add(file, file.getName, tagList, properties)
         }
       }
     })
-
-    import scala.collection.JavaConversions._
-    val tagList = _tags.toList
-    fileSet.toList.par.foreach{ file : File => CloudServices.FileProcessor.add(file, file.getName, tagList, properties) }
   }
 }
