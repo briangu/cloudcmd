@@ -24,7 +24,8 @@ class Get extends Command {
   @Opt(opt = "i", longOpt = "input", description = "input file", required = false) private var _inputFilePath: String = null
   @Opt(opt = "n", longOpt = "minTier", description = "min tier to verify to", required = false) private var _minTier: Number = 0
   @Opt(opt = "m", longOpt = "maxTier", description = "max tier to verify to", required = false) private var _maxTier: Number = Integer.MAX_VALUE
-  @Opt(opt = "u", longOpt = "unique", description = "only retrieve unique files", required = false) private var _uniqueOnly: Boolean = false
+  @Opt(opt = "q", longOpt = "unique", description = "only retrieve unique files", required = false) private var _uniqueOnly: Boolean = false
+  @Opt(opt = "u", longOpt = "uri", description = "adapter URI", required = false) private var _uri: String = null
 
   def exec(commandLine: CommandContext) {
     var selections: Seq[FileMetaData] = null
@@ -35,7 +36,7 @@ class Get extends Command {
       var is: InputStream = null
       try {
         is = if ((_inputFilePath != null)) new FileInputStream(new File(_inputFilePath)) else System.in
-        FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in))
+        selections = FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in))
       } finally {
         if (is ne System.in) is.close()
       }

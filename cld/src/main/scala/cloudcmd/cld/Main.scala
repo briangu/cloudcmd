@@ -71,8 +71,6 @@ object Main {
       msgPump.interrupt()
       msgPump.join()
     }
-
-    println("took %6d ms to run".format(((System.currentTimeMillis - startTime))))
   }
 
   private class Listener extends EngineEventListener {

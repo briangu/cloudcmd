@@ -15,6 +15,7 @@ class Find extends Command {
   @Opt(opt = "e", longOpt = "ext", description = "file extension to find by", required = false) private var _fileext: String = null
   @Opt(opt = "c", longOpt = "count", description = "limit response count", required = false) private var _count: Number = 0
   @Opt(opt = "o", longOpt = "offset", description = "pagination start offset", required = false) private var _offset: Number = 0
+  @Opt(opt = "u", longOpt = "uri", description = "adapter URI", required = false) private var _uri: String = null
 
   def exec(commandLine: CommandContext) {
     val filter = new JSONObject

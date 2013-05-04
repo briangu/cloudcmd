@@ -11,7 +11,6 @@ object FileMetaData {
   }
 
   def fromJsonArray(arr: JSONArray): Seq[FileMetaData] = {
-    val arr = JsonUtil.loadJsonArray(System.in)
     (0 until arr.length()).map(i => FileMetaData.fromJson(arr.getJSONObject(i)))
   }
 

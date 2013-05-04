@@ -27,6 +27,25 @@ trait ConfigStorage {
 
   def writeConfig()
 
+  def findAdapterByBestMatch(id: String): Option[Adapter] = {
+    var maxMatchLength = 0
+    var maxMatchAdapter: Option[Adapter] = None
+    for (adapter <- getAdapters) {
+      val adapterUri = adapter.URI.toASCIIString
+      if (id.length <= adapterUri.length) {
+        var idx = 0
+        while (idx < id.length && adapterUri.charAt(idx) == id.charAt(idx)) {
+          idx = idx + 1
+        }
+        if (idx > maxMatchLength) {
+          maxMatchLength = idx
+          maxMatchAdapter = Some(adapter)
+        }
+      }
+    }
+    maxMatchAdapter
+  }
+
   def getAdapter(adapterURI: URI): Adapter
 
   def getReplicationStrategy: ReplicationStrategy

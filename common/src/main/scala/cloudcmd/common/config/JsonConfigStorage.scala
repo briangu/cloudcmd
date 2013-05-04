@@ -25,7 +25,6 @@ class JsonConfigStorage extends ConfigStorage {
   private var _isDebug: Boolean = false
   private var _defaultTier: Int = 0
   private var _allAdapters: List[Adapter] = null
-  private var _filteredAdapters: List[Adapter] = null
   private var _adapterHandlers: Map[String, String] = null
 
   private def getConfigFile(path: String): String = {
@@ -121,7 +120,6 @@ class JsonConfigStorage extends ConfigStorage {
     _config = loadConfig(configRoot)
     _adapterHandlers = loadAdapterHandlers(_config)
     _allAdapters = loadAdapters(_config)
-    _filteredAdapters = _allAdapters
     _isDebug = loadDebug(_config)
   }
 
@@ -223,7 +221,7 @@ class JsonConfigStorage extends ConfigStorage {
   }
 
   def getAdapters: List[Adapter] = {
-    _filteredAdapters
+    _allAdapters
   }
 
   def addAdapter(adapterUri: URI) {
