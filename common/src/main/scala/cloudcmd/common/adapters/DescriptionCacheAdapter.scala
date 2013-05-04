@@ -31,7 +31,7 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
     _rootPath = URI.getPath
     if (_rootPath.length == 0) _rootPath = ConfigDir
     _dbDir = _rootPath + File.separator + "db"
-    ConfigDir = _dbDir
+    _configDir = _dbDir
     _dataDir = _rootPath + File.separator + "data"
     val rootPathDir: File = new File(_rootPath)
     rootPathDir.mkdirs

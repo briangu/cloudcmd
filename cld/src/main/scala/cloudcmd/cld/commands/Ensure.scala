@@ -1,13 +1,12 @@
 package cloudcmd.cld.commands
 
-import cloudcmd.common.{BlockContext, FileMetaData}
+import cloudcmd.common.FileMetaData
 import cloudcmd.common.util.JsonUtil
 import jpbetz.cli.Command
 import jpbetz.cli.CommandContext
 import jpbetz.cli.Opt
 import jpbetz.cli.SubCommand
 import cloudcmd.cld.CloudServices
-import org.json.JSONArray
 
 @SubCommand(name = "ensure", description = "Validate storage and ensure files are properly replicated.")
 class Ensure extends Command {
@@ -20,7 +19,7 @@ class Ensure extends Command {
   def exec(commandLine: CommandContext) {
 
     val selections = if (_syncAll) {
-      val metaHashes = CloudServices.CloudEngine.describeMeta()
+      val metaHashes = CloudServices.CloudEngine.describe().filter(_.isMeta())
       metaHashes.par.map{ ctx => FileMetaData.create(ctx.hash, JsonUtil.loadJson(CloudServices.CloudEngine.load(ctx)._1)) }.toList
     } else {
       FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in))

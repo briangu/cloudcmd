@@ -33,7 +33,7 @@ class LRUFileCacheAdapter(underlying: Adapter) extends Adapter {
     _isOnline = rootPathDir.exists
     if (_isOnline) {
       _cacheDir = _rootPath + File.separator + "cache"
-      ConfigDir = _cacheDir
+      _configDir = _cacheDir
       _cacheDirFile = new File(_cacheDir)
       _cacheDirFile.mkdirs()
 
@@ -41,7 +41,9 @@ class LRUFileCacheAdapter(underlying: Adapter) extends Adapter {
     }
   }
 
-  case class FileInfo(name: String, size: Long, var date: Long)
+  def shutdown() {
+    underlying.shutdown()
+  }
 
   /*
     Enumerate all files in the cache and sort by file age.
@@ -50,6 +52,8 @@ class LRUFileCacheAdapter(underlying: Adapter) extends Adapter {
     _cacheSize = loadCache(cacheDir, _cacheMap)
     pruneFiles
   }
+
+  case class FileInfo(name: String, size: Long, var date: Long)
 
   def loadCache(cacheDir: String, fileMap: mutable.HashMap[String, FileInfo]): Long = {
     var cacheSize = 0L
@@ -170,8 +174,4 @@ class LRUFileCacheAdapter(underlying: Adapter) extends Adapter {
     * @return
     */
   def describeHashes(): Set[String] = underlying.describeHashes()
-
-  def shutdown() {
-    underlying.shutdown()
-  }
 }

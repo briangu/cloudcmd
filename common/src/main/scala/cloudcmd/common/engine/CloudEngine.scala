@@ -1,6 +1,6 @@
 package cloudcmd.common.engine
 
-import cloudcmd.common.{BlockContext, ContentAddressableStorage}
+import cloudcmd.common.ContentAddressableStorage
 
 trait CloudEngine extends ContentAddressableStorage with EventSource {
 
@@ -9,6 +9,4 @@ trait CloudEngine extends ContentAddressableStorage with EventSource {
   def shutdown()
 
   def filterAdapters(minTier: Int, maxTier: Int) // TODO: move to init?
-
-  def describeMeta() : Set[BlockContext]
 }

@@ -22,7 +22,7 @@ class DirectHttpAdapter extends Adapter {
   var _urlDescribe : String = null
   var _urlDescribeHashes : String = null
 
-  private def buildUrls {
+  private def buildUrls() {
     _urlRefreshCache = "%s/refreshCache".format(_host)
     _urlContainsAll = "%s/blocks/containsAll".format(_host)
     _urlRemoveAll = "%s/blocks/removeAll".format(_host)
@@ -33,9 +33,9 @@ class DirectHttpAdapter extends Adapter {
 
   override def init(configDir: String, tier: Int, adapterType: String, acceptsTags: Set[String], uri: URI) {
     super.init(configDir, tier, adapterType, acceptsTags, uri)
-    _host = "http://%s:%d".format(uri.getHost, uri.getPort)
-    initOAuthInfo(uri)
-    buildUrls
+    _host = "http://%s:%d".format(URI.getHost, URI.getPort)
+    initOAuthInfo(URI)
+    buildUrls()
   }
 
   def initOAuthInfo(adapterUri: URI): Boolean = {

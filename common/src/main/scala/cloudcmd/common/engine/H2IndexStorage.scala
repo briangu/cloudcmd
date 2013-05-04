@@ -14,7 +14,7 @@ import cloudcmd.common.util._
 import scala._
 import scala.AnyRef
 
-class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSource {
+class H2IndexStorage(cas: ContentAddressableStorage) extends IndexStorage with EventSource {
   private val log = Logger.getLogger(classOf[H2IndexStorage])
 
   private val BATCH_SIZE = 1024
@@ -44,7 +44,6 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
   }
 
   def shutdown() {
-    flush()
     if (_cp != null) {
       FullText.closeAll()
       _cp.dispose()
@@ -108,8 +107,6 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
 
     bootstrapDb()
   }
-
-  def flush() {}
 
   private val fields = List("HASH", "PATH", "FILENAME", "FILEEXT", "FILESIZE", "FILEDATE", "CREATEDDATE", "TAGS", "PROPERTIES__OWNERID", "RAWMETA")
   private val addMetaSql = "MERGE INTO FILE_INDEX (%s) VALUES (%s)".format(fields.mkString(","), StringUtil.joinRepeat(fields.size, "?", ","))
@@ -270,10 +267,10 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
   def reindex() {
     purge()
 
-    val fmds = cloudEngine.describeMeta().par.flatMap {
+    val fmds = cas.describe().filter(_.isMeta()).par.flatMap {
       ctx =>
         try {
-          List(FileMetaData.create(ctx.hash, JsonUtil.loadJson(cloudEngine.load(ctx)._1)))
+          List(FileMetaData.create(ctx.hash, JsonUtil.loadJson(cas.load(ctx)._1)))
         } catch {
           case e: Exception => {
             log.error(ctx, e)
@@ -294,7 +291,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
   // TODO: support writing to an offset of the existing file to allow for sub-blocks
   def fetch(fmd: FileMetaData) {
     if (fmd.getBlockHashes.size == 0) throw new IllegalArgumentException("no block hashes found!")
-    if (fmd.getBlockHashes.find(h => !cloudEngine.contains(fmd.createBlockContext(h))) == None) {
+    if (fmd.getBlockHashes.find(h => !cas.contains(fmd.createBlockContext(h))) == None) {
       if (fmd.getBlockHashes.size == 1) {
         attemptSingleBlockFetch(fmd.getBlockHashes(0), fmd)
       } else {
@@ -312,7 +309,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     while (!success && retries > 0) {
       var remoteData: InputStream = null
       try {
-        remoteData = cloudEngine.load(fmd.createBlockContext(blockHash))._1
+        remoteData = cas.load(fmd.createBlockContext(blockHash))._1
         val destFile = new File(fmd.getPath)
         destFile.getParentFile.mkdirs
         val remoteDataHash = CryptoUtil.digestToString(CryptoUtil.writeAndComputeHash(remoteData, destFile))
@@ -334,8 +331,8 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
 
       if (!success) {
         retries -= 1
-        cloudEngine.ensure(fmd.createBlockContext(blockHash), blockLevelCheck = true)
-        if (!cloudEngine.contains(fmd.createBlockContext(blockHash))) {
+        cas.ensure(fmd.createBlockContext(blockHash), blockLevelCheck = true)
+        if (!cas.contains(fmd.createBlockContext(blockHash))) {
           onMessage("giving up on %s, block %s not currently available!".format(fmd.getFilename, blockHash))
           retries = 0
         }
@@ -356,7 +353,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
           data.put("tags", new JSONArray(newTags))
 
           val derivedMeta = FileMetaData.deriveMeta(selection.getHash, data)
-          cloudEngine.store(derivedMeta.createBlockContext, new ByteArrayInputStream(derivedMeta.getDataAsString.getBytes("UTF-8")))
+          cas.store(derivedMeta.createBlockContext, new ByteArrayInputStream(derivedMeta.getDataAsString.getBytes("UTF-8")))
           List(derivedMeta)
         }
     }.toList
@@ -372,7 +369,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
       fmd =>
         val hashes = Set(fmd.getHash) ++ fmd.getBlockHashes
         hashes.foreach{ hash =>
-          if (!cloudEngine.ensure(fmd.createBlockContext(hash), blockLevelCheck)) {
+          if (!cas.ensure(fmd.createBlockContext(hash), blockLevelCheck)) {
             onMessage("%s: found incosistent block %s".format(fmd.getFilename, hash))
           }
         }
@@ -383,11 +380,11 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
   def remove(selections: Seq[FileMetaData]) {
     selections.par.foreach {
       fmd =>
-        cloudEngine.remove(fmd.createBlockContext)
+        cas.remove(fmd.createBlockContext)
 
         // TODO: only delete if there are no other files referencing these blocks
         if (false) {
-          fmd.getBlockHashes.foreach(blockHash => cloudEngine.remove(fmd.createBlockContext(blockHash)))
+          fmd.getBlockHashes.foreach(blockHash => cas.remove(fmd.createBlockContext(blockHash)))
         }
 
          // TODO: we should only do this if we are sure the rest happened correctly (although at worst we could reindex)

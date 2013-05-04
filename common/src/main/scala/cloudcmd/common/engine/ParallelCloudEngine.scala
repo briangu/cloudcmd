@@ -23,11 +23,7 @@ class ParallelCloudEngine(configService: ConfigStorage) extends CloudEngine {
   def shutdown() {}
 
   def filterAdapters(minTier: Int, maxTier: Int) {
-    _adapters = configService.getAdapters.filter(a => a.Tier >= minTier && a.Tier <= maxTier && a.IsOnLine() && !a.IsFull()).toList
-  }
-
-  def describeMeta() : Set[BlockContext] = {
-    Set() ++ _adapters.par.flatMap(a => a.describe().filter(_.hash.endsWith(".meta")).toSet)
+    _adapters = configService.getAdapters.filter(a => a.Tier >= minTier && a.Tier <= maxTier && a.IsOnLine && !a.IsFull).toList
   }
 
   def getAdaptersAccepts(ctx: BlockContext) : List[Adapter] = {

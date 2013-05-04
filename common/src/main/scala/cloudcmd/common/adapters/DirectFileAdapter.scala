@@ -24,17 +24,19 @@ class DirectFileAdapter extends Adapter {
     super.init(configDir, tier, adapterType, tags, config)
     _rootPath = URI.getPath
     _dbDir = _rootPath + File.separator + "db"
-    ConfigDir = _dbDir
+    _configDir = _dbDir
     _dataDir = _rootPath + File.separator + "data"
     val rootPathDir = new File(_rootPath)
     rootPathDir.mkdirs
     _isOnline = rootPathDir.exists
-    if (IsOnLine()) bootstrap(_dataDir)
+    if (IsOnLine) bootstrap(_dataDir)
   }
 
   def shutdown() {}
 
-  override def IsFull(): Boolean = new File(_rootPath).getUsableSpace < MIN_FREE_STORAGE_SIZE
+  override def IsFull: Boolean = {
+    new File(_rootPath).getUsableSpace < MIN_FREE_STORAGE_SIZE
+  }
 
   def refreshCache() {}
 

@@ -5,7 +5,7 @@ import cloudcmd.common.{FileMetaData, BlockContext, FileUtil, UriUtil}
 import org.jets3t.service.impl.rest.httpclient.RestS3Service
 import org.jets3t.service.model.S3Object
 import org.jets3t.service.security.AWSCredentials
-import java.io.{BufferedInputStream, ByteArrayInputStream, FileInputStream, InputStream}
+import java.io.{FileInputStream, InputStream}
 import java.net.URI
 import java.nio.channels.Channels
 import collection.mutable
@@ -21,7 +21,7 @@ class DirectS3Adapter extends Adapter {
 
   override def init(configDir: String, tier: Int, adapterType: String, tags: Set[String], uri: URI) {
     super.init(configDir, tier, adapterType, tags, uri)
-    val (awsKey, awsSecret, awsBucketName, useRRS) = parseAwsInfo(uri)
+    val (awsKey, awsSecret, awsBucketName, useRRS) = parseAwsInfo(URI)
     val creds = new AWSCredentials(awsKey, awsSecret)
     _s3Service = new RestS3Service(creds)
     _bucketName = awsBucketName
@@ -33,7 +33,7 @@ class DirectS3Adapter extends Adapter {
     }
   }
 
-  def shutdown {}
+  def shutdown() {}
 
   def parseAwsInfo(adapterUri: URI): (String, String, String, Boolean) = {
     val parts = adapterUri.getAuthority.split("@")
@@ -47,7 +47,7 @@ class DirectS3Adapter extends Adapter {
     (parts(0), queryParams.get("secret"), parts(1), useRRS)
   }
 
-  def refreshCache {}
+  def refreshCache() {}
 
   def containsAll(ctxs: Set[BlockContext]): Map[BlockContext, Boolean] = {
     Map() ++ ctxs.par.flatMap{ctx =>
@@ -110,8 +110,8 @@ class DirectS3Adapter extends Adapter {
     (obj.getDataInputStream, obj.getContentLength.toInt)
   }
 
-  def describe: Set[BlockContext] = {
-    val hashes = describeHashes
+  def describe(): Set[BlockContext] = {
+    val hashes = describeHashes()
 
     val extraHashes = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
     val referencedBlockHashes = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
@@ -150,7 +150,7 @@ class DirectS3Adapter extends Adapter {
     ctxs.toSet
   }
 
-  def describeHashes: Set[String] = {
+  def describeHashes(): Set[String] = {
     Set() ++ _s3Service.listObjects(_bucketName).par.map(s3Object => s3Object.getKey)
   }
 }

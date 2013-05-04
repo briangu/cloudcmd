@@ -7,10 +7,6 @@ import org.json.JSONObject
 trait IndexStorage extends EventSource  {
   def init(configRoot: String)
 
-  def purge()
-
-  def flush()
-
   def shutdown()
 
   def reindex()
