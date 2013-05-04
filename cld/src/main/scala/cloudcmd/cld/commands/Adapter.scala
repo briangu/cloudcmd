@@ -47,14 +47,14 @@ class Adapter extends Command {
     }
     else if (_list) {
       System.out.println("Adapters:")
-      System.out.println
+      System.out.println()
       for (adapter <- CloudServices.ConfigService.getAdapters) {
         System.out.println("Adapter: " + adapter.Type)
         System.out.println("  URI: " + adapter.URI.toString)
         System.out.println("  ConfigDir: " + adapter.ConfigDir)
         System.out.println("  IsOnline: " + adapter.IsOnLine)
         System.out.println("  IsFull: " + adapter.IsFull)
-        System.out.println
+        System.out.println()
       }
     }
   }

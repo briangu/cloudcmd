@@ -9,8 +9,10 @@ import org.json.JSONException
 import org.json.JSONObject
 import java.io.{ByteArrayInputStream, InputStream, File}
 import java.sql.{PreparedStatement, SQLException, Statement, Connection}
-import collection.mutable.ListBuffer
-import util._
+import scala.collection.mutable.ListBuffer
+import cloudcmd.common.util._
+import scala._
+import scala.AnyRef
 
 class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSource {
   private val log = Logger.getLogger(classOf[H2IndexStorage])
@@ -112,7 +114,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
   private val fields = List("HASH", "PATH", "FILENAME", "FILEEXT", "FILESIZE", "FILEDATE", "CREATEDDATE", "TAGS", "PROPERTIES__OWNERID", "RAWMETA")
   private val addMetaSql = "MERGE INTO FILE_INDEX (%s) VALUES (%s)".format(fields.mkString(","), StringUtil.joinRepeat(fields.size, "?", ","))
 
-  private def addMeta(db: Connection, fmds: List[FileMetaData]) {
+  private def addMeta(db: Connection, fmds: Seq[FileMetaData]) {
     var statement: PreparedStatement = null
     try {
       val bind = new ListBuffer[AnyRef]
@@ -131,7 +133,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
         bind.append(meta.getCreatedDate.asInstanceOf[AnyRef])
         bind.append(buildTags(meta))
         // TODO: TOTAL HACK...USE STORED.IO ASAP
-        bind.append(if (meta.hasProperty("ownerId")) meta.getProperties().getLong("ownerId").asInstanceOf[AnyRef] else 0.asInstanceOf[AnyRef])
+        bind.append(if (meta.hasProperty("ownerId")) meta.getProperties.getLong("ownerId").asInstanceOf[AnyRef] else 0.asInstanceOf[AnyRef])
         bind.append(meta.getDataAsString)
         (0 until bind.size).foreach(i => bindVar(statement, i + 1, bind(i)))
         statement.addBatch()
@@ -197,7 +199,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     removeAll(Set(meta.getHash))
   }
 
-  def pruneHistory(selections: List[FileMetaData]) {
+  def pruneHistory(selections: Seq[FileMetaData]) {
 //    removeAll(selections.filter(_.getParent != null).map(_.getParent).toSet)
     removeAll(Set() ++ selections.flatMap(fmd => if (fmd.getParent == null) {
       Nil
@@ -240,7 +242,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     }
   }
 
-  def addAll(meta: List[FileMetaData]) {
+  def addAll(meta: Seq[FileMetaData]) {
     if (meta == null) return
     var db: Connection = null
     try {
@@ -265,10 +267,10 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     }
   }
 
-  def reindex {
+  def reindex() {
     purge
 
-    val fmds = cloudEngine.describeMeta.par.flatMap {
+    val fmds = cloudEngine.describeMeta().par.flatMap {
       ctx =>
         try {
           List(FileMetaData.create(ctx.hash, JsonUtil.loadJson(cloudEngine.load(ctx)._1)))
@@ -284,23 +286,22 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
 //    pruneHistory(fmds)
   }
 
-  def get(selections: JSONArray) {
-    (0 until selections.length).par.foreach(i => fetch(FileMetaData.fromJson(selections.getJSONObject(i))))
+  def get(selections: Seq[FileMetaData]) {
+    selections.par.foreach(fetch)
   }
 
   // TODO: only read the file size bytes back (if the file is one block)
   // TODO: support writing to an offset of the existing file to allow for sub-blocks
   def fetch(fmd: FileMetaData) {
-    val blockHashes = (0 until fmd.getBlockHashes.length).map(fmd.getBlockHashes.getString)
-    if (blockHashes.size == 0) throw new IllegalArgumentException("no block hashes found!")
-    if (blockHashes.find(h => !cloudEngine.contains(fmd.createBlockContext(h))) == None) {
-      if (blockHashes.size == 1) {
-        attemptSingleBlockFetch(blockHashes(0), fmd)
+    if (fmd.getBlockHashes.size == 0) throw new IllegalArgumentException("no block hashes found!")
+    if (fmd.getBlockHashes.find(h => !cloudEngine.contains(fmd.createBlockContext(h))) == None) {
+      if (fmd.getBlockHashes.size == 1) {
+        attemptSingleBlockFetch(fmd.getBlockHashes(0), fmd)
       } else {
         throw new RuntimeException("multiple block hashes not yet supported!")
       }
     } else {
-      onMessage(String.format("some blocks of %s not currently available!", blockHashes.mkString(",")))
+      onMessage(String.format("some blocks of %s not currently available!", fmd.getBlockHashes.mkString(",")))
     }
   }
 
@@ -343,39 +344,33 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     success
   }
 
-  def addTags(selections: JSONArray, tags: Set[String]): JSONArray = {
-    val fmds = (0 until selections.length).par.flatMap {
-      i =>
-        val hash = selections.getJSONObject(i).getString("hash")
-        val data = selections.getJSONObject(i).getJSONObject("data")
-        val oldMeta = FileMetaData.create(hash, data)
-
-        val newTags = FileMetaData.applyTags(oldMeta.getTags, tags)
-        if (newTags.equals(oldMeta.getTags)) {
+  def addTags(selections: Seq[FileMetaData], tags: Set[String]): Seq[FileMetaData] = {
+    val fmds = selections.par.flatMap {
+      selection =>
+        val newTags = FileMetaData.applyTags(selection.getTags, tags)
+        if (newTags.equals(selection.getTags)) {
           Nil
         } else {
+          val selectionJson = selection.toJson
+          val data = selectionJson.getJSONObject("data")
           data.put("tags", new JSONArray(newTags))
 
-          val derivedMeta = FileMetaData.deriveMeta(hash, data)
+          val derivedMeta = FileMetaData.deriveMeta(selection.getHash, data)
           cloudEngine.store(derivedMeta.createBlockContext, new ByteArrayInputStream(derivedMeta.getDataAsString.getBytes("UTF-8")))
           List(derivedMeta)
         }
     }.toList
 
     addAll(fmds)
-    pruneHistory(fmds)
+//    pruneHistory(fmds)
 
-    FileMetaData.toJsonArray(fmds)
+    fmds
   }
 
-  def ensure(selections: JSONArray, blockLevelCheck: Boolean) {
-    (0 until selections.length()).par.foreach{
-      i =>
-        val selection = selections.getJSONObject(i)
-        val fmd = FileMetaData.fromJson(selection)
-        val selectionData = selection.getJSONObject("data")
-        val thumbHash = if (selectionData.has("thumbHash")) Set(selectionData.getString("thumbHash")) else Set()
-        val hashes = Set(fmd.getHash) ++ (0 until fmd.getBlockHashes.length).map(fmd.getBlockHashes.getString) ++ thumbHash
+  def ensure(selections: Seq[FileMetaData], blockLevelCheck: Boolean) {
+    selections.par.foreach{
+      fmd =>
+        val hashes = Set(fmd.getHash) ++ fmd.getBlockHashes
         hashes.foreach{ hash =>
           if (!cloudEngine.ensure(fmd.createBlockContext(hash), blockLevelCheck)) {
             onMessage("%s: found incosistent block %s".format(fmd.getFilename, hash))
@@ -385,16 +380,14 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
   }
 
   // TODO: what about the meta.Parent chain? do we want to wipe out the entire chain?
-  def remove(selections: JSONArray) {
-    (0 until selections.length).par.foreach {
-      i =>
-        val fmd = FileMetaData.fromJson(selections.getJSONObject(i))
+  def remove(selections: Seq[FileMetaData]) {
+    selections.par.foreach {
+      fmd =>
         cloudEngine.remove(fmd.createBlockContext)
 
         // TODO: only delete if there are no other files referencing these blocks
         if (false) {
-          val blocks = fmd.getBlockHashes
-          (0 until blocks.length).foreach(j => cloudEngine.remove(fmd.createBlockContext(blocks.getString(j))))
+          fmd.getBlockHashes.foreach(blockHash => cloudEngine.remove(fmd.createBlockContext(blockHash)))
         }
 
          // TODO: we should only do this if we are sure the rest happened correctly (although at worst we could reindex)
@@ -402,8 +395,8 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     }
   }
 
-  def find(filter: JSONObject): JSONArray = {
-    val results: JSONArray = new JSONArray
+  def find(filter: JSONObject): Seq[FileMetaData] = {
+    val results = new ListBuffer[FileMetaData]
 
     var db: Connection = null
     var statement: PreparedStatement = null
@@ -481,7 +474,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
 
       val rs = statement.executeQuery
       while (rs.next) {
-        results.put(FileMetaData.create(rs.getString("HASH"), new JSONObject(rs.getString("RAWMETA"))).toJson)
+        results.append(FileMetaData.create(rs.getString("HASH"), new JSONObject(rs.getString("RAWMETA"))))
       }
     }
     catch {
@@ -492,6 +485,6 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
       SqlUtil.SafeClose(statement)
       SqlUtil.SafeClose(db)
     }
-    results
+    results.toList
   }
 }

@@ -98,14 +98,13 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
   }
 
   def containsAll(ctxs: Set[BlockContext]) : Map[BlockContext, Boolean] = {
-    val present = getDescription.intersect(ctxs)
-    val missing = ctxs -- present
-    // TODO: which way is faster? hashes.flatmap or this
-    Map() ++ present.par.flatMap(h => Map(h -> true)) ++ missing.par.flatMap(h => Map(h -> false))
+    if (_description == null) getDescription
+    Map() ++ ctxs.par.flatMap(ctx => Map(ctx -> _descriptionHashes.contains(ctx.hash)))
   }
 
-  override
-  def ensure(ctx: BlockContext, blockLevelCheck: Boolean): Boolean = wrappedAdapter.ensure(ctx, blockLevelCheck)
+  override def ensure(ctx: BlockContext, blockLevelCheck: Boolean): Boolean = {
+    wrappedAdapter.ensure(ctx, blockLevelCheck)
+  }
 
   def ensureAll(ctxs: Set[BlockContext], blockLevelCheck: Boolean): Map[BlockContext, Boolean] = {
     Map() ++ ctxs.par.flatMap{ ctx =>
@@ -118,7 +117,9 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
     addToDb(Set(ctx))
   }
 
-  def load(ctx: BlockContext): (InputStream, Int) = wrappedAdapter.load(ctx)
+  def load(ctx: BlockContext): (InputStream, Int) = {
+    wrappedAdapter.load(ctx)
+  }
 
   def removeAll(ctxs : Set[BlockContext]) : Map[BlockContext, Boolean] = {
     val result = wrappedAdapter.removeAll(ctxs)
@@ -127,9 +128,13 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
     result
   }
 
-  def describe(): Set[BlockContext] = getDescription.toSet
+  def describe(): Set[BlockContext] = {
+    getDescription.toSet
+  }
 
-  def describeHashes(): Set[String] = wrappedAdapter.describeHashes()
+  def describeHashes(): Set[String] = {
+    wrappedAdapter.describeHashes()
+  }
 
   private def addToDb(ctxs: Set[BlockContext]) {
     var db: Connection = null

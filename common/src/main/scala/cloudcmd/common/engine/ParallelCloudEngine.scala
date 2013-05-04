@@ -18,16 +18,16 @@ class ParallelCloudEngine(configService: ConfigStorage) extends CloudEngine {
     _adapters = configService.getAdapters
   }
 
-  def run {}
+  def run() {}
 
-  def shutdown {}
+  def shutdown() {}
 
   def filterAdapters(minTier: Int, maxTier: Int) {
     _adapters = configService.getAdapters.filter(a => a.Tier >= minTier && a.Tier <= maxTier && a.IsOnLine() && !a.IsFull()).toList
   }
 
   def describeMeta() : Set[BlockContext] = {
-    Set() ++ _adapters.par.flatMap(a => a.describe.filter(_.hash.endsWith(".meta")).toSet)
+    Set() ++ _adapters.par.flatMap(a => a.describe().filter(_.hash.endsWith(".meta")).toSet)
   }
 
   def getAdaptersAccepts(ctx: BlockContext) : List[Adapter] = {
@@ -43,11 +43,11 @@ class ParallelCloudEngine(configService: ConfigStorage) extends CloudEngine {
   }
 
   def describe() : Set[BlockContext] = {
-    Set() ++ _adapters.par.flatMap(a => a.describe.toSet)
+    Set() ++ _adapters.par.flatMap(a => a.describe().toSet)
   }
 
   def describeHashes() : Set[String] = {
-    Set() ++ _adapters.par.flatMap(a => a.describeHashes.toSet)
+    Set() ++ _adapters.par.flatMap(a => a.describeHashes().toSet)
   }
 
   override def contains(ctx: BlockContext) : Boolean = {

@@ -12,8 +12,6 @@ object Main {
   @SuppressWarnings(Array("unchecked"))
   def main(args: Array[String]) {
 
-    //collection.parallel.ForkJoinTasks.defaultForkJoinPool.setParallelism(2)
-
     var configRoot: String = FileUtil.findConfigDir(FileUtil.getCurrentWorkingDirectory, ".cld")
     if (configRoot == null) {
       configRoot = System.getenv("HOME") + File.separator + ".cld"
@@ -26,7 +24,7 @@ object Main {
     val queue = new SynchronousQueue[String]
 
     val msgPump: Thread = new Thread(new Runnable {
-      def run {
+      def run() {
         while (!event(0)) {
           try {
             val msg: String = queue.take
@@ -50,8 +48,8 @@ object Main {
 
       CloudServices.init(configRoot)
 
-      msgPump.start
-      CloudServices.CloudEngine.run
+      msgPump.start()
+      CloudServices.CloudEngine.run()
       val app: CommandSet = new CommandSet("cld")
       app.addSubCommands(classOf[Adapter])
       app.addSubCommands(classOf[Find])
@@ -68,9 +66,9 @@ object Main {
       app.invoke(args)
     }
     finally {
-      CloudServices.shutdown
+      CloudServices.shutdown()
       event(0) = true
-      msgPump.interrupt
+      msgPump.interrupt()
       msgPump.join()
     }
 

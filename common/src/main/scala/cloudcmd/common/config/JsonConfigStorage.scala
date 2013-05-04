@@ -46,8 +46,8 @@ class JsonConfigStorage extends ConfigStorage {
       }
     }
     catch {
-      case e: IOException => e.printStackTrace
-      case e: JSONException => e.printStackTrace
+      case e: IOException => e.printStackTrace()
+      case e: JSONException => e.printStackTrace()
     }
     config
   }
@@ -129,13 +129,13 @@ class JsonConfigStorage extends ConfigStorage {
     if (_allAdapters == null) return
     for (adapter <- _allAdapters) {
       try {
-        adapter.shutdown
+        adapter.shutdown()
       }
       catch {
         case e: Exception => {
           System.err.println("failed to shutdown adapter: " + adapter.Type)
           System.err.println("adapter config: " + adapter.URI)
-          e.printStackTrace
+          e.printStackTrace()
         }
       }
     }
@@ -149,7 +149,7 @@ class JsonConfigStorage extends ConfigStorage {
     }
     catch {
       case e: JSONException => {
-        e.printStackTrace
+        e.printStackTrace()
         null
       }
     }
@@ -161,7 +161,7 @@ class JsonConfigStorage extends ConfigStorage {
     }
     catch {
       case e: JSONException => {
-        e.printStackTrace
+        e.printStackTrace()
         -1
       }
     }
@@ -175,11 +175,11 @@ class JsonConfigStorage extends ConfigStorage {
       FileUtil.writeFile(configFile, _config.toString(2))
     }
     catch {
-      case e: JSONException => e.printStackTrace
+      case e: JSONException => e.printStackTrace()
     }
   }
 
-  private def rebuildConfig {
+  private def rebuildConfig() {
     _config.put("defaultTier", _defaultTier)
     val adapters = new JSONArray
     for (adapter <- _allAdapters) {
@@ -195,7 +195,7 @@ class JsonConfigStorage extends ConfigStorage {
       FileUtil.writeFile(configFile, _config.toString(2))
     }
     catch {
-      case e: JSONException => e.printStackTrace
+      case e: JSONException => e.printStackTrace()
     }
   }
 
@@ -227,7 +227,7 @@ class JsonConfigStorage extends ConfigStorage {
       _allAdapters = _allAdapters ++ List(adapter)
     }
     catch {
-      case e: ClassNotFoundException => e.printStackTrace
+      case e: ClassNotFoundException => e.printStackTrace()
     }
   }
 }

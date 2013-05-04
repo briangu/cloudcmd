@@ -15,21 +15,21 @@ trait IndexStorage extends EventSource  {
 
   def reindex()
 
-  def find(filter: JSONObject): JSONArray
+  def find(filter: JSONObject): Seq[FileMetaData]
 
   def add(fmd: FileMetaData)
 
-  def addAll(fmds: List[FileMetaData])
+  def addAll(fmds: Seq[FileMetaData])
 
   def remove(fmd: FileMetaData)
 
-  def pruneHistory(fmds: List[FileMetaData])
+  def pruneHistory(fmds: Seq[FileMetaData])
 
-  def get(fmds: JSONArray)
+  def get(fmds: Seq[FileMetaData])
 
-  def ensure(fmds: JSONArray, blockLevelCheck: Boolean)
+  def ensure(fmds: Seq[FileMetaData], blockLevelCheck: Boolean)
 
-  def remove(fmds: JSONArray)
+  def remove(fmds: Seq[FileMetaData])
 
-  def addTags(fmds: JSONArray, tags: Set[String]): JSONArray
+  def addTags(fmds: Seq[FileMetaData], tags: Set[String]): Seq[FileMetaData]
 }

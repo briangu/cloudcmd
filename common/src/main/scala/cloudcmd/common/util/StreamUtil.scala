@@ -2,7 +2,6 @@ package cloudcmd.common.util
 
 import java.io.{File, InputStream}
 import cloudcmd.common.FileUtil
-import cloudcmd.common.adapters.Adapter
 
 object StreamUtil {
   def spoolStream(is: InputStream): (String, File) = {

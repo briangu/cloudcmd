@@ -18,18 +18,18 @@ class Update extends Command {
     if (_uri == null) {
       System.err.println("updating all adapters")
       CloudServices.CloudEngine.filterAdapters(_minTier.intValue, _maxTier.intValue)
-      CloudServices.CloudEngine.refreshCache
+      CloudServices.CloudEngine.refreshCache()
     }
     else {
       val adapterURI: URI = new URI(_uri)
       for (adapter <- CloudServices.ConfigService.getAdapters) {
         if ((adapter.URI.toString == _uri) || ((adapterURI.getPath == adapter.URI.getPath))) {
           System.err.println("updating adapter: " + adapter.URI.toString)
-          adapter.refreshCache
+          adapter.refreshCache()
         }
       }
     }
     System.err.println("rebuilding index available adapters")
-    CloudServices.IndexStorage.reindex
+    CloudServices.IndexStorage.reindex()
   }
 }

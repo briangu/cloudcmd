@@ -19,7 +19,7 @@ class Tag extends Command {
 
     val is = if ((_inputFilePath != null)) new FileInputStream(new File(_inputFilePath)) else System.in
     try {
-      val selections = JsonUtil.loadJsonArray(is)
+      val selections = FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(is))
 
       var preparedTags = FileMetaData.prepareTags(_tags.toList)
       if (_remove) {
@@ -27,7 +27,7 @@ class Tag extends Command {
       }
 
       val newMeta = CloudServices.IndexStorage.addTags(selections, preparedTags.toSet)
-      System.out.println(newMeta.toString)
+      System.out.println(newMeta.toString())
     }
     finally {
       if (is ne System.in) FileUtil.SafeClose(is)

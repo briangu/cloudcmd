@@ -2,7 +2,7 @@ package cloudcmd.common.srv
 
 import org.jboss.netty.channel.{ChannelFutureListener, MessageEvent, ChannelHandlerContext}
 import org.jboss.netty.handler.codec.http._
-import java.io.{FileInputStream, ByteArrayInputStream, InputStream}
+import java.io.{FileInputStream, InputStream}
 import cloudcmd.common._
 import org.jboss.netty.buffer.ChannelBufferInputStream
 import org.jboss.netty.handler.codec.http.HttpHeaders._
@@ -11,13 +11,13 @@ import org.json.{JSONObject, JSONArray}
 import io.viper.common.ViperServer
 import io.viper.core.server.router._
 import cloudcmd.common.engine.IndexStorage
-import cloudcmd.common.util.{StreamUtil, JsonUtil}
+import cloudcmd.common.util.StreamUtil
 
 class StoreHandler(config: OAuthRouteConfig, route: String, cas: ContentAddressableStorage, indexStorage: IndexStorage) extends Route(route) {
 
   override
   def isMatch(request: HttpRequest) : Boolean = {
-    (super.isMatch(request) && request.getMethod().equals(HttpMethod.POST))
+    (super.isMatch(request) && request.getMethod.equals(HttpMethod.POST))
   }
 
   override
@@ -30,7 +30,7 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: ContentAddressa
     }
 
     val request = e.getMessage.asInstanceOf[org.jboss.netty.handler.codec.http.HttpRequest]
-    if (!super.isMatch(request) || !request.getMethod().equals(HttpMethod.POST)) {
+    if (!super.isMatch(request) || !request.getMethod.equals(HttpMethod.POST)) {
       ctx.sendUpstream(e)
       return
     }
@@ -38,7 +38,7 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: ContentAddressa
     val (isValid, session, args) = OAuthRestRoute.validate(config, request)
     val response = if (isValid) {
       import scala.collection.JavaConversions._
-      val path = RouteUtil.parsePath(request.getUri())
+      val path = RouteUtil.parsePath(request.getUri)
       val handlerArgs = args ++ RouteUtil.extractPathArgs(_route, path)
 
       var is: InputStream = null
@@ -80,7 +80,7 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: ContentAddressa
       response.setHeader(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE)
     }
 
-    val writeFuture = e.getChannel().write(response)
+    val writeFuture = e.getChannel.write(response)
     if (!isKeepAlive(request)) {
       writeFuture.addListener(ChannelFutureListener.CLOSE)
     }

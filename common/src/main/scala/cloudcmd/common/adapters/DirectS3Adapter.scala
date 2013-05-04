@@ -123,9 +123,7 @@ class DirectS3Adapter extends Adapter {
         try {
           val fmd = FileMetaData.create(hash, JsonUtil.loadJson(fis))
           ctxs.add(fmd.createBlockContext)
-          val blockHashes = fmd.getBlockHashes
-          (0 until blockHashes.length()).foreach{i =>
-            val blockHash = blockHashes.getString(i)
+          fmd.getBlockHashes.foreach{ blockHash =>
             if (hashes.contains(blockHash)) {
               ctxs.add(fmd.createBlockContext(blockHash))
               referencedBlockHashes.add(blockHash)

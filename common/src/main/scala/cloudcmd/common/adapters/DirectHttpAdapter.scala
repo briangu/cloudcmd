@@ -49,7 +49,7 @@ class DirectHttpAdapter extends Adapter {
     true
   }
 
-  def shutdown {
+  def shutdown() {
     asyncHttpClient.close()
   }
 

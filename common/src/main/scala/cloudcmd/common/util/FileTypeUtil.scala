@@ -20,10 +20,10 @@ object FileTypeUtil {
           }
           catch {
             case e: IOException => {
-              e.printStackTrace
+              e.printStackTrace()
             }
             case e: JSONException => {
-              e.printStackTrace
+              e.printStackTrace()
             }
           }
           _instance = ftu

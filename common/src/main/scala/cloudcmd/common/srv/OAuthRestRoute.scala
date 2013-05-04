@@ -25,11 +25,11 @@ import com.ning.http.client.FluentStringsMap
 */
 
 class OAuthSession(session: JSONObject) {
-  def getAppKey(): String = session.getString("key")
-  def getSecret(): String = session.getString("secret")
+  def getAppKey: String = session.getString("key")
+  def getSecret: String = session.getString("secret")
 
-  def getAsConsumerKey() : ConsumerKey = new ConsumerKey(getAppKey, getSecret)
-  def getAsRequestToken() : RequestToken = new RequestToken(getAppKey, getSecret)
+  def getAsConsumerKey : ConsumerKey = new ConsumerKey(getAppKey, getSecret)
+  def getAsRequestToken : RequestToken = new RequestToken(getAppKey, getSecret)
 
   def hasProperty(name: String): Boolean = session.has(name)
 }
@@ -65,7 +65,9 @@ class SimpleOAuthSessionService extends OAuthSessionService {
 
   def setSession(key: String, session: OAuthSession) = SimpleOAuthSessionService.sessions.put(key, session)
 
-  def deleteSession(key: String) = SimpleOAuthSessionService.sessions.remove(key)
+  def deleteSession(key: String) {
+    SimpleOAuthSessionService.sessions.remove(key)
+  }
 }
 
 class OAuthRouteConfig(val baseHostPort: String, val sessions: OAuthSessionService) {}
@@ -156,8 +158,8 @@ object OAuthRestRoute {
     val map = new FluentStringsMap()
     if (request.getMethod == HttpMethod.POST || request.getMethod == HttpMethod.PUT) {
       if (request.getHeader("x-streampost") == null) {
-        val content = request.getContent()
-        if (content.hasArray()) {
+        val content = request.getContent
+        if (content.hasArray) {
           val body = content.array()
           val contentLengthHeader = request.getHeader(HttpHeaders.Names.CONTENT_LENGTH)
           val contentLength = if (contentLengthHeader != null) contentLengthHeader.toInt else body.length
@@ -178,7 +180,7 @@ class OAuthRestRoute(route: String, handler: OAuthRouteHandler, method: HttpMeth
 
   override
   def isMatch(request: HttpRequest) : Boolean = {
-    (super.isMatch(request) && request.getMethod().equals(method))
+    (super.isMatch(request) && request.getMethod.equals(method))
   }
 
   override
@@ -189,7 +191,7 @@ class OAuthRestRoute(route: String, handler: OAuthRouteHandler, method: HttpMeth
     }
 
     val request = e.asInstanceOf[MessageEvent].getMessage.asInstanceOf[HttpRequest]
-    if (!super.isMatch(request) || !request.getMethod().equals(method)) {
+    if (!super.isMatch(request) || !request.getMethod.equals(method)) {
       super.handleUpstream(ctx, e)
       return
     }
@@ -198,7 +200,7 @@ class OAuthRestRoute(route: String, handler: OAuthRouteHandler, method: HttpMeth
 
     val response = if (isValid) {
       try {
-        val path = RouteUtil.parsePath(request.getUri())
+        val path = RouteUtil.parsePath(request.getUri)
 
         import scala.collection.JavaConversions._
         val handlerArgs = args ++ RouteUtil.extractPathArgs(_route, path)
@@ -206,12 +208,12 @@ class OAuthRestRoute(route: String, handler: OAuthRouteHandler, method: HttpMeth
         val routeResponse = handler.exec(session, handlerArgs)
         if (routeResponse.HttpResponse == null) {
           val response = new DefaultHttpResponse(HTTP_1_1, HttpResponseStatus.OK)
-          response.setContent(wrappedBuffer("{\"status\": true}".getBytes()))
+          response.setContent(wrappedBuffer("{\"status\": true}".getBytes))
           response
         } else {
           val response = routeResponse.HttpResponse
           if (response.getHeader(HttpHeaders.Names.CONTENT_LENGTH) == null) {
-            setContentLength(response, response.getContent().readableBytes())
+            setContentLength(response, response.getContent.readableBytes())
           }
           if (isKeepAlive(request)) {
             response.setHeader(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.KEEP_ALIVE)
@@ -233,7 +235,7 @@ class OAuthRestRoute(route: String, handler: OAuthRouteHandler, method: HttpMeth
   }
 
   def writeResponse(request: HttpRequest, response: HttpResponse, e: ChannelEvent) : ChannelFuture = {
-    val writeFuture = e.getChannel().write(response)
+    val writeFuture = e.getChannel.write(response)
     if (response.getStatus != HttpResponseStatus.OK || !isKeepAlive(request)) {
       writeFuture.addListener(ChannelFutureListener.CLOSE)
     }
@@ -244,7 +246,7 @@ class OAuthRestRoute(route: String, handler: OAuthRouteHandler, method: HttpMeth
     val writeFuture = writeResponse(request, routeResponse.HttpResponse, e)
     writeFuture.addListener(new ChannelFutureListener {
       def operationComplete(channelFuture: ChannelFuture) {
-        routeResponse.dispose
+        routeResponse.dispose()
       }
     })
   }

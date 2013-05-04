@@ -32,11 +32,11 @@ class DirectFileAdapter extends Adapter {
     if (IsOnLine()) bootstrap(_dataDir)
   }
 
-  def shutdown {}
+  def shutdown() {}
 
   override def IsFull(): Boolean = new File(_rootPath).getUsableSpace < MIN_FREE_STORAGE_SIZE
 
-  def refreshCache {}
+  def refreshCache() {}
 
   def containsAll(ctxs: Set[BlockContext]): Map[BlockContext, Boolean] = {
     Map() ++ ctxs.par.flatMap( ctx => Map(ctx -> new File(getDataFileFromHash(ctx.hash)).exists()))
@@ -86,12 +86,12 @@ class DirectFileAdapter extends Adapter {
     (RandomAccessFileInputStream.create(file), file.length.toInt)
   }
 
-  def describe: Set[BlockContext] = {
+  def describe(): Set[BlockContext] = {
     val ctxs = new mutable.HashSet[BlockContext] with mutable.SynchronizedSet[BlockContext]
 
     FileWalker.enumerateFolders(_dataDir, new FileWalker.FileHandler {
       def skipDir(file: File): Boolean = false
-      def process(file: File) = {
+      def process(file: File) {
         val hash = file.getName
         if (hash.endsWith(".meta")) {
           val fis = new FileInputStream(file)
@@ -104,9 +104,7 @@ class DirectFileAdapter extends Adapter {
               ctxs.add(fmd.createBlockContext(thumbHash))
             }
 
-            val blockHashes = fmd.getBlockHashes
-            (0 until blockHashes.length()).foreach{i =>
-              val blockHash = blockHashes.getString(i)
+            fmd.getBlockHashes.foreach{ blockHash =>
               if (new File(getDataFileFromHash(blockHash)).exists) {
                 ctxs.add(fmd.createBlockContext(blockHash))
               }
@@ -121,11 +119,13 @@ class DirectFileAdapter extends Adapter {
     ctxs.toSet
   }
 
-  def describeHashes: Set[String] = {
+  def describeHashes(): Set[String] = {
     val hashes = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
     FileWalker.enumerateFolders(_dataDir, new FileWalker.FileHandler {
       def skipDir(file: File): Boolean = false
-      def process(file: File) = hashes.add(file.getName)
+      def process(file: File) {
+        hashes.add(file.getName)
+      }
     })
     hashes.toSet
   }

@@ -1,20 +1,19 @@
 package cloudcmd.common.util
 
 import java.io.File
-import java.util.Stack
 
 object FileWalker {
-  def enumerateFolders(startFolder: String, handler: FileWalker.FileHandler) {
-    val rootDir = new File(startFolder)
+  def enumerateFolders(directory: String, handler: FileWalker.FileHandler) {
+    val rootDir = new File(directory)
     if (!rootDir.exists) {
-      throw new IllegalArgumentException("file does not exist: " + startFolder)
+      throw new IllegalArgumentException("directory does not exist: " + directory)
     }
 
-    val stack = new Stack[File]
+    val stack = new collection.mutable.Stack[File]
     stack.push(rootDir)
 
     while (!stack.isEmpty) {
-      val curFile = stack.pop
+      val curFile = stack.pop()
       val subFiles = curFile.listFiles
       if (subFiles != null) {
         val toPush = List() ++ subFiles.par.flatMap {
@@ -37,8 +36,6 @@ object FileWalker {
 
   trait FileHandler {
     def skipDir(file: File): Boolean
-
     def process(file: File)
   }
-
 }

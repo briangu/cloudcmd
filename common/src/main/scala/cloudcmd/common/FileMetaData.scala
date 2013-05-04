@@ -10,6 +10,17 @@ object FileMetaData {
     create(serialized.getString("hash"), serialized.getJSONObject("data"))
   }
 
+  def fromJsonArray(arr: JSONArray): Seq[FileMetaData] = {
+    val arr = JsonUtil.loadJsonArray(System.in)
+    (0 until arr.length()).map(i => FileMetaData.fromJson(arr.getJSONObject(i)))
+  }
+
+  def toJsonArray(meta: Seq[FileMetaData]): JSONArray = {
+    val result = new JSONArray
+    meta.foreach(m => result.put(m.toJson))
+    result
+  }
+
   def create(hash: String, data: JSONObject): FileMetaData = {
     val meta: FileMetaData = new FileMetaData
     meta._data = data
@@ -35,12 +46,6 @@ object FileMetaData {
         "blocks", JsonUtil.toJsonArray(blockHashes),
         "tags", JsonUtil.toJsonArray(tags),
         "properties", if (properties.length > 0) properties else null))
-  }
-
-  def toJsonArray(meta: List[FileMetaData]): JSONArray = {
-    val result = new JSONArray
-    meta.foreach(m => result.put(m.toJson))
-    result
   }
 
   def deriveMeta(hash: String, data: JSONObject): FileMetaData = {
@@ -74,15 +79,18 @@ object FileMetaData {
 
 class FileMetaData {
   override def hashCode: Int = {
+    // TODO: this is incomplete
     _hash.hashCode
   }
 
   override def equals(other: Any): Boolean = {
+    // TODO: this is incomplete
     _hash.equals(other)
   }
 
-  def getBlockHashes: JSONArray = {
-    _data.getJSONArray("blocks")
+  def getBlockHashes: Seq[String] = {
+    val blocks = _data.getJSONArray("blocks")
+    (0 until blocks.length).map(blocks.getString)
   }
 
   def getThumbHash: String = {
@@ -152,9 +160,9 @@ class FileMetaData {
     createBlockContext(getHash)
   }
 
-  def hasProperties() : Boolean = _data.has("properties")
+  def hasProperties : Boolean = _data.has("properties")
 
-  def getProperties() : JSONObject = _data.getJSONObject("properties")
+  def getProperties : JSONObject = _data.getJSONObject("properties")
 
   def hasProperty(name: String) : Boolean = {
     hasProperties && getProperties.has(name)

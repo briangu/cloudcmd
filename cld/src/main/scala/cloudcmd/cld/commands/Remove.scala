@@ -7,6 +7,7 @@ import jpbetz.cli.Opt
 import jpbetz.cli.SubCommand
 import org.json.JSONArray
 import cloudcmd.cld.CloudServices
+import cloudcmd.common.FileMetaData
 
 @SubCommand(name = "remove", description = "Remove files from storage.")
 class Remove extends Command {
@@ -15,8 +16,7 @@ class Remove extends Command {
   @Opt(opt = "m", longOpt = "maxTier", description = "max tier to verify to", required = false) private var _maxTier: Number = Integer.MAX_VALUE
 
   def exec(commandLine: CommandContext) {
-    val selections: JSONArray = JsonUtil.loadJsonArray(System.in)
     CloudServices.CloudEngine.filterAdapters(_minTier.intValue, _maxTier.intValue)
-    CloudServices.IndexStorage.remove(selections)
+    CloudServices.IndexStorage.remove(FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in)))
   }
 }

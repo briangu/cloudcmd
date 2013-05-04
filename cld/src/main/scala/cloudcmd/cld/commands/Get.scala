@@ -1,6 +1,6 @@
 package cloudcmd.cld.commands
 
-import cloudcmd.common.FileUtil
+import cloudcmd.common.{FileMetaData, FileUtil}
 import cloudcmd.common.util.JsonUtil
 import jpbetz.cli.Command
 import jpbetz.cli.CommandContext
@@ -28,18 +28,17 @@ class Get extends Command {
   @Opt(opt = "u", longOpt = "unique", description = "only retrieve unique files", required = false) private var _uniqueOnly: Boolean = false
 
   def exec(commandLine: CommandContext) {
-    var selections: JSONArray = null
+    var selections: Seq[FileMetaData] = null
+
     if (_pullAll) {
       selections = CloudServices.IndexStorage.find(new JSONObject)
-    }
-    else {
+    } else {
       var is: InputStream = null
       try {
         is = if ((_inputFilePath != null)) new FileInputStream(new File(_inputFilePath)) else System.in
-        selections = JsonUtil.loadJsonArray(is)
-      }
-      finally {
-        if (is ne System.in) is.close
+        FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in))
+      } finally {
+        if (is ne System.in) is.close()
       }
     }
     if (_removePaths) removePaths(selections)
@@ -50,43 +49,34 @@ class Get extends Command {
     if (!_dryrun) {
       CloudServices.CloudEngine.filterAdapters(_minTier.intValue, _maxTier.intValue)
       CloudServices.IndexStorage.get(selections)
-    }
-    else {
-      System.out.print(selections.toString)
+    } else {
+      System.out.println(FileMetaData.toJsonArray(selections).toString)
     }
   }
 
-  private def removeDuplicates(selections: JSONArray): JSONArray = {
-    val dedupMap = new mutable.HashMap[String, JSONObject]()
-    (0 until selections.length()).foreach{ i =>
-      val data: JSONObject = selections.getJSONObject(i).getJSONObject("data")
-      val blocks: JSONArray = data.getJSONArray("blocks")
-      val sb = new mutable.StringBuilder()
-      (0 until blocks.length()).foreach{ j => sb.append(blocks.getString(j)) }
-      dedupMap.put(sb.toString(), selections.getJSONObject(i))
+  private def removeDuplicates(selections: Seq[FileMetaData]): Seq[FileMetaData] = {
+    val dedupMap = new mutable.HashMap[Seq[String], FileMetaData]()
+    selections.foreach{ selection =>
+      dedupMap.put(selection.getBlockHashes, selection)
     }
-    val result = new JSONArray()
-    dedupMap.values.map(obj => result.put(obj))
-    if (result.length() < selections.length()) {
-      println("removed %d duplicates".format(selections.length() - result.length()))
+    val result = dedupMap.values.toSeq
+    if (result.size < selections.length) {
+      println("removed %d duplicates".format(selections.length - result.size))
     }
     result
   }
 
-  private def removePaths(selections: JSONArray) {
-    (0 until selections.length()).foreach{ i =>
-      val data: JSONObject = selections.getJSONObject(i).getJSONObject("data")
-      val path: String = data.getString("path")
-      data.put("path", new File(path).getName)
+  private def removePaths(selections: Seq[FileMetaData]) {
+    selections.foreach{ selection =>
+      selection.getRawData.put("path", new File(selection.getRawData.getString("path")).getName)
     }
   }
 
-  private def prefixPaths(prefix: String, selections: JSONArray) {
-    (0 until selections.length()).foreach{ i =>
-      val data: JSONObject = selections.getJSONObject(i).getJSONObject("data")
-      var path: String = data.getString("path")
+  private def prefixPaths(prefix: String, selections: Seq[FileMetaData]) {
+    selections.foreach{ selection =>
+      var path: String = selection.getRawData.getString("path")
       path = prefix + (if (path.startsWith(File.separator)) path else File.separator + path)
-      data.put("path", path)
+      selection.getRawData.put("path", path)
     }
   }
 }

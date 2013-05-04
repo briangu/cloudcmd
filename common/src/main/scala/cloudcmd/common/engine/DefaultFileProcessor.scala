@@ -1,7 +1,7 @@
 package cloudcmd.common.engine
 
-import java.io.{ByteArrayOutputStream, ByteArrayInputStream, FileInputStream, File}
-import cloudcmd.common.{RandomAccessFileInputStream, BlockContext, FileMetaData, FileUtil}
+import java.io.{ByteArrayOutputStream, ByteArrayInputStream, File}
+import cloudcmd.common.{RandomAccessFileInputStream, FileMetaData, FileUtil}
 import cloudcmd.common.util.{JsonUtil, FileTypeUtil, CryptoUtil}
 import cloudcmd.common.config.ConfigStorage
 import org.json.JSONObject
