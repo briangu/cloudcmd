@@ -22,12 +22,12 @@ class Adapter extends Command {
         return
       }
       val uri: URI = new URI(_uri)
-      val found: Boolean = CloudServices.ConfigService.removeAdapter(uri)
+      val found = CloudServices.ConfigService.removeAdapter(uri)
       if (!found) {
         System.err.println("could not find adapter to remove: " + uri)
         return
       }
-      CloudServices.ConfigService.writeConfig
+      CloudServices.ConfigService.writeConfig()
     }
     else if (_add) {
       if (_uri == null) {
@@ -36,7 +36,7 @@ class Adapter extends Command {
       }
       val uri: URI = new URI(_uri)
       CloudServices.ConfigService.addAdapter(uri)
-      CloudServices.ConfigService.writeConfig
+      CloudServices.ConfigService.writeConfig()
     }
     else if (_dumpUri != null) {
       val uri: URI = new URI(_dumpUri)

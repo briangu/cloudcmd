@@ -214,7 +214,12 @@ class JsonConfigStorage extends ConfigStorage {
   }
 
   def removeAdapter(uri: URI): Boolean = {
-    false
+    val adapter = loadAdapter(uri)
+    val contains = _allAdapters.contains(adapter)
+    if (contains) {
+      _allAdapters = _allAdapters.diff(List(adapter))
+    }
+    contains
   }
 
   def getAdapters: List[Adapter] = {

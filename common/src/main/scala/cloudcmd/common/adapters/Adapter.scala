@@ -37,4 +37,12 @@ trait Adapter extends ContentAddressableStorage {
     if (KeepTags.size == 0) return true
     KeepTags.intersect(ctx.routingTags).size > 0
   }
+
+  override def hashCode: Int = {
+    URI.hashCode()
+  }
+
+  override def equals(obj: Any): Boolean = {
+    obj.isInstanceOf[Adapter] && obj.asInstanceOf[Adapter].URI.equals(URI)
+  }
 }
