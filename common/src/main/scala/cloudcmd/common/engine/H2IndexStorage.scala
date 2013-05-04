@@ -39,12 +39,12 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     _cp = JdbcConnectionPool.create(createConnectionString, "sa", "sa")
     val file: File = new File(getDbFile + ".h2.db")
     if (!file.exists) {
-      purge
+      purge()
     }
   }
 
-  def shutdown {
-    flush
+  def shutdown() {
+    flush()
     if (_cp != null) {
       FullText.closeAll()
       _cp.dispose()
@@ -79,7 +79,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     FullTextLucene.createIndex(db, "PUBLIC", "FILE_INDEX", "PATH,FILENAME,FILEEXT,TAGS")
   }
 
-  def purge {
+  def purge() {
     var db: Connection = null
     try {
       db = getDbConnection
@@ -94,7 +94,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
       SqlUtil.SafeClose(db)
     }
 
-    shutdown
+    shutdown()
 
     Class.forName("org.h2.fulltext.FullTextLucene")
 
@@ -109,7 +109,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
     bootstrapDb()
   }
 
-  def flush {}
+  def flush() {}
 
   private val fields = List("HASH", "PATH", "FILENAME", "FILEEXT", "FILESIZE", "FILEDATE", "CREATEDDATE", "TAGS", "PROPERTIES__OWNERID", "RAWMETA")
   private val addMetaSql = "MERGE INTO FILE_INDEX (%s) VALUES (%s)".format(fields.mkString(","), StringUtil.joinRepeat(fields.size, "?", ","))
@@ -268,7 +268,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
   }
 
   def reindex() {
-    purge
+    purge()
 
     val fmds = cloudEngine.describeMeta().par.flatMap {
       ctx =>
@@ -334,7 +334,7 @@ class H2IndexStorage(cloudEngine: CloudEngine) extends IndexStorage with EventSo
 
       if (!success) {
         retries -= 1
-        cloudEngine.ensure(fmd.createBlockContext(blockHash), true)
+        cloudEngine.ensure(fmd.createBlockContext(blockHash), blockLevelCheck = true)
         if (!cloudEngine.contains(fmd.createBlockContext(blockHash))) {
           onMessage("giving up on %s, block %s not currently available!".format(fmd.getFilename, blockHash))
           retries = 0
