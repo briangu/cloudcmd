@@ -125,7 +125,7 @@ class JsonConfigStorage extends ConfigStorage {
     _isDebug = loadDebug(_config)
   }
 
-  def shutdown {
+  def shutdown() {
     if (_allAdapters == null) return
     for (adapter <- _allAdapters) {
       try {
@@ -188,8 +188,8 @@ class JsonConfigStorage extends ConfigStorage {
     _config.put("adapters", adapters)
   }
 
-  def writeConfig {
-    rebuildConfig
+  def writeConfig() {
+    rebuildConfig()
     val configFile = getConfigFile(_configRoot)
     try {
       FileUtil.writeFile(configFile, _config.toString(2))

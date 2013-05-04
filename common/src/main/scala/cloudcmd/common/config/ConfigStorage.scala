@@ -7,7 +7,7 @@ import java.net.URI
 trait ConfigStorage {
   def init(configRoot: String)
 
-  def shutdown
+  def shutdown()
 
   def getConfigRoot: String
 
@@ -25,7 +25,7 @@ trait ConfigStorage {
 
   def createDefaultConfig(path: String)
 
-  def writeConfig
+  def writeConfig()
 
   def getAdapter(adapterURI: URI): Adapter
 
