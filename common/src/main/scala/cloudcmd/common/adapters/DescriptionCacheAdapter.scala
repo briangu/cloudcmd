@@ -12,6 +12,8 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
 
   private val log = Logger.getLogger(classOf[DescriptionCacheAdapter])
 
+  def IsOnline:Boolean = wrappedAdapter.IsOnLine
+
   private val BATCH_SIZE = 1024
   
   protected var _rootPath: String = null
@@ -19,7 +21,6 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
   private var _description: mutable.HashSet[BlockContext] with mutable.SynchronizedSet[BlockContext] = null
   private var _descriptionHashes: mutable.HashSet[String] with mutable.SynchronizedSet[String] = null
   protected var _dbDir: String = null
-  protected var _dataDir: String = null
 
   private def getDbFileName(dbPath: String): String = "%s%sindex".format(dbPath, File.separator)
   private def createConnectionString(dbPath: String): String = "jdbc:h2:%s".format(getDbFileName(dbPath))
@@ -32,13 +33,11 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
     if (_rootPath.length == 0) _rootPath = ConfigDir
     _dbDir = _rootPath + File.separator + "db"
     _configDir = _dbDir
-    _dataDir = _rootPath + File.separator + "data"
-    val rootPathDir: File = new File(_rootPath)
-    rootPathDir.mkdirs
-    _isOnline = rootPathDir.exists
-    if (_isOnline) bootstrap(_dataDir, _dbDir)
+    new File(_dbDir).mkdirs
 
     wrappedAdapter.init(configDir, tier, adapterType, tags, config)
+
+    if (wrappedAdapter.IsOnLine) bootstrap(_configDir, _dbDir)
   }
 
   def shutdown() {

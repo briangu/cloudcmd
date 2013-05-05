@@ -16,26 +16,22 @@ class DirectFileAdapter extends Adapter {
   val MIN_FREE_STORAGE_SIZE: Int = 1024 * 1024
   val LARGE_FILE_CUTOFF: Int = 128 * 1024 * 1024
 
-  private var _rootPath: String = null
-  private var _dbDir: String = null
   private var _dataDir: String = null
 
   override def init(configDir: String, tier: Int, adapterType: String, tags: Set[String], config: URI) {
     super.init(configDir, tier, adapterType, tags, config)
-    _rootPath = URI.getPath
-    _dbDir = _rootPath + File.separator + "db"
-    _configDir = _dbDir
-    _dataDir = _rootPath + File.separator + "data"
-    val rootPathDir = new File(_rootPath)
-    rootPathDir.mkdirs
-    _isOnline = rootPathDir.exists
+    _configDir = configDir
+    _dataDir = URI.getPath + File.separator + "data"
+    val dataPathDir = new File(_dataDir)
+    dataPathDir.mkdirs
+    _isOnline = dataPathDir.exists
     if (IsOnLine) bootstrap(_dataDir)
   }
 
   def shutdown() {}
 
   override def IsFull: Boolean = {
-    new File(_rootPath).getUsableSpace < MIN_FREE_STORAGE_SIZE
+    new File(_dataDir).getUsableSpace < MIN_FREE_STORAGE_SIZE
   }
 
   def refreshCache() {}
@@ -52,8 +48,7 @@ class DirectFileAdapter extends Adapter {
     }
   }
 
-  override
-  def ensure(ctx: BlockContext, blockLevelCheck: Boolean) : Boolean = {
+  override def ensure(ctx: BlockContext, blockLevelCheck: Boolean) : Boolean = {
     val file = new File(getDataFileFromHash(ctx.hash))
     val valid = if (blockLevelCheck) {
       if (file.exists) {
