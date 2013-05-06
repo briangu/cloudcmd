@@ -9,6 +9,8 @@ import cloudcmd.cld.CloudServices
 class Find extends Command {
 
   @Arg(name = "tags", optional = true, isVararg = true) private var _tags: java.util.List[String] = null
+  @Opt(opt = "n", longOpt = "minTier", description = "min tier to verify to", required = false) private var _minTier: Number = 0
+  @Opt(opt = "m", longOpt = "maxTier", description = "max tier to verify to", required = false) private var _maxTier: Number = Integer.MAX_VALUE
   @Opt(opt = "p", longOpt = "path", description = "path to find by", required = false) private var _path: String = null
   @Opt(opt = "f", longOpt = "name", description = "filename to find by", required = false) private var _filename: String = null
   @Opt(opt = "h", longOpt = "hash", description = "hash to find by", required = false) private var _hash: String = null
@@ -18,6 +20,8 @@ class Find extends Command {
   @Opt(opt = "u", longOpt = "uri", description = "adapter URI", required = false) private var _uri: String = null
 
   def exec(commandLine: CommandContext) {
+    CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
+
     val filter = new JSONObject
     if (_tags != null) {
       import scala.collection.JavaConversions._

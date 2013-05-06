@@ -12,7 +12,7 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
 
   private val log = Logger.getLogger(classOf[DescriptionCacheAdapter])
 
-  def IsOnline:Boolean = wrappedAdapter.IsOnLine
+  override def IsOnLine: Boolean = wrappedAdapter.IsOnLine
 
   private val BATCH_SIZE = 1024
   
@@ -37,7 +37,7 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
 
     wrappedAdapter.init(configDir, tier, adapterType, tags, config)
 
-    if (wrappedAdapter.IsOnLine) bootstrap(_configDir, _dbDir)
+    if (IsOnLine) bootstrap(_configDir, _dbDir)
   }
 
   def shutdown() {

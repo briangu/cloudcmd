@@ -13,8 +13,12 @@ class Tag extends Command {
   @Arg(name = "tags", optional = false, isVararg = true) var _tags: java.util.List[String] = null
   @Opt(opt = "r", longOpt = "remove", description = "remove tags", required = false) var _remove: Boolean = false
   @Opt(opt = "i", longOpt = "input", description = "input file", required = false) private var _inputFilePath: String = null
+  @Opt(opt = "n", longOpt = "minTier", description = "min tier to verify to", required = false) private var _minTier: Number = 0
+  @Opt(opt = "m", longOpt = "maxTier", description = "max tier to verify to", required = false) private var _maxTier: Number = Integer.MAX_VALUE
 
   def exec(commandLine: CommandContext) {
+    CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
+
     import scala.collection.JavaConversions._
 
     val is = if ((_inputFilePath != null)) new FileInputStream(new File(_inputFilePath)) else System.in

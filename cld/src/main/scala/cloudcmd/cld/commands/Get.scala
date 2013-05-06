@@ -28,8 +28,10 @@ class Get extends Command {
   @Opt(opt = "u", longOpt = "uri", description = "adapter URI", required = false) private var _uri: String = null
 
   def exec(commandLine: CommandContext) {
-    var selections: Seq[FileMetaData] = null
 
+    CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
+
+    var selections: Seq[FileMetaData] = null
     if (_pullAll) {
       selections = CloudServices.IndexStorage.find(new JSONObject)
     } else {
@@ -47,7 +49,6 @@ class Get extends Command {
     if (_uniqueOnly) selections = removeDuplicates(selections)
     prefixPaths(_outdir, selections)
     if (!_dryrun) {
-      CloudServices.CloudEngine.filterAdapters(_minTier.intValue, _maxTier.intValue)
       CloudServices.IndexStorage.get(selections)
     } else {
       System.out.println(FileMetaData.toJsonArray(selections).toString)

@@ -15,14 +15,15 @@ class Update extends Command {
   @Opt(opt = "u", longOpt = "uri", description = "adapter URI", required = false) private var _uri: String = null
 
   def exec(commandLine: CommandContext) {
+    CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
+
     if (_uri == null) {
       System.err.println("updating all adapters")
-      CloudServices.CloudEngine.filterAdapters(_minTier.intValue, _maxTier.intValue)
-      CloudServices.CloudEngine.refreshCache()
+      CloudServices.BlockStorage.refreshCache()
     }
     else {
       val adapterURI: URI = new URI(_uri)
-      for (adapter <- CloudServices.ConfigService.getAdapters) {
+      for (adapter <- CloudServices.ConfigService.getFilteredAdapters) {
         if ((adapter.URI.toString == _uri) || ((adapterURI.getPath == adapter.URI.getPath))) {
           System.err.println("updating adapter: " + adapter.URI.toString)
           adapter.refreshCache()

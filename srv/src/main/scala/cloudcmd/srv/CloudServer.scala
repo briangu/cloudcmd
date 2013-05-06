@@ -30,9 +30,9 @@ object CloudServer {
     try {
       val baseHostPort = "http://%s:%d".format(ipAddress, port)
       val apiConfig = new OAuthRouteConfig(baseHostPort, SimpleOAuthSessionService.instance)
-      NestServer.run(8080, new CloudServer(CloudServices.CloudEngine, CloudServices.IndexStorage, apiConfig))
+      NestServer.run(8080, new CloudServer(CloudServices.BlockStorage, CloudServices.IndexStorage, apiConfig))
     } finally {
-      CloudServices.shutdown
+      CloudServices.shutdown()
     }
   }
 }

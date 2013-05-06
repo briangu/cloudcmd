@@ -37,19 +37,11 @@ object Main {
       }
     })
 
-    val startTime: Long = System.currentTimeMillis
-
     try {
-      val listener: Main.Listener = new Main.Listener(queue)
-      CloudServices.ConfigService.getReplicationStrategy.registerListener(listener)
-      CloudServices.CloudEngine.registerListener(listener)
-      CloudServices.IndexStorage.registerListener(listener)
-      CloudServices.FileProcessor.registerListener(listener)
-
-      CloudServices.init(configRoot)
+      CloudServices.setListener(new Main.Listener(queue))
+      CloudServices.setConfigRoot(configRoot)
 
       msgPump.start()
-      CloudServices.CloudEngine.run()
       val app: CommandSet = new CommandSet("cld")
       app.addSubCommands(classOf[Adapter])
       app.addSubCommands(classOf[Find])

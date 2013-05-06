@@ -15,7 +15,11 @@ trait ConfigStorage {
 
   def getPropertyAsInt(key: String): Int
 
-  def getAdapters: List[Adapter]
+  def setAdapterTierRange(minTier: Int, maxTier: Int)
+
+  def getAllAdapters: List[Adapter]
+
+  def getFilteredAdapters: List[Adapter]
 
   def addAdapter(adapterUri: URI)
 
@@ -30,7 +34,7 @@ trait ConfigStorage {
   def findAdapterByBestMatch(id: String): Option[Adapter] = {
     var maxMatchLength = 0
     var maxMatchAdapter: Option[Adapter] = None
-    for (adapter <- getAdapters) {
+    for (adapter <- getAllAdapters) {
       val adapterUri = adapter.URI.toASCIIString
       if (id.length <= adapterUri.length) {
         var idx = 0

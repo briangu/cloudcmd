@@ -19,12 +19,11 @@ class DirectFileAdapter extends Adapter {
   private var _dataDir: String = null
 
   override def init(configDir: String, tier: Int, adapterType: String, tags: Set[String], config: URI) {
-    super.init(configDir, tier, adapterType, tags, config)
-    _configDir = configDir
-    _dataDir = URI.getPath + File.separator + "data"
-    val dataPathDir = new File(_dataDir)
-    dataPathDir.mkdirs
-    _isOnline = dataPathDir.exists
+    super.init(config.getPath, tier, adapterType, tags, config)
+    _dataDir = _configDir + File.separator + "data"
+    val rootPathDir = new File(_configDir)
+    rootPathDir.mkdirs
+    _isOnline = rootPathDir.exists
     if (IsOnLine) bootstrap(_dataDir)
   }
 

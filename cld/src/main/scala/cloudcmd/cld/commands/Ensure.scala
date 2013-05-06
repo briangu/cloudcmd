@@ -18,15 +18,16 @@ class Ensure extends Command {
 
   def exec(commandLine: CommandContext) {
 
+    CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
+
     val selections = if (_syncAll) {
-      val metaHashes = CloudServices.CloudEngine.describe().filter(_.isMeta())
-      metaHashes.par.map{ ctx => FileMetaData.create(ctx.hash, JsonUtil.loadJson(CloudServices.CloudEngine.load(ctx)._1)) }.toList
+      val metaHashes = CloudServices.BlockStorage.describe().filter(_.isMeta())
+      metaHashes.par.map{ ctx => FileMetaData.create(ctx.hash, JsonUtil.loadJson(CloudServices.BlockStorage.load(ctx)._1)) }.toList
     } else {
       FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in))
     }
 
     System.err.println("syncing %d files".format(selections.length))
-    CloudServices.CloudEngine.filterAdapters(_minTier.intValue, _maxTier.intValue)
     CloudServices.IndexStorage.ensure(selections, _blockLevelCheck)
     System.err.println("rebuilding file search index...")
     CloudServices.IndexStorage.reindex()

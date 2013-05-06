@@ -44,7 +44,7 @@ class Adapter extends Command {
   def list() {
     System.out.println("Adapters:")
     System.out.println()
-    for (adapter <- CloudServices.ConfigService.getAdapters) {
+    for (adapter <- CloudServices.ConfigService.getAllAdapters) {
       System.out.println("Adapter: " + adapter.Type)
       System.out.println("  URI: " + adapter.URI.toString)
       System.out.println("  ConfigDir: " + adapter.ConfigDir)

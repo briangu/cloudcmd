@@ -1,7 +1,7 @@
 package cloudcmd.common.engine
 
 import java.io.{ByteArrayOutputStream, ByteArrayInputStream, File}
-import cloudcmd.common.{RandomAccessFileInputStream, FileMetaData, FileUtil}
+import cloudcmd.common.{ContentAddressableStorage, RandomAccessFileInputStream, FileMetaData, FileUtil}
 import cloudcmd.common.util.{JsonUtil, FileTypeUtil, CryptoUtil}
 import cloudcmd.common.config.ConfigStorage
 import org.json.JSONObject
@@ -10,7 +10,7 @@ import org.apache.log4j.Logger
 import com.thebuzzmedia.imgscalr.{Scalr, AsyncScalr}
 import java.util.Date
 
-class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngine, indexStorage: IndexStorage, thumbWidth: Int, thumbHeight: Int) extends FileProcessor {
+class DefaultFileProcessor(configStorage: ConfigStorage, cas: ContentAddressableStorage, indexStorage: IndexStorage, thumbWidth: Int, thumbHeight: Int) extends FileProcessor {
 
   private val log = Logger.getLogger(classOf[DefaultFileProcessor])
 
@@ -84,16 +84,16 @@ class DefaultFileProcessor(configStorage: ConfigStorage, cloudEngine: CloudEngin
 
       fis = RandomAccessFileInputStream.create(file)
       try {
-        cloudEngine.store(fmd.createBlockContext(blockHash), fis)
+        cas.store(fmd.createBlockContext(blockHash), fis)
       } catch {
         case e:Exception => log.error(e)
       } finally {
         FileUtil.SafeClose(fis)
       }
 
-      cloudEngine.store(fmd.createBlockContext, new ByteArrayInputStream(fmd.getDataAsString.getBytes("UTF-8")))
+      cas.store(fmd.createBlockContext, new ByteArrayInputStream(fmd.getDataAsString.getBytes("UTF-8")))
 
-      indexStorage.add(fmd)
+//      indexStorage.add(fmd)
 
       fmd
     }

@@ -24,6 +24,8 @@ class JsonConfigStorage extends ConfigStorage {
   private var _configRoot: String = null
   private var _isDebug: Boolean = false
   private var _defaultTier: Int = 0
+  private var _minTier = 0
+  private var _maxTier = Int.MaxValue
   private var _allAdapters: List[Adapter] = null
   private var _adapterHandlers: Map[String, String] = null
 
@@ -165,6 +167,11 @@ class JsonConfigStorage extends ConfigStorage {
     }
   }
 
+  def setAdapterTierRange(minTier: Int, maxTier: Int) {
+    _minTier = minTier
+    _maxTier = maxTier
+  }
+
   def isDebugEnabled: Boolean = _isDebug
 
   def createDefaultConfig(path: String) {
@@ -198,7 +205,7 @@ class JsonConfigStorage extends ConfigStorage {
   }
 
   def getAdapter(adapterURI: URI): Adapter = {
-    val adapters: List[Adapter] = getAdapters
+    val adapters: List[Adapter] = getAllAdapters
     for (adapter <- adapters) {
       if (adapter.URI == adapterURI) {
         return adapter
@@ -220,8 +227,12 @@ class JsonConfigStorage extends ConfigStorage {
     contains
   }
 
-  def getAdapters: List[Adapter] = {
+  def getAllAdapters: List[Adapter] = {
     _allAdapters
+  }
+
+  def getFilteredAdapters: List[Adapter] = {
+    _allAdapters.filter(a => a.Tier >= _minTier && a.Tier <= _maxTier && a.IsOnLine && !a.IsFull).toList
   }
 
   def addAdapter(adapterUri: URI) {
