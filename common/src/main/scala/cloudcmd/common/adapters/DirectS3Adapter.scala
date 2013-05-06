@@ -13,7 +13,7 @@ import org.jets3t.service.io.RepeatableInputStream
 
 //     "s3://<aws id>@<bucket>?tier=2&tags=s3&secret=<aws secret>"
 
-class DirectS3Adapter extends Adapter {
+class DirectS3Adapter extends DirectAdapter {
 
   private var _bucketName: String = null
   private var _s3Service: RestS3Service = null
@@ -46,8 +46,6 @@ class DirectS3Adapter extends Adapter {
     }
     (parts(0), queryParams.get("secret"), parts(1), useRRS)
   }
-
-  def refreshCache() {}
 
   def containsAll(ctxs: Set[BlockContext]): Map[BlockContext, Boolean] = {
     Map() ++ ctxs.par.flatMap{ctx =>

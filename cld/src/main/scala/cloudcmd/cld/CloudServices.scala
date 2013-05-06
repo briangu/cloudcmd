@@ -4,19 +4,19 @@ import cloudcmd.common.engine._
 import cloudcmd.common.config.JsonConfigStorage
 import com.thebuzzmedia.imgscalr.AsyncScalr
 import cloudcmd.common.adapters.ReplicationStrategyAdapter
-import cloudcmd.common.ContentAddressableStorage
+import cloudcmd.common.{IndexedContentAddressableStorage, ContentAddressableStorage}
 
 object CloudServices {
 
   def ConfigService = _configService
   def IndexStorage = _indexStorage
   def FileProcessor = _fileProcessor
-  def BlockStorage: ContentAddressableStorage = _blockStorage
+  def BlockStorage: IndexedContentAddressableStorage = _blockStorage
 
   private val _configService = new JsonConfigStorage
   private var _fileProcessor: FileProcessor = null
   private var _indexStorage: IndexStorage = null
-  private var _blockStorage: ContentAddressableStorage = null
+  private var _blockStorage: IndexedContentAddressableStorage = null
   private var _configRoot: String = null
   private var _listener: EngineEventListener = null
 
@@ -34,7 +34,7 @@ object CloudServices {
     _configService.setAdapterTierRange(minTier, maxTier)
     _blockStorage = new ReplicationStrategyAdapter(_configService.getFilteredAdapters, _configService.getReplicationStrategy)
     _indexStorage = new H2IndexStorage(_blockStorage)
-    _fileProcessor = new DefaultFileProcessor(ConfigService, _blockStorage, _indexStorage, 640, 480)
+    _fileProcessor = new DefaultFileProcessor(_blockStorage)
 
     CloudServices.ConfigService.getReplicationStrategy.registerListener(_listener)
 

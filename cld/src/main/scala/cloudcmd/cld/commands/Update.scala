@@ -19,14 +19,14 @@ class Update extends Command {
 
     if (_uri == null) {
       System.err.println("updating all adapters")
-      CloudServices.BlockStorage.refreshCache()
+      CloudServices.BlockStorage.reindex()
     }
     else {
       val adapterURI: URI = new URI(_uri)
       for (adapter <- CloudServices.ConfigService.getFilteredAdapters) {
         if ((adapter.URI.toString == _uri) || ((adapterURI.getPath == adapter.URI.getPath))) {
           System.err.println("updating adapter: " + adapter.URI.toString)
-          adapter.refreshCache()
+          adapter.reindex()
         }
       }
     }

@@ -9,9 +9,9 @@ import cloudcmd.common.util.FileWalker.FileHandler
 import collection.mutable
 import java.util.Date
 
-class LRUFileCacheAdapter(underlying: Adapter) extends Adapter {
+class LRUFileCacheAdapter(underlying: DirectAdapter) extends DirectAdapter {
 
-  private val log = Logger.getLogger(classOf[DescriptionCacheAdapter])
+  private val log = Logger.getLogger(classOf[IndexFilterAdapter])
 
   protected var _rootPath: String = null
   protected var _cacheDir: String = null
@@ -68,7 +68,7 @@ class LRUFileCacheAdapter(underlying: Adapter) extends Adapter {
     cacheSize
   }
 
-  def pruneFiles {
+  def pruneFiles() {
     lock.synchronized {
       val files = _cacheMap.values.toList.sortBy(_.date).toList
       var idx = files.size - 1
@@ -85,13 +85,6 @@ class LRUFileCacheAdapter(underlying: Adapter) extends Adapter {
 
   def fileFromParts(cacheDir: String, name: String): File = {
     new File(cacheDir + File.separator + name)
-  }
-
-  /** *
-    * Refresh the internal cache, which may be time consuming
-    */
-  def refreshCache() {
-    underlying.refreshCache()
   }
 
   /** *

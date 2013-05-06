@@ -1,3 +1,3 @@
 package cloudcmd.common.adapters
 
-class HttpAdapter extends DescriptionCacheAdapter(new DirectHttpAdapter) {}
+class HttpAdapter extends IndexFilterAdapter(new DirectHttpAdapter) {}

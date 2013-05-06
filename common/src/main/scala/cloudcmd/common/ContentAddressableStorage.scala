@@ -1,13 +1,9 @@
 package cloudcmd.common
 
 import java.io.InputStream
+import org.json.JSONObject
 
 trait ContentAddressableStorage {
-
-  /***
-   * Refresh the internal cache, which may be time consuming
-   */
-  def refreshCache()
 
   /***
    * Gets if the CAS contains the specified block.
@@ -81,5 +77,26 @@ trait ContentAddressableStorage {
    * @return
    */
   def describeHashes() : Set[String]
+
+}
+
+trait IndexedContentAddressableStorage extends ContentAddressableStorage {
+
+  /***
+    * Refresh the storage index, which may be time consuming
+    */
+  def reindex()
+
+  /***
+    * Flush the index cache that may be populated during a series of modifications (e.g. store)
+    */
+  def flushIndex()
+
+  /**
+   * Find a set of meta blocks based on a filter.
+   * @param filter
+   * @return a set of meta blocks
+   */
+  def find(filter: JSONObject): Set[BlockContext]
 
 }

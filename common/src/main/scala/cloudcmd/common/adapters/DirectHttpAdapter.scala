@@ -10,7 +10,7 @@ import com.ning.http.client.oauth.{RequestToken, ConsumerKey, OAuthSignatureCalc
 
 // http://consumerKey:consumerSecret:userKey:userSecret@host:port/<path>
 
-class DirectHttpAdapter extends Adapter {
+class DirectHttpAdapter extends DirectAdapter {
 
   val asyncHttpClient = new AsyncHttpClient()
 
@@ -51,20 +51,6 @@ class DirectHttpAdapter extends Adapter {
 
   def shutdown() {
     asyncHttpClient.close()
-  }
-
-  /***
-   * Refresh the internal cache, which may be time consuming
-   */
-  def refreshCache() {
-    /*
-    val response = asyncHttpClient
-      .preparePost(_urlRefreshCache)
-      .execute
-      .get
-    // TODO: use boolean or custom exception
-    if (response.getStatusCode != HttpResponseStatus.OK.getCode) throw new RuntimeException("failed to refresh cache")
-    */
   }
 
   /***

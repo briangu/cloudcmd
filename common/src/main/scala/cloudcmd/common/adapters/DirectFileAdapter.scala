@@ -5,13 +5,10 @@ import util.{JsonUtil, CryptoUtil, FileWalker}
 import java.io._
 import java.net.URI
 import collection.mutable
-import org.apache.log4j.Logger
 
 //     "file:///tmp/storage?tier=1&tags=image,movie,vacation"
 
-class DirectFileAdapter extends Adapter {
-
-  private val log: Logger = Logger.getLogger(classOf[DirectFileAdapter])
+class DirectFileAdapter extends DirectAdapter {
 
   val MIN_FREE_STORAGE_SIZE: Int = 1024 * 1024
   val LARGE_FILE_CUTOFF: Int = 128 * 1024 * 1024
@@ -32,8 +29,6 @@ class DirectFileAdapter extends Adapter {
   override def IsFull: Boolean = {
     new File(_dataDir).getUsableSpace < MIN_FREE_STORAGE_SIZE
   }
-
-  def refreshCache() {}
 
   def containsAll(ctxs: Set[BlockContext]): Map[BlockContext, Boolean] = {
     Map() ++ ctxs.par.flatMap( ctx => Map(ctx -> new File(getDataFileFromHash(ctx.hash)).exists()))

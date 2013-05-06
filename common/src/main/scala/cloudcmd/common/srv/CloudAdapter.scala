@@ -13,7 +13,7 @@ import io.viper.core.server.router._
 import cloudcmd.common.engine.IndexStorage
 import cloudcmd.common.util.StreamUtil
 
-class StoreHandler(config: OAuthRouteConfig, route: String, cas: ContentAddressableStorage, indexStorage: IndexStorage) extends Route(route) {
+class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentAddressableStorage, indexStorage: IndexStorage) extends Route(route) {
 
   override
   def isMatch(request: HttpRequest) : Boolean = {
@@ -94,7 +94,7 @@ object CloudAdapter {
   }
 }
 
-class CloudAdapter(cas: ContentAddressableStorage, indexStorage: IndexStorage, config: OAuthRouteConfig) {
+class CloudAdapter(cas: IndexedContentAddressableStorage, indexStorage: IndexStorage, config: OAuthRouteConfig) {
 
   def addRoutes(server: ViperServer) {
     server.addRoute(new OAuthGetRestRoute(config, "/blocks/$key", new OAuthRouteHandler {
@@ -134,7 +134,7 @@ class CloudAdapter(cas: ContentAddressableStorage, indexStorage: IndexStorage, c
 
     server.addRoute(new OAuthPostRestRoute(config, "/cache/refresh", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        cas.refreshCache()
+        cas.reindex()
         new StatusResponse(HttpResponseStatus.OK)
       }
     }))

@@ -1,9 +1,9 @@
 package cloudcmd.common.adapters
 
 import java.net.URI
-import cloudcmd.common.{BlockContext, ContentAddressableStorage}
+import cloudcmd.common.{IndexedContentAddressableStorage, BlockContext, ContentAddressableStorage}
 
-trait Adapter extends ContentAddressableStorage {
+trait DirectAdapter extends ContentAddressableStorage {
 
   def ConfigDir: String = _configDir
   def Type: String = _type
@@ -43,6 +43,9 @@ trait Adapter extends ContentAddressableStorage {
   }
 
   override def equals(obj: Any): Boolean = {
-    obj.isInstanceOf[Adapter] && obj.asInstanceOf[Adapter].URI.equals(URI)
+    obj.isInstanceOf[DirectAdapter] && obj.asInstanceOf[DirectAdapter].URI.equals(URI)
   }
 }
+
+trait IndexedAdapter extends DirectAdapter with IndexedContentAddressableStorage {}
+

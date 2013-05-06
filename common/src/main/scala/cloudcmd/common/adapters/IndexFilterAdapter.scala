@@ -7,12 +7,13 @@ import java.net.URI
 import java.sql._
 import collection.mutable
 import org.apache.log4j.Logger
+import org.json.JSONObject
 
-class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
+class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
 
-  private val log = Logger.getLogger(classOf[DescriptionCacheAdapter])
+  private val log = Logger.getLogger(classOf[IndexFilterAdapter])
 
-  override def IsOnLine: Boolean = wrappedAdapter.IsOnLine
+  override def IsOnLine: Boolean = underlying.IsOnLine
 
   private val BATCH_SIZE = 1024
   
@@ -35,14 +36,14 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
     _configDir = _dbDir
     new File(_dbDir).mkdirs
 
-    wrappedAdapter.init(configDir, tier, adapterType, tags, config)
+    underlying.init(configDir, tier, adapterType, tags, config)
 
     if (IsOnLine) bootstrap(_configDir, _dbDir)
   }
 
   def shutdown() {
     try {
-      wrappedAdapter.shutdown()
+      underlying.shutdown()
     } finally {
       if (_cp != null) {
         _cp.dispose()
@@ -80,15 +81,28 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
     }
   }
 
-  def refreshCache() {
-    wrappedAdapter.refreshCache()
-
-    val foundContexts = wrappedAdapter.describe()
+  def reindex() {
+    val foundContexts = underlying.describe()
     val cachedContexts = getDescription.toSet
     val newContexts = foundContexts -- cachedContexts
     addToDb(newContexts)
     val deletedContexts = cachedContexts -- foundContexts
     deleteFromDb(deletedContexts)
+  }
+
+  /***
+    * Flush the index cache that may be populated during a series of modifications (e.g. store)
+    */
+  def flushIndex() {
+  }
+
+  /**
+   * Find a set of meta blocks based on a filter.
+   * @param filter
+   * @return a set of meta blocks
+   */
+  def find(filter: JSONObject): Set[BlockContext] = {
+    Set()
   }
 
   override def contains(ctx: BlockContext) : Boolean = {
@@ -102,26 +116,26 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
   }
 
   override def ensure(ctx: BlockContext, blockLevelCheck: Boolean): Boolean = {
-    wrappedAdapter.ensure(ctx, blockLevelCheck)
+    underlying.ensure(ctx, blockLevelCheck)
   }
 
   def ensureAll(ctxs: Set[BlockContext], blockLevelCheck: Boolean): Map[BlockContext, Boolean] = {
     Map() ++ ctxs.par.flatMap{ ctx =>
-      Map(ctx -> wrappedAdapter.ensure(ctx, blockLevelCheck))
+      Map(ctx -> underlying.ensure(ctx, blockLevelCheck))
     }
   }
 
   def store(ctx: BlockContext, is: InputStream) {
-    wrappedAdapter.store(ctx, is)
+    underlying.store(ctx, is)
     addToDb(Set(ctx))
   }
 
   def load(ctx: BlockContext): (InputStream, Int) = {
-    wrappedAdapter.load(ctx)
+    underlying.load(ctx)
   }
 
   def removeAll(ctxs : Set[BlockContext]) : Map[BlockContext, Boolean] = {
-    val result = wrappedAdapter.removeAll(ctxs)
+    val result = underlying.removeAll(ctxs)
     val wasRemoved = Set() ++ result.par.flatMap{ case (ctx, removed) =>  if (removed) Set(ctx) else Nil }
     deleteFromDb(wasRemoved)
     result
@@ -132,7 +146,7 @@ class DescriptionCacheAdapter(wrappedAdapter: Adapter) extends Adapter {
   }
 
   def describeHashes(): Set[String] = {
-    wrappedAdapter.describeHashes()
+    underlying.describeHashes()
   }
 
   private def addToDb(ctxs: Set[BlockContext]) {

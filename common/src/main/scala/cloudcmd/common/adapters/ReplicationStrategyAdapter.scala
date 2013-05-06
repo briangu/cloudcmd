@@ -3,19 +3,16 @@ package cloudcmd.common.adapters
 import cloudcmd.common._
 import java.io._
 import cloudcmd.common.engine.ReplicationStrategy
+import org.json.JSONObject
 
-class ReplicationStrategyAdapter(adapters: List[Adapter], storage: ReplicationStrategy) extends ContentAddressableStorage {
+class ReplicationStrategyAdapter(adapters: List[IndexedAdapter], storage: ReplicationStrategy) extends IndexedContentAddressableStorage {
 
-  def getAdaptersAccepts(ctx: BlockContext) : List[Adapter] = {
+  def getAdaptersAccepts(ctx: BlockContext) : List[IndexedAdapter] = {
     adapters.filter(_.accepts(ctx)).toList
   }
 
-  private def getHashProviders(ctx: BlockContext) : List[Adapter] = {
+  private def getHashProviders(ctx: BlockContext) : List[IndexedAdapter] = {
     adapters.par.filter(_.contains(ctx)).toList
-  }
-
-  def refreshCache() {
-    adapters.par.foreach(_.refreshCache())
   }
 
   def describe() : Set[BlockContext] = {
@@ -54,5 +51,28 @@ class ReplicationStrategyAdapter(adapters: List[Adapter], storage: ReplicationSt
 
   def removeAll(ctxs: Set[BlockContext]) : Map[BlockContext, Boolean] = {
     Map() ++ ctxs.par.flatMap( ctx => Map(ctx -> storage.remove(ctx, getHashProviders(ctx))) )
+  }
+
+  /** *
+    * Refresh the storage index, which may be time consuming
+    */
+  def reindex() {
+    adapters.par.foreach(_.reindex())
+  }
+
+  /** *
+    * Flush the index cache that may be populated during a series of modifications (e.g. store)
+    */
+  def flushIndex() {
+    adapters.par.foreach(_.flushIndex())
+  }
+
+  /**
+   * Find a set of meta blocks based on a filter.
+   * @param filter
+   * @return a set of meta blocks
+   */
+  def find(filter: JSONObject): Set[BlockContext] = {
+    Set() ++ adapters.par.flatMap(_.find(filter))
   }
 }

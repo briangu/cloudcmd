@@ -1,7 +1,7 @@
 package cloudcmd.srv
 
 import io.viper.common.{NestServer, ViperServer}
-import cloudcmd.common.{ContentAddressableStorage, FileUtil}
+import cloudcmd.common.{IndexedContentAddressableStorage, ContentAddressableStorage, FileUtil}
 import java.io._
 import cloudcmd.common.srv.{SimpleOAuthSessionService, OAuthSessionService, CloudAdapter, OAuthRouteConfig}
 import java.net.InetAddress
@@ -25,7 +25,7 @@ object CloudServer {
 
     println("config root = %s".format(configRoot))
 
-    CloudServices.init(configRoot)
+    CloudServices.setConfigRoot(configRoot)
 
     try {
       val baseHostPort = "http://%s:%d".format(ipAddress, port)
@@ -37,7 +37,7 @@ object CloudServer {
   }
 }
 
-class CloudServer(cas: ContentAddressableStorage, indexStorage: IndexStorage, apiConfig: OAuthRouteConfig) extends ViperServer("res:///cloudserver") {
+class CloudServer(cas: IndexedContentAddressableStorage, indexStorage: IndexStorage, apiConfig: OAuthRouteConfig) extends ViperServer("res:///cloudserver") {
 
   val _apiHandler = new CloudAdapter(cas, indexStorage, apiConfig)
 

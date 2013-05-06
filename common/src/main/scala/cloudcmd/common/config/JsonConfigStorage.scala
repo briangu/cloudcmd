@@ -1,7 +1,7 @@
 package cloudcmd.common.config
 
 import cloudcmd.common._
-import cloudcmd.common.adapters.Adapter
+import cloudcmd.common.adapters.IndexedAdapter
 import cloudcmd.common.engine.MirrorReplicationStrategy
 import cloudcmd.common.engine.ReplicationStrategy
 import org.json.JSONArray
@@ -26,7 +26,7 @@ class JsonConfigStorage extends ConfigStorage {
   private var _defaultTier: Int = 0
   private var _minTier = 0
   private var _maxTier = Int.MaxValue
-  private var _allAdapters: List[Adapter] = null
+  private var _allAdapters: List[IndexedAdapter] = null
   private var _adapterHandlers: Map[String, String] = null
 
   private def getConfigFile(path: String): String = {
@@ -62,15 +62,15 @@ class JsonConfigStorage extends ConfigStorage {
     JsonUtil.toStringMap(config.getJSONObject("adapterHandlers"))
   }
 
-  private def loadAdapters(config: JSONObject): List[Adapter] = {
+  private def loadAdapters(config: JSONObject): List[IndexedAdapter] = {
     if (!config.has("adapters")) throw new IllegalArgumentException("config is missing the adapters field")
     val adapterConfigs = config.getJSONArray("adapters")
     _defaultTier = if (config.has("defaultTier")) config.getInt("defaultTier") else DEFAULT_TIER
     loadAdapters(adapterConfigs)
   }
 
-  private def loadAdapters(adapterUris: JSONArray): List[Adapter] = {
-    val adapters = new ListBuffer[Adapter]
+  private def loadAdapters(adapterUris: JSONArray): List[IndexedAdapter] = {
+    val adapters = new ListBuffer[IndexedAdapter]
     (0 until adapterUris.length()).foreach{ i =>
       val adapterUri = new URI(adapterUris.getString(i))
       val adapter = loadAdapter(adapterUri)
@@ -94,8 +94,8 @@ class JsonConfigStorage extends ConfigStorage {
     }
   }
 
-  private def loadAdapter(adapterUri: URI): Adapter = {
-    var adapter: Adapter = null
+  private def loadAdapter(adapterUri: URI): IndexedAdapter = {
+    var adapter: IndexedAdapter = null
     val scheme = adapterUri.getScheme
     if (!_adapterHandlers.contains(scheme)) {
       throw new IllegalArgumentException(String.format("scheme %s in adapter URI %s is not supported!", scheme, adapterUri))
@@ -105,7 +105,7 @@ class JsonConfigStorage extends ConfigStorage {
     val tags = getTagsFromUri(adapterUri)
     val clazz = classOf[JsonConfigStorage].getClassLoader.loadClass(handlerType)
     try {
-      adapter = clazz.newInstance.asInstanceOf[Adapter]
+      adapter = clazz.newInstance.asInstanceOf[IndexedAdapter]
       val adapterIdHash = CryptoUtil.digestToString(CryptoUtil.computeMD5Hash(Channels.newChannel(new ByteArrayInputStream(adapterUri.toASCIIString.getBytes("UTF-8")))))
       adapter.init(_configRoot + File.separator + "adapterCaches" + File.separator + adapterIdHash, tier, handlerType, tags.toSet, adapterUri)
     }
@@ -204,8 +204,8 @@ class JsonConfigStorage extends ConfigStorage {
     }
   }
 
-  def getAdapter(adapterURI: URI): Adapter = {
-    val adapters: List[Adapter] = getAllAdapters
+  def getAdapter(adapterURI: URI): IndexedAdapter = {
+    val adapters: List[IndexedAdapter] = getAllAdapters
     for (adapter <- adapters) {
       if (adapter.URI == adapterURI) {
         return adapter
@@ -227,17 +227,17 @@ class JsonConfigStorage extends ConfigStorage {
     contains
   }
 
-  def getAllAdapters: List[Adapter] = {
+  def getAllAdapters: List[IndexedAdapter] = {
     _allAdapters
   }
 
-  def getFilteredAdapters: List[Adapter] = {
+  def getFilteredAdapters: List[IndexedAdapter] = {
     _allAdapters.filter(a => a.Tier >= _minTier && a.Tier <= _maxTier && a.IsOnLine && !a.IsFull).toList
   }
 
   def addAdapter(adapterUri: URI) {
     try {
-      val adapter: Adapter = loadAdapter(adapterUri)
+      val adapter: IndexedAdapter = loadAdapter(adapterUri)
       _allAdapters = _allAdapters ++ List(adapter)
     }
     catch {
