@@ -2,13 +2,20 @@ package cloudcmd.cld
 
 import cloudcmd.cld.commands._
 import cloudcmd.common.FileUtil
-import cloudcmd.common.engine.EngineEventListener
 import jpbetz.cli.CommandSet
 import java.io.File
-import java.util.concurrent.BlockingQueue
-import java.util.concurrent.SynchronousQueue
+import cloudcmd.common.engine.NotificationCenter
 
 object Main {
+
+  class ConsoleObserver {
+
+    def apply(userInfo: Option[Map[String, Any]]) {
+
+    }
+
+  }
+
   @SuppressWarnings(Array("unchecked"))
   def main(args: Array[String]) {
 
@@ -18,30 +25,16 @@ object Main {
       new File(configRoot).mkdir
     }
 
-    val event: Array[Boolean] = new Array[Boolean](1)
-    event(0) = false
+    NotificationCenter.start()
 
-    val queue = new SynchronousQueue[String]
+    val consoleObserver = new ConsoleObserver
 
-    val msgPump: Thread = new Thread(new Runnable {
-      def run() {
-        while (!event(0)) {
-          try {
-            val msg: String = queue.take
-            System.err.println(msg)
-          }
-          catch {
-            case e: InterruptedException => ;
-          }
-        }
-      }
-    })
+    NotificationCenter.defaultCenter.addObserverForName(consoleObserver, "", None, (userInfo: Option[Map[String, Any]]) => {})
+    NotificationCenter.defaultCenter.addObserverForName(consoleObserver, "", None, consoleObserver.apply)
 
     try {
-      CloudServices.setListener(new Main.Listener(queue))
       CloudServices.setConfigRoot(configRoot)
 
-      msgPump.start()
       val app: CommandSet = new CommandSet("cld")
       app.addSubCommands(classOf[Adapter])
       app.addSubCommands(classOf[Find])
@@ -58,23 +51,7 @@ object Main {
     }
     finally {
       CloudServices.shutdown()
-      event(0) = true
-      msgPump.interrupt()
-      msgPump.join()
+      NotificationCenter.shutdown()
     }
   }
-
-  private class Listener extends EngineEventListener {
-    def this(queue: BlockingQueue[String]) {
-      this()
-      _queue = queue
-    }
-
-    def onMessage(msg: String) {
-      _queue.offer(msg)
-    }
-
-    private var _queue: BlockingQueue[String] = null
-  }
-
 }

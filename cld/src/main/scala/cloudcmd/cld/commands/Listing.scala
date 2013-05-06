@@ -1,10 +1,7 @@
 package cloudcmd.cld.commands
 
-import cloudcmd.cld.{Util, CloudServices}
+import cloudcmd.cld.CloudServices
 import jpbetz.cli.{Opt, Command, CommandContext, SubCommand}
-import org.json.JSONObject
-import cloudcmd.common.{BlockContext, FileMetaData}
-import cloudcmd.common.util.JsonUtil
 
 @SubCommand(name = "ls", description = "Perform a directory listing of archived files.") class Listing extends Command {
 

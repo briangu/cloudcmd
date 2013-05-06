@@ -7,7 +7,6 @@ import org.json.JSONObject
 import javax.imageio.ImageIO
 import org.apache.log4j.Logger
 import com.thebuzzmedia.imgscalr.{Scalr, AsyncScalr}
-import java.util.Date
 import cloudcmd.common.engine.FileProcessor
 
 class ThumbnailFileProcessor(cas: ContentAddressableStorage, thumbWidth: Int, thumbHeight: Int) extends FileProcessor {
@@ -47,7 +46,7 @@ class ThumbnailFileProcessor(cas: ContentAddressableStorage, thumbWidth: Int, th
           "fileext", fileExt,
           "filesize", file.length.asInstanceOf[AnyRef],
           "filedate", file.lastModified.asInstanceOf[AnyRef],
-          "createdDate", new Date().getTime.asInstanceOf[AnyRef],  // TODO: this is not ideal as it forces duplicates
+//          "createdDate", new Date().getTime.asInstanceOf[AnyRef],  // TODO: this is not ideal as it forces duplicates
           "blocks", JsonUtil.toJsonArray(List(blockHash)),
           "tags", JsonUtil.toJsonArray(tags))
 
@@ -98,10 +97,6 @@ class ThumbnailFileProcessor(cas: ContentAddressableStorage, thumbWidth: Int, th
       fmd
     }
     finally {
-      onMessage("took %6d ms to index %s".format((System.currentTimeMillis - startTime), file.getName))
-      if (blockHash == null) {
-        onMessage("failed to index file: " + file.getAbsolutePath)
-      }
     }
   }
 

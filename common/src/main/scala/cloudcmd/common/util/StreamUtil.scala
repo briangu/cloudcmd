@@ -2,7 +2,6 @@ package cloudcmd.common.util
 
 import java.io.{ByteArrayInputStream, File, InputStream}
 import cloudcmd.common.FileUtil
-import java.nio.ByteBuffer
 
 object StreamUtil {
   def spoolStream(is: InputStream): (String, File) = {

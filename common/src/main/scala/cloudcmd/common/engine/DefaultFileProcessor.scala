@@ -5,7 +5,6 @@ import cloudcmd.common.{ContentAddressableStorage, RandomAccessFileInputStream, 
 import cloudcmd.common.util.{JsonUtil, FileTypeUtil, CryptoUtil}
 import org.json.JSONObject
 import org.apache.log4j.Logger
-import java.util.Date
 
 class DefaultFileProcessor(cas: ContentAddressableStorage) extends FileProcessor {
 
@@ -33,7 +32,7 @@ class DefaultFileProcessor(cas: ContentAddressableStorage) extends FileProcessor
         "fileext", fileExt,
         "filesize", file.length.asInstanceOf[AnyRef],
         "filedate", file.lastModified.asInstanceOf[AnyRef],
-        "createdDate", new Date().getTime.asInstanceOf[AnyRef],  // TODO: this is not ideal as it forces duplicates
+//        "createdDate", new Date().getTime.asInstanceOf[AnyRef],  // TODO: this is not ideal as it forces duplicates
         "blocks", JsonUtil.toJsonArray(List(blockHash)),
         "tags", JsonUtil.toJsonArray(tags))
 
