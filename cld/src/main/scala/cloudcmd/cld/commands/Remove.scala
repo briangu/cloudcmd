@@ -12,11 +12,32 @@ import cloudcmd.common.FileMetaData
 @SubCommand(name = "remove", description = "Remove files from storage.")
 class Remove extends Command {
 
+  @Opt(opt = "u", longOpt = "uri", description = "adapter URI", required = false) private var _uri: String = null
   @Opt(opt = "n", longOpt = "minTier", description = "min tier to verify to", required = false) private var _minTier: Number = 0
   @Opt(opt = "m", longOpt = "maxTier", description = "max tier to verify to", required = false) private var _maxTier: Number = Integer.MAX_VALUE
 
   def exec(commandLine: CommandContext) {
-    CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
-    CloudServices.IndexStorage.remove(FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in)))
+    CloudServices.ConfigService.findAdapterByBestMatch(_uri) match {
+      case Some(adapter) => {
+        System.err.println("reindexing %s".format(adapter.URI.toASCIIString))
+        val metaHashes = CloudServices.BlockStorage.describe().filter(_.isMeta())
+        metaHashes.par.map{ ctx => FileMetaData.create(ctx.hash, JsonUtil.loadJson(CloudServices.BlockStorage.load(ctx)._1)) }.toList
+        System.err.println("removing %d files".format(selections.length))
+        CloudServices.IndexStorage.remove(FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in)))
+      }
+      case None => {
+        CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
+
+        val selections = if (_syncAll) {
+          val metaHashes = CloudServices.BlockStorage.describe().filter(_.isMeta())
+          metaHashes.par.map{ ctx => FileMetaData.create(ctx.hash, JsonUtil.loadJson(CloudServices.BlockStorage.load(ctx)._1)) }.toList
+        } else {
+          FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in))
+        }
+
+        System.err.println("removing %d files".format(selections.length))
+        CloudServices.IndexStorage.remove(FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in)))
+      }
+    }
   }
 }

@@ -15,12 +15,8 @@ class ReplicationStrategyAdapter(adapters: List[IndexedAdapter], storage: Replic
     adapters.par.filter(_.contains(ctx)).toList
   }
 
-  def describe() : Set[BlockContext] = {
+  def describe() : Set[String] = {
     Set() ++ adapters.par.flatMap(a => a.describe().toSet)
-  }
-
-  def describeHashes() : Set[String] = {
-    Set() ++ adapters.par.flatMap(a => a.describeHashes().toSet)
   }
 
   override def contains(ctx: BlockContext) : Boolean = {

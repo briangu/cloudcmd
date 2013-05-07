@@ -33,7 +33,7 @@ class Get extends Command {
 
     var selections: Seq[FileMetaData] = null
     if (_pullAll) {
-      selections = CloudServices.IndexStorage.find(new JSONObject)
+      selections = CloudServices.BlockStorage.find(new JSONObject)
     } else {
       var is: InputStream = null
       try {

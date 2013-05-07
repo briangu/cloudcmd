@@ -3,15 +3,14 @@ package cloudcmd.srv
 import java.io.{ByteArrayOutputStream, ByteArrayInputStream, File}
 import cloudcmd.common.{ContentAddressableStorage, RandomAccessFileInputStream, FileMetaData, FileUtil}
 import cloudcmd.common.util.{JsonUtil, FileTypeUtil, CryptoUtil}
-import cloudcmd.common.config.ConfigStorage
 import org.json.JSONObject
 import javax.imageio.ImageIO
 import org.apache.log4j.Logger
 import com.thebuzzmedia.imgscalr.{Scalr, AsyncScalr}
 import java.util.Date
-import cloudcmd.common.engine.{IndexStorage, FileProcessor}
+import cloudcmd.common.engine.FileProcessor
 
-class ThumbnailFileProcessor(configStorage: ConfigStorage, cas: ContentAddressableStorage, indexStorage: IndexStorage, thumbWidth: Int, thumbHeight: Int) extends FileProcessor {
+class ThumbnailFileProcessor(cas: ContentAddressableStorage, thumbWidth: Int, thumbHeight: Int) extends FileProcessor {
 
   private val log = Logger.getLogger(classOf[ThumbnailFileProcessor])
 

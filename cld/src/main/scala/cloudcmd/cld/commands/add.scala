@@ -52,7 +52,7 @@ class Add extends Command {
       }
     })
 
-    println("Flushing metadata")
-    CloudServices.IndexStorage.addAll(fmdBuffer)
+    println("Flushing metadata...")
+    CloudServices.BlockStorage.flushIndex()
   }
 }

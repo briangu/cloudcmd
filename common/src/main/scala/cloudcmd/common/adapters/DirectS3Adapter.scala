@@ -108,47 +108,7 @@ class DirectS3Adapter extends DirectAdapter {
     (obj.getDataInputStream, obj.getContentLength.toInt)
   }
 
-  def describe(): Set[BlockContext] = {
-    val hashes = describeHashes()
-
-    val extraHashes = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
-    val referencedBlockHashes = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
-
-    val ctxs = new mutable.HashSet[BlockContext] with mutable.SynchronizedSet[BlockContext]
-    hashes.par.foreach{ hash =>
-      if (hash.endsWith(".meta")) {
-        val fis = _s3Service.getObject(_bucketName, hash).getDataInputStream
-        try {
-          val fmd = FileMetaData.create(hash, JsonUtil.loadJson(fis))
-          ctxs.add(fmd.createBlockContext)
-          fmd.getBlockHashes.foreach{ blockHash =>
-            if (hashes.contains(blockHash)) {
-              ctxs.add(fmd.createBlockContext(blockHash))
-              referencedBlockHashes.add(blockHash)
-            } else {
-              // TODO: log as we should have the blockHash in the description on the same adapter
-              println("missing blockhash %s (%s) on adapter: %s".format(blockHash, fmd.getPath, this.URI))
-            }
-          }
-        } finally {
-          FileUtil.SafeClose(fis)
-        }
-      } else {
-        extraHashes.add(hash)
-      }
-    }
-
-    if (extraHashes.size > 0) {
-      val unreferencedHashes = extraHashes.diff(referencedBlockHashes)
-      unreferencedHashes.foreach { hash =>
-        ctxs.add(FileMetaData.createBlockContext(hash, Set[String]()))
-      }
-    }
-
-    ctxs.toSet
-  }
-
-  def describeHashes(): Set[String] = {
+  def describe(): Set[String] = {
     Set() ++ _s3Service.listObjects(_bucketName).par.map(s3Object => s3Object.getKey)
   }
 }

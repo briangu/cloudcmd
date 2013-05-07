@@ -7,13 +7,12 @@ import cloudcmd.common._
 import org.jboss.netty.buffer.ChannelBufferInputStream
 import org.jboss.netty.handler.codec.http.HttpHeaders._
 import io.viper.core.server.router.RouteResponse.RouteResponseDispose
-import org.json.{JSONObject, JSONArray}
+import org.json.JSONArray
 import io.viper.common.ViperServer
 import io.viper.core.server.router._
-import cloudcmd.common.engine.IndexStorage
 import cloudcmd.common.util.StreamUtil
 
-class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentAddressableStorage, indexStorage: IndexStorage) extends Route(route) {
+class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentAddressableStorage) extends Route(route) {
 
   override
   def isMatch(request: HttpRequest) : Boolean = {
@@ -52,9 +51,6 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentA
               is.close
               is = new FileInputStream(file)
               cas.store(ctx, is)
-              if (ctx.isMeta()) {
-                indexStorage.add(FileMetaData.create(ctx.hash, new JSONObject(FileUtil.readFile(file))))
-              }
               val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CREATED)
               response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, 0)
               response
@@ -94,7 +90,7 @@ object CloudAdapter {
   }
 }
 
-class CloudAdapter(cas: IndexedContentAddressableStorage, indexStorage: IndexStorage, config: OAuthRouteConfig) {
+class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConfig) {
 
   def addRoutes(server: ViperServer) {
     server.addRoute(new OAuthGetRestRoute(config, "/blocks/$key", new OAuthRouteHandler {
@@ -116,7 +112,7 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, indexStorage: IndexSto
       }
     }))
 
-    server.addRoute(new StoreHandler(config, "/blocks/$key", cas, indexStorage))
+    server.addRoute(new StoreHandler(config, "/blocks/$key", cas))
 
     server.addRoute(new OAuthDeleteRestRoute(config, "/blocks/$key", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
@@ -150,7 +146,7 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, indexStorage: IndexSto
     server.addRoute(new OAuthGetRestRoute(config, "/blocks/hashes", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
         val arr = new JSONArray
-        cas.describeHashes.foreach(arr.put)
+        cas.describe.foreach(arr.put)
         new JsonResponse(arr)
       }
     }))

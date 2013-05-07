@@ -9,8 +9,16 @@ import jpbetz.cli.{Opt, Command, CommandContext, SubCommand}
   @Opt(opt = "m", longOpt = "maxTier", description = "max tier to verify to", required = false) private var _maxTier: Number = Integer.MAX_VALUE
 
   def exec(commandLine: CommandContext) {
-    System.err.println("rebuilding file search index...")
-    CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
-    CloudServices.IndexStorage.reindex()
+    CloudServices.ConfigService.findAdapterByBestMatch(_uri) match {
+      case Some(adapter) => {
+        System.err.println("reindexing %s".format(adapter.URI.toASCIIString))
+        adapter.reindex()
+      }
+      case None => {
+        System.err.println("reindexing all adapters...")
+        CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
+        CloudServices.BlockStorage.reindex()
+      }
+    }
   }
 }

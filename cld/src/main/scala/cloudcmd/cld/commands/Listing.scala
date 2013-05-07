@@ -11,7 +11,15 @@ import org.json.JSONObject
   @Opt(opt = "m", longOpt = "maxTier", description = "max tier to verify to", required = false) private var _maxTier: Number = Integer.MAX_VALUE
 
   def exec(commandLine: CommandContext) {
-    CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
-    CloudServices.IndexStorage.find(new JSONObject).foreach(selection => System.out.println(selection.getPath))
+    CloudServices.ConfigService.findAdapterByBestMatch(_uri) match {
+      case Some(adapter) => {
+        CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
+        CloudServices.IndexStorage.find(new JSONObject).foreach(selection => System.out.println(selection.getPath))
+      }
+      case None => {
+        CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
+        CloudServices.BlockStorage.find(new JSONObject).foreach(selection => println(selection.getPath))
+      }
+    }
   }
 }

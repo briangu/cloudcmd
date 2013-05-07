@@ -66,17 +66,11 @@ trait ContentAddressableStorage {
   def load(ctx: BlockContext) : (InputStream, Int)
 
   /***
-   * List all the block hashes stored in the CAS.
-   * @return
-   */
-  def describe() : Set[BlockContext]
-
-  /***
    * List all hashes stored in the CAS without regard to block context.  There may be hashes stored in the CAS which are
    * not returned in describe(), so this method can help identify unreferenced blocks.
    * @return
    */
-  def describeHashes() : Set[String]
+  def describe() : Set[String]
 
 }
 

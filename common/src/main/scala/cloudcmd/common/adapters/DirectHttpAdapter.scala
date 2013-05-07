@@ -156,25 +156,11 @@ class DirectHttpAdapter extends DirectAdapter {
   }
 
   /***
-   * List all the block hashes stored in the CAS.
-   * @return
-   */
-  def describe() : Set[BlockContext] = {
-    val response = asyncHttpClient
-      .prepareGet(_urlDescribe)
-      .execute
-      .get
-    if (response.getStatusCode != HttpResponseStatus.OK.getCode) throw new RuntimeException("unable to describe")
-    val arr = new JSONArray(response.getResponseBody("UTF-8"))
-    Set() ++ (0 until arr.length).par.map(idx => BlockContext.fromJson(arr.getJSONObject(idx)))
-  }
-
-  /***
    * List all hashes stored in the CAS without regard to block context.  There may be hashes stored in the CAS which are
    * not returned in describe(), so this method can help identify unreferenced blocks.
    * @return
    */
-  def describeHashes() : Set[String] = {
+  def describe() : Set[String] = {
     val response = asyncHttpClient
       .prepareGet(_urlDescribeHashes)
       .execute

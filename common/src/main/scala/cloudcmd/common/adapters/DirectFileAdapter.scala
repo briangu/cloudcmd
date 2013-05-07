@@ -77,40 +77,7 @@ class DirectFileAdapter extends DirectAdapter {
     (RandomAccessFileInputStream.create(file), file.length.toInt)
   }
 
-  def describe(): Set[BlockContext] = {
-    val ctxs = new mutable.HashSet[BlockContext] with mutable.SynchronizedSet[BlockContext]
-
-    FileWalker.enumerateFolders(_dataDir, new FileWalker.FileHandler {
-      def skipDir(file: File): Boolean = false
-      def process(file: File) {
-        val hash = file.getName
-        if (hash.endsWith(".meta")) {
-          val fis = new FileInputStream(file)
-          try {
-            val fmd = FileMetaData.create(hash, JsonUtil.loadJson(fis))
-            ctxs.add(fmd.createBlockContext)
-
-            val thumbHash = fmd.getThumbHash
-            if (thumbHash != null) {
-              ctxs.add(fmd.createBlockContext(thumbHash))
-            }
-
-            fmd.getBlockHashes.foreach{ blockHash =>
-              if (new File(getDataFileFromHash(blockHash)).exists) {
-                ctxs.add(fmd.createBlockContext(blockHash))
-              }
-            }
-          } finally {
-            FileUtil.SafeClose(fis)
-          }
-        }
-      }
-    })
-
-    ctxs.toSet
-  }
-
-  def describeHashes(): Set[String] = {
+  def describe(): Set[String] = {
     val hashes = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
     FileWalker.enumerateFolders(_dataDir, new FileWalker.FileHandler {
       def skipDir(file: File): Boolean = false

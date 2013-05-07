@@ -34,7 +34,7 @@ class Find extends Command {
     if (_hash != null) filter.put("hash", _hash)
     if (_count.intValue > 0) filter.put("count", _count.intValue)
     if (_offset.intValue > 0) filter.put("offset", _offset.intValue)
-    val selections = CloudServices.IndexStorage.find(filter)
+    val selections = CloudServices.BlockStorage.find(filter)
     System.out.println(FileMetaData.toJsonArray(selections).toString)
   }
 }
