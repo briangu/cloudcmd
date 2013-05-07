@@ -14,10 +14,14 @@ object FileMetaData {
     (0 until arr.length()).map(i => FileMetaData.fromJson(arr.getJSONObject(i)))
   }
 
-  def toJsonArray(meta: Seq[FileMetaData]): JSONArray = {
+  def toJsonArray(meta: Iterable[FileMetaData]): JSONArray = {
     val result = new JSONArray
     meta.foreach(m => result.put(m.toJson))
     result
+  }
+
+  def toBlockContexts(fmds: Seq[FileMetaData]): Set[BlockContext] = {
+    Set() ++ fmds.flatMap(_.createAllBlockContexts)
   }
 
   def create(hash: String, data: JSONObject): FileMetaData = {

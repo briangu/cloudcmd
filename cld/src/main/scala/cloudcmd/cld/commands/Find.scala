@@ -3,7 +3,7 @@ package cloudcmd.cld.commands
 import cloudcmd.common.{FileMetaData, StringUtil}
 import jpbetz.cli._
 import org.json.JSONObject
-import cloudcmd.cld.CloudServices
+import cloudcmd.cld.{Util, CloudServices}
 
 @SubCommand(name = "find", description = "Query the index of archived files.")
 class Find extends Command {
@@ -20,8 +20,6 @@ class Find extends Command {
   @Opt(opt = "u", longOpt = "uri", description = "adapter URI", required = false) private var _uri: String = null
 
   def exec(commandLine: CommandContext) {
-    CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
-
     val filter = new JSONObject
     if (_tags != null) {
       import scala.collection.JavaConversions._
@@ -34,7 +32,25 @@ class Find extends Command {
     if (_hash != null) filter.put("hash", _hash)
     if (_count.intValue > 0) filter.put("count", _count.intValue)
     if (_offset.intValue > 0) filter.put("offset", _offset.intValue)
-    val selections = CloudServices.BlockStorage.find(filter)
+
+    val selections = Option(_uri) match {
+      case Some(uri) => {
+        CloudServices.ConfigService.findAdapterByBestMatch(_uri) match {
+          case Some(adapter) => {
+            System.err.println("reindexing adapter: %s".format(adapter.URI.toASCIIString))
+            adapter.find(filter)
+          }
+          case None => {
+            System.err.println("adapter %s not found.".format(_uri))
+            Set()
+          }
+        }
+      }
+      case None => {
+        CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
+        CloudServices.BlockStorage.find(filter)
+      }
+    }
     System.out.println(FileMetaData.toJsonArray(selections).toString)
-  }
+ }
 }

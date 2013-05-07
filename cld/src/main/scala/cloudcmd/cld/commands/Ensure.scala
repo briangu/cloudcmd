@@ -6,7 +6,7 @@ import jpbetz.cli.Command
 import jpbetz.cli.CommandContext
 import jpbetz.cli.Opt
 import jpbetz.cli.SubCommand
-import cloudcmd.cld.CloudServices
+import cloudcmd.cld.{Util, CloudServices}
 
 @SubCommand(name = "ensure", description = "Validate storage and ensure files are properly replicated.")
 class Ensure extends Command {
@@ -18,12 +18,19 @@ class Ensure extends Command {
   @Opt(opt = "u", longOpt = "uri", description = "adapter URI", required = false) private var _uri: String = null
 
   def exec(commandLine: CommandContext) {
-    CloudServices.ConfigService.findAdapterByBestMatch(_uri) match {
-      case Some(adapter) => {
-        System.err.println("reindexing adapter: %s".format(adapter.URI.toASCIIString))
-        val selections = describeToFileBlockContexts(adapter)
-        System.err.println("syncing %d files".format(selections.size))
-        adapter.ensureAll(fileMetaDataToBlockContexts(selections), blockLevelCheck = _blockLevelCheck)
+    Option(_uri) match {
+      case Some(uri) => {
+        CloudServices.ConfigService.findAdapterByBestMatch(_uri) match {
+          case Some(adapter) => {
+            System.err.println("reindexing adapter: %s".format(adapter.URI.toASCIIString))
+            val selections = Util.describeToFileBlockContexts(adapter)
+            System.err.println("syncing %d files".format(selections.size))
+            adapter.ensureAll(FileMetaData.toBlockContexts(selections), blockLevelCheck = _blockLevelCheck)
+          }
+          case None => {
+            println("adapter %s not found.".format(_uri))
+          }
+        }
       }
       case None => {
         CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
@@ -31,30 +38,12 @@ class Ensure extends Command {
         val selections = if (_syncAll) {
           describeToFileBlockContexts(CloudServices.BlockStorage)
         } else {
-         FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in))
+          FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in))
         }
 
         System.err.println("syncing %d files".format(selections.size))
-        CloudServices.BlockStorage.ensureAll(fileMetaDataToBlockContexts(selections), _blockLevelCheck)
+        CloudServices.BlockStorage.ensureAll(FileMetaData.toBlockContexts(selections), _blockLevelCheck)
       }
     }
-  }
-
-  def describeToFileBlockContexts(cas: ContentAddressableStorage): Seq[FileMetaData] = {
-    cas.describe().filter(_.endsWith(".meta")).par.flatMap { hash =>
-      try {
-        List(FileMetaData.create(hash, JsonUtil.loadJson(cas.load(new BlockContext(hash))._1)))
-      } catch {
-        case e: Exception => {
-          println("Failed to load: %s".format(hash))
-          // TODO: REPORT via notification center
-          Nil
-        }
-      }
-    }.toList
-  }
-
-  def fileMetaDataToBlockContexts(fmds: Seq[FileMetaData]): Set[BlockContext] = {
-    Set() ++ fmds.flatMap(_.createAllBlockContexts)
   }
 }
