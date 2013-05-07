@@ -68,7 +68,7 @@ class ReplicationStrategyAdapter(adapters: List[IndexedAdapter], storage: Replic
    * @param filter
    * @return a set of meta blocks
    */
-  def find(filter: JSONObject): Set[BlockContext] = {
+  def find(filter: JSONObject): Set[FileMetaData] = {
     Set() ++ adapters.par.flatMap(_.find(filter))
   }
 }

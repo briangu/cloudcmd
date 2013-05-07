@@ -1,6 +1,6 @@
 package cloudcmd.cld.commands
 
-import cloudcmd.common.FileMetaData
+import cloudcmd.common.{ContentAddressableStorage, BlockContext, FileMetaData}
 import cloudcmd.common.util.JsonUtil
 import jpbetz.cli.Command
 import jpbetz.cli.CommandContext
@@ -20,24 +20,41 @@ class Ensure extends Command {
   def exec(commandLine: CommandContext) {
     CloudServices.ConfigService.findAdapterByBestMatch(_uri) match {
       case Some(adapter) => {
-        System.err.println("reindexing %s".format(adapter.URI.toASCIIString))
-        val metaHashes = CloudServices.BlockStorage.describe().filter(_.isMeta())
-        metaHashes.par.map{ ctx => FileMetaData.create(ctx.hash, JsonUtil.loadJson(CloudServices.BlockStorage.load(ctx)._1)) }.toList
-        adapter.ensure()
+        System.err.println("reindexing adapter: %s".format(adapter.URI.toASCIIString))
+        val selections = describeToFileBlockContexts(adapter)
+        System.err.println("syncing %d files".format(selections.size))
+        adapter.ensureAll(fileMetaDataToBlockContexts(selections), blockLevelCheck = _blockLevelCheck)
       }
       case None => {
         CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
 
         val selections = if (_syncAll) {
-          val metaHashes = CloudServices.BlockStorage.describe().filter(_.isMeta())
-          metaHashes.par.map{ ctx => FileMetaData.create(ctx.hash, JsonUtil.loadJson(CloudServices.BlockStorage.load(ctx)._1)) }.toList
+          describeToFileBlockContexts(CloudServices.BlockStorage)
         } else {
-          FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in))
+         FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in))
         }
 
-        System.err.println("syncing %d files".format(selections.length))
-        CloudServices.BlockStorage.ensureAll(selections, _blockLevelCheck)
+        System.err.println("syncing %d files".format(selections.size))
+        CloudServices.BlockStorage.ensureAll(fileMetaDataToBlockContexts(selections), _blockLevelCheck)
       }
     }
+  }
+
+  def describeToFileBlockContexts(cas: ContentAddressableStorage): Seq[FileMetaData] = {
+    cas.describe().filter(_.endsWith(".meta")).par.flatMap { hash =>
+      try {
+        List(FileMetaData.create(hash, JsonUtil.loadJson(cas.load(new BlockContext(hash))._1)))
+      } catch {
+        case e: Exception => {
+          println("Failed to load: %s".format(hash))
+          // TODO: REPORT via notification center
+          Nil
+        }
+      }
+    }.toList
+  }
+
+  def fileMetaDataToBlockContexts(fmds: Seq[FileMetaData]): Set[BlockContext] = {
+    Set() ++ fmds.flatMap(_.createAllBlockContexts)
   }
 }

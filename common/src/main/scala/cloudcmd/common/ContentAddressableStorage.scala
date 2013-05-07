@@ -91,6 +91,6 @@ trait IndexedContentAddressableStorage extends ContentAddressableStorage {
    * @param filter
    * @return a set of meta blocks
    */
-  def find(filter: JSONObject): Set[BlockContext]
+  def find(filter: JSONObject): Set[FileMetaData]
 
 }

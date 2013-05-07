@@ -159,6 +159,10 @@ class FileMetaData {
     createBlockContext(getHash)
   }
 
+  def createAllBlockContexts: Set[BlockContext] = {
+    Set(createBlockContext) ++ getBlockHashes.map(createBlockContext(_))
+  }
+
   def hasProperties : Boolean = _data.has("properties")
 
   def getProperties : JSONObject = _data.getJSONObject("properties")
