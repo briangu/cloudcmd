@@ -1,8 +1,10 @@
 package cloudcmd.cld.commands
 
-import cloudcmd.cld.CloudServices
+import cloudcmd.cld.{Util, CloudServices}
 import jpbetz.cli.{Opt, Command, CommandContext, SubCommand}
 import org.json.JSONObject
+import cloudcmd.common.FileMetaData
+import cloudcmd.common.util.JsonUtil
 
 @SubCommand(name = "ls", description = "Perform a directory listing of archived files.") class Listing extends Command {
 
@@ -11,10 +13,16 @@ import org.json.JSONObject
   @Opt(opt = "m", longOpt = "maxTier", description = "max tier to verify to", required = false) private var _maxTier: Number = Integer.MAX_VALUE
 
   def exec(commandLine: CommandContext) {
-    CloudServices.ConfigService.findAdapterByBestMatch(_uri) match {
-      case Some(adapter) => {
-        CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
-        CloudServices.IndexStorage.find(new JSONObject).foreach(selection => System.out.println(selection.getPath))
+    Option(_uri) match {
+      case Some(uri) => {
+        CloudServices.ConfigService.findAdapterByBestMatch(_uri) match {
+          case Some(adapter) => {
+            adapter.find(new JSONObject).foreach(selection => System.out.println(selection.getPath))
+          }
+          case None => {
+            println("adapter %s not found.".format(_uri))
+          }
+        }
       }
       case None => {
         CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
