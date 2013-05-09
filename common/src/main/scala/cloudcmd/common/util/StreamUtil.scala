@@ -1,7 +1,8 @@
 package cloudcmd.common.util
 
-import java.io.{File, InputStream}
+import java.io.{ByteArrayInputStream, File, InputStream}
 import cloudcmd.common.FileUtil
+import java.nio.ByteBuffer
 
 object StreamUtil {
   def spoolStream(is: InputStream): (String, File) = {
@@ -28,5 +29,13 @@ object StreamUtil {
       }
     }
     (hash, tmpFile)
+  }
+
+  def spoolStreamToString(is: InputStream): String = {
+    scala.io.Source.fromInputStream(is).mkString
+  }
+
+  def stringToInputStream(str: String): InputStream = {
+    new ByteArrayInputStream(str.getBytes("UTF-8"))
   }
 }

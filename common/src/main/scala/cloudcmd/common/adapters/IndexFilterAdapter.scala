@@ -4,15 +4,13 @@ import cloudcmd.common._
 import org.h2.jdbcx.JdbcConnectionPool
 import java.io._
 import java.net.URI
-import java.sql._
 import collection.mutable
 import org.apache.log4j.Logger
 import org.json.{JSONArray, JSONException, JSONObject}
 import org.h2.fulltext.{FullText, FullTextLucene}
 import scala.collection.mutable.ListBuffer
-import cloudcmd.common.util.{CryptoUtil, JsonUtil}
-import scala.Array
-import java.sql.Array
+import cloudcmd.common.util.{StreamUtil, JsonUtil}
+import java.sql.{PreparedStatement, Statement, SQLException, Connection}
 
 class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
 
@@ -25,13 +23,13 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
 
   protected var _rootPath: String = null
   private var _cp: JdbcConnectionPool = null
-  private var _description: mutable.HashSet[BlockContext] with mutable.SynchronizedSet[BlockContext] = null
-  private var _descriptionHashes: mutable.HashSet[String] with mutable.SynchronizedSet[String] = null
+  private val _fmdCache = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
+  private var _description: mutable.HashSet[String] with mutable.SynchronizedSet[String] = null
   protected var _dbDir: String = null
 
-  private def getDbFileName(dbPath: String): String = "%s%sindex".format(dbPath, File.separator)
-  private def createConnectionString(dbPath: String): String = "jdbc:h2:%s".format(getDbFileName(dbPath))
-  private def getDbConnection: Connection = _cp.getConnection
+  private def getDbFile = "%s%sindex".format(_dbDir, File.separator)
+  private def createConnectionString: String = "jdbc:h2:%s".format(getDbFile)
+  private def getDbConnection = _cp.getConnection
 
   override def init(configDir: String, tier: Int, adapterType: String, tags: Set[String], config: URI) {
     super.init(configDir, tier, adapterType, tags, config)
@@ -61,7 +59,11 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
   protected def bootstrap(dataPath: String, dbPath: String) {
     Class.forName("org.h2.Driver")
     Class.forName("org.h2.fulltext.FullTextLucene")
-    _cp = JdbcConnectionPool.create(createConnectionString(dbPath), "sa", "sa")
+    _cp = JdbcConnectionPool.create(createConnectionString, "sa", "sa")
+    val file: File = new File(getDbFile + ".h2.db")
+    if (!file.exists) {
+      purge()
+    }
   }
 
   private def bootstrapDb() {
@@ -72,7 +74,6 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
       st = db.createStatement
       st.execute("DROP TABLE if exists FILE_INDEX")
       st.execute("CREATE TABLE FILE_INDEX ( HASH VARCHAR, PATH VARCHAR, FILENAME VARCHAR, FILEEXT VARCHAR, FILESIZE BIGINT, FILEDATE BIGINT, CREATEDDATE BIGINT, TAGS VARCHAR, PROPERTIES__OWNERID BIGINT, RAWMETA VARCHAR, PRIMARY KEY (HASH, TAGS))")
-      st.execute("CREATE INDEX IDX_FI ON FILE_INDEX (HASH, TAGS)")
       db.commit()
 
       createLuceneIndex(db)
@@ -92,7 +93,6 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     FullTextLucene.createIndex(db, "PUBLIC", "FILE_INDEX", "PATH,TAGS")
   }
 
-/*
   def purge() {
     var db: Connection = null
     try {
@@ -102,7 +102,9 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
       FullText.closeAll()
     }
     catch {
-      case e: SQLException => ;
+      case e: SQLException => {
+        log.error(e)
+      }
     }
     finally {
       SqlUtil.SafeClose(db)
@@ -126,7 +128,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
   private val fields = List("HASH", "PATH", "FILENAME", "FILEEXT", "FILESIZE", "FILEDATE", "CREATEDDATE", "TAGS", "PROPERTIES__OWNERID", "RAWMETA")
   private val addMetaSql = "MERGE INTO FILE_INDEX (%s) VALUES (%s)".format(fields.mkString(","), StringUtil.joinRepeat(fields.size, "?", ","))
 
-  private def addMeta(db: Connection, fmds: Seq[FileMetaData]) {
+  private def _addMetaToDb(db: Connection, fmds: Seq[FileMetaData]) {
     var statement: PreparedStatement = null
     try {
       val bind = new ListBuffer[AnyRef]
@@ -190,68 +192,85 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     }
   }
 
-  def add(meta: FileMetaData) {
-    var db: Connection = null
-    try {
-      db = getDbConnection
-      db.setAutoCommit(false)
-      addMeta(db, List(meta))
-      db.commit()
-    }
-    catch {
-      case e: JSONException => log.error(e)
-      case e: SQLException => log.error(e)
-    }
-    finally {
-      SqlUtil.SafeClose(db)
-    }
-  }
+//  def pruneHistory(selections: Seq[FileMetaData]) {
+//    //    removeAll(selections.filter(_.getParent != null).map(_.getParent).toSet)
+//    removeAll(Set() ++ selections.flatMap(fmd => if (fmd.getParent == null) {
+//      Nil
+//    } else {
+//      Set(fmd.getParent)
+//    }))
+//  }
 
-  def remove(meta: FileMetaData) {
-    removeAll(Set(meta.getHash))
-  }
+  def reindex() {
+    //    val foundContexts = underlying.describe()
+    //    val cachedContexts = getDescription.toSet
+    //    val newContexts = foundContexts -- cachedContexts
+    //    addToDb(newContexts)
+    //    val deletedContexts = cachedContexts -- foundContexts
+    //    deleteFromDb(deletedContexts)
 
-  def pruneHistory(selections: Seq[FileMetaData]) {
-    //    removeAll(selections.filter(_.getParent != null).map(_.getParent).toSet)
-    removeAll(Set() ++ selections.flatMap(fmd => if (fmd.getParent == null) {
-      Nil
-    } else {
-      Set(fmd.getParent)
-    }))
-  }
+    purge()
 
-  def removeAll(hashes: Set[String]) {
-    var db: Connection = null
-    var statement: PreparedStatement = null
-    try {
-      db = getDbConnection
-      db.setAutoCommit(false)
-      statement = db.prepareStatement("DELETE FROM FILE_INDEX WHERE HASH = ?")
-
-      var k = 0
-      hashes.foreach {
-        hash =>
-          bindVar(statement, 1, hash)
-          statement.addBatch()
-
-          k += 1
-          if (k > BATCH_SIZE) {
-            statement.executeBatch
-            k = 0
+    val fmds = underlying.describe().filter(_.endsWith(".meta")).par.flatMap {
+      hash =>
+        try {
+          List(FileMetaData.create(hash, JsonUtil.loadJson(underlying.load(new BlockContext(hash))._1)))
+        } catch {
+          case e: Exception => {
+            log.error(hash, e)
+            Nil
           }
-      }
+        }
+    }.toList
 
-      statement.executeBatch
-      db.commit()
-    }
-    catch {
-      case e: JSONException => log.error(e)
-      case e: SQLException => log.error(e)
-    }
-    finally {
-      SqlUtil.SafeClose(statement)
-      SqlUtil.SafeClose(db)
-    }
+    addAll(fmds)
+  }
+
+//  def describe(): Set[BlockContext] = {
+//    val hashes = describeHashes()
+//
+//    val extraHashes = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
+//    val referencedBlockHashes = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
+//
+//    val ctxs = new mutable.HashSet[BlockContext] with mutable.SynchronizedSet[BlockContext]
+//    hashes.par.foreach{ hash =>
+//      if (hash.endsWith(".meta")) {
+//        val fis = _s3Service.getObject(_bucketName, hash).getDataInputStream
+//        try {
+//          val fmd = FileMetaData.create(hash, JsonUtil.loadJson(fis))
+//          ctxs.add(fmd.createBlockContext)
+//          fmd.getBlockHashes.foreach{ blockHash =>
+//            if (hashes.contains(blockHash)) {
+//              ctxs.add(fmd.createBlockContext(blockHash))
+//              referencedBlockHashes.add(blockHash)
+//            } else {
+//              // TODO: log as we should have the blockHash in the description on the same adapter
+//              println("missing blockhash %s (%s) on adapter: %s".format(blockHash, fmd.getPath, this.URI))
+//            }
+//          }
+//        } finally {
+//          FileUtil.SafeClose(fis)
+//        }
+//      } else {
+//        extraHashes.add(hash)
+//      }
+//    }
+//
+//    if (extraHashes.size > 0) {
+//      val unreferencedHashes = extraHashes.diff(referencedBlockHashes)
+//      unreferencedHashes.foreach { hash =>
+//        ctxs.add(FileMetaData.createBlockContext(hash, Set[String]()))
+//      }
+//    }
+//
+//    ctxs.toSet
+//  }
+
+  /***
+    * Flush the index cache that may be populated during a series of modifications (e.g. store)
+    */
+  def flushIndex() {
+    // addAll()
   }
 
   def addAll(meta: Seq[FileMetaData]) {
@@ -264,7 +283,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
       FullText.closeAll()
 
       db.setAutoCommit(false)
-      addMeta(db, meta)
+      _addMetaToDb(db, meta)
       db.commit()
 
       Class.forName("org.h2.fulltext.FullTextLucene")
@@ -279,26 +298,12 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     }
   }
 
-  def reindex() {
-    purge()
-
-    val fmds = cas.describe().filter(_.isMeta()).par.flatMap {
-      ctx =>
-        try {
-          List(FileMetaData.create(ctx.hash, JsonUtil.loadJson(cas.load(ctx)._1)))
-        } catch {
-          case e: Exception => {
-            log.error(ctx, e)
-            Nil
-          }
-        }
-    }.toList
-
-    addAll(fmds)
-    //    pruneHistory(fmds)
-  }
-
-  def find(filter: JSONObject): Seq[FileMetaData] = {
+  /**
+   * Find a set of meta blocks based on a filter.
+   * @param filter
+   * @return a set of meta blocks
+   */
+  def find(filter: JSONObject): Set[FileMetaData] = {
     val results = new ListBuffer[FileMetaData]
 
     var db: Connection = null
@@ -388,81 +393,16 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
       SqlUtil.SafeClose(statement)
       SqlUtil.SafeClose(db)
     }
-    results.toList
-  }
-*/
-  def reindex() {
-//    val foundContexts = underlying.describe()
-//    val cachedContexts = getDescription.toSet
-//    val newContexts = foundContexts -- cachedContexts
-//    addToDb(newContexts)
-//    val deletedContexts = cachedContexts -- foundContexts
-//    deleteFromDb(deletedContexts)
-  }
-
-//  def describe(): Set[BlockContext] = {
-//    val hashes = describeHashes()
-//
-//    val extraHashes = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
-//    val referencedBlockHashes = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
-//
-//    val ctxs = new mutable.HashSet[BlockContext] with mutable.SynchronizedSet[BlockContext]
-//    hashes.par.foreach{ hash =>
-//      if (hash.endsWith(".meta")) {
-//        val fis = _s3Service.getObject(_bucketName, hash).getDataInputStream
-//        try {
-//          val fmd = FileMetaData.create(hash, JsonUtil.loadJson(fis))
-//          ctxs.add(fmd.createBlockContext)
-//          fmd.getBlockHashes.foreach{ blockHash =>
-//            if (hashes.contains(blockHash)) {
-//              ctxs.add(fmd.createBlockContext(blockHash))
-//              referencedBlockHashes.add(blockHash)
-//            } else {
-//              // TODO: log as we should have the blockHash in the description on the same adapter
-//              println("missing blockhash %s (%s) on adapter: %s".format(blockHash, fmd.getPath, this.URI))
-//            }
-//          }
-//        } finally {
-//          FileUtil.SafeClose(fis)
-//        }
-//      } else {
-//        extraHashes.add(hash)
-//      }
-//    }
-//
-//    if (extraHashes.size > 0) {
-//      val unreferencedHashes = extraHashes.diff(referencedBlockHashes)
-//      unreferencedHashes.foreach { hash =>
-//        ctxs.add(FileMetaData.createBlockContext(hash, Set[String]()))
-//      }
-//    }
-//
-//    ctxs.toSet
-//  }
-
-  /***
-    * Flush the index cache that may be populated during a series of modifications (e.g. store)
-    */
-  def flushIndex() {
-  }
-
-  /**
-   * Find a set of meta blocks based on a filter.
-   * @param filter
-   * @return a set of meta blocks
-   */
-  def find(filter: JSONObject): Set[FileMetaData] = {
-    Set()
+    results.toSet
   }
 
   override def contains(ctx: BlockContext) : Boolean = {
-    if (_description == null) getDescription
-    _descriptionHashes.contains(ctx.hash)
+    getDescription.contains(ctx.hash)
   }
 
   def containsAll(ctxs: Set[BlockContext]) : Map[BlockContext, Boolean] = {
-    if (_description == null) getDescription
-    Map() ++ ctxs.par.flatMap(ctx => Map(ctx -> _descriptionHashes.contains(ctx.hash)))
+    val description = getDescription
+    Map() ++ ctxs.par.flatMap(ctx => Map(ctx -> description.contains(ctx.hash)))
   }
 
   override def ensure(ctx: BlockContext, blockLevelCheck: Boolean): Boolean = {
@@ -476,74 +416,76 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
   }
 
   def store(ctx: BlockContext, is: InputStream) {
-    underlying.store(ctx, is)
-    addToDb(Set(ctx))
+    if (ctx.isMeta()) {
+      val (meta, forwardIs) = if (is.markSupported()) {
+        is.mark(0)
+        val meta = StreamUtil.spoolStreamToString(is)
+        is.reset()
+        (meta, is)
+      } else {
+        val meta = StreamUtil.spoolStreamToString(is)
+        (meta, StreamUtil.stringToInputStream(meta))
+      }
+      try {
+        underlying.store(ctx, forwardIs)
+        _fmdCache.add(meta)
+      } finally {
+        if (is != forwardIs) {
+          forwardIs.close()
+        }
+      }
+    } else {
+      underlying.store(ctx, is)
+    }
   }
 
   def load(ctx: BlockContext): (InputStream, Int) = {
+//    if (ctx.isMeta()) {
+//      // TODO: load from db
+//    }
     underlying.load(ctx)
   }
 
   def removeAll(ctxs : Set[BlockContext]) : Map[BlockContext, Boolean] = {
     val result = underlying.removeAll(ctxs)
     val wasRemoved = Set() ++ result.par.flatMap{ case (ctx, removed) =>  if (removed) Set(ctx) else Nil }
-    deleteFromDb(wasRemoved)
+    _deleteFromDb(wasRemoved)
     result
   }
 
   def describe(): Set[String] = {
-    underlying.describe()
+    getDescription.toSet
   }
 
-  private def addToDb(ctxs: Set[BlockContext]) {
+  def _addToDb(meta: FileMetaData) {
+    var db: Connection = null
+    try {
+      db = getDbConnection
+      db.setAutoCommit(false)
+      _addMetaToDb(db, List(meta))
+      db.commit()
+    }
+    catch {
+      case e: JSONException => log.error(e)
+      case e: SQLException => log.error(e)
+    }
+    finally {
+      SqlUtil.SafeClose(db)
+    }
+  }
+
+  private def _deleteFromDb(ctxs: Set[BlockContext]) {
     var db: Connection = null
     var statement: PreparedStatement = null
     try {
       db = getDbConnection
       db.setAutoCommit(false)
-      statement = db.prepareStatement("MERGE INTO BLOCK_INDEX VALUES (?,?)")
-
+      statement = db.prepareStatement("DELETE FROM FILE_INDEX WHERE HASH = ? AND TAGS = ?")
       var k = 0
       for (ctx <- ctxs) {
         statement.setString(1, ctx.hash)
         statement.setString(2, ctx.routingTags.mkString(" "))
         statement.addBatch()
-
-        if (_description != null) {
-          _description.add(ctx)
-          _descriptionHashes.add(ctx.hash)
-        }
-
-        k += 1
-        if (k > BATCH_SIZE) {
-          statement.executeBatch
-          k = 0
-        }
-      }
-
-      statement.executeBatch
-      db.commit()
-    }
-    catch {
-      case e: SQLException => log.error(e)
-    }
-    finally {
-      SqlUtil.SafeClose(statement)
-      SqlUtil.SafeClose(db)
-    }
-  }
-
-  private def deleteFromDb(ctxs: Set[BlockContext]) {
-    var db: Connection = null
-    var statement: PreparedStatement = null
-    try {
-      db = getDbConnection
-      db.setAutoCommit(false)
-      statement = db.prepareStatement("DELETE FROM BLOCK_INDEX WHERE HASH = ?")
-      var k = 0
-      for (ctx <- ctxs) {
-        statement.setString(1, ctx.hash)
-        statement.addBatch()
         k += 1
         if (k > BATCH_SIZE) {
           statement.executeBatch
@@ -562,7 +504,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     }
   }
 
-  private def getDescription: mutable.HashSet[BlockContext] with mutable.SynchronizedSet[BlockContext] = {
+  private def getDescription: mutable.HashSet[String] with mutable.SynchronizedSet[String] = {
     if (_description != null) return _description
 
     this synchronized {
@@ -571,21 +513,16 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
         var statement: PreparedStatement = null
         try {
           db = getDbConnection
-          statement = db.prepareStatement("SELECT HASH,TAGS FROM BLOCK_INDEX")
+          statement = db.prepareStatement("SELECT DISTINCT HASH FROM FILE_INDEX")
 
-          val description = new mutable.HashSet[BlockContext] with mutable.SynchronizedSet[BlockContext]
-          val descriptionHashes = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
+          val description = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
 
           val resultSet = statement.executeQuery
           while (resultSet.next) {
-            val hash = resultSet.getString("HASH")
-            val tags = resultSet.getString("TAGS").split(" ").filter(_.length > 0).toSet
-            description.add(new BlockContext(hash, tags))
-            descriptionHashes.add(hash)
+            description.add(resultSet.getString("HASH"))
           }
 
           _description = description
-          _descriptionHashes = descriptionHashes
         }
         catch {
           case e: SQLException => log.error(e)
