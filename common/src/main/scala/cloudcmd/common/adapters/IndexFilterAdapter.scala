@@ -9,7 +9,7 @@ import org.apache.log4j.Logger
 import org.json.{JSONArray, JSONException, JSONObject}
 import org.h2.fulltext.{FullText, FullTextLucene}
 import scala.collection.mutable.ListBuffer
-import cloudcmd.common.util.{StreamUtil, JsonUtil}
+import cloudcmd.common.util.{SqlUtil, StreamUtil, JsonUtil}
 import java.sql.{PreparedStatement, Statement, SQLException, Connection}
 
 class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
@@ -74,9 +74,9 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
         }
     }.toList
 
-    _addAll(addedFileMetaData, rebuildIndex = false)
+    _addAllFileMetaData(addedFileMetaData, rebuildIndex = false)
 
-    _deleteFromDb(_getMetaHashesAsBlockContexts(deletedMeta))
+    _deleteBlockContextsFromDb(_getMetaHashesAsBlockContexts(deletedMeta))
   }
 
 //  def describe(): Set[BlockContext] = {
@@ -123,7 +123,8 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     * Flush the index cache that may be populated during a series of modifications (e.g. store)
     */
   def flushIndex() {
-    _addAll(_fmdCache.map(meta => FileMetaData.fromJson(new JSONObject(meta))).toSeq)
+    _addAllFileMetaData(_fmdCache.map(meta => FileMetaData.fromJson(new JSONObject(meta))).toSeq)
+    _fmdCache.clear()
   }
 
   /**
@@ -206,7 +207,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
       }
 
       statement = db.prepareStatement(sql)
-      (0 until bind.size).foreach(i => _bindVar(statement, i + 1, bind(i)))
+      (0 until bind.size).foreach(i => SqlUtil.bindVar(statement, i + 1, bind(i)))
 
       val rs = statement.executeQuery
       while (rs.next) {
@@ -277,7 +278,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
   def removeAll(ctxs : Set[BlockContext]) : Map[BlockContext, Boolean] = {
     val result = underlying.removeAll(ctxs)
     val wasRemoved = Set() ++ result.par.flatMap{ case (ctx, removed) =>  if (removed) Set(ctx) else Nil }
-    _deleteFromDb(wasRemoved)
+    _deleteBlockContextsFromDb(wasRemoved)
     result
   }
 
@@ -285,7 +286,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     _getDescription.toSet
   }
 
-  def _addAll(meta: Seq[FileMetaData], rebuildIndex: Boolean = false) {
+  def _addAllFileMetaData(meta: Seq[FileMetaData], rebuildIndex: Boolean = false) {
     if (meta == null) return
     var db: Connection = null
     try {
@@ -321,7 +322,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     _cp = JdbcConnectionPool.create(_createConnectionString, "sa", "sa")
     val file: File = new File(_getDbFile + ".h2.db")
     if (!file.exists) {
-      _purge()
+      _recreateDb()
     }
   }
 
@@ -352,7 +353,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     FullTextLucene.createIndex(db, "PUBLIC", "FILE_INDEX", "PATH,TAGS")
   }
 
-  def _purge() {
+  def _recreateDb() {
     var db: Connection = null
     try {
       db = _getDbConnection
@@ -409,7 +410,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
         // TODO: TOTAL HACK...USE STORED.IO ASAP
         bind.append(if (meta.hasProperty("ownerId")) meta.getProperties.getLong("ownerId").asInstanceOf[AnyRef] else 0.asInstanceOf[AnyRef])
         bind.append(meta.getDataAsString)
-        (0 until bind.size).foreach(i => _bindVar(statement, i + 1, bind(i)))
+        (0 until bind.size).foreach(i => SqlUtil.bindVar(statement, i + 1, bind(i)))
         statement.addBatch()
 
         k += 1
@@ -434,24 +435,6 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     tagSet.mkString(" ")
   }
 
-  private def _bindVar(statement: PreparedStatement, idx: Int, obj: AnyRef) {
-    if (obj.isInstanceOf[String]) {
-      statement.setString(idx, obj.asInstanceOf[String])
-    }
-    else if (obj.isInstanceOf[Long]) {
-      statement.setLong(idx, obj.asInstanceOf[Long])
-    }
-    else if (obj.isInstanceOf[java.lang.Integer]) {
-      statement.setInt(idx, obj.asInstanceOf[java.lang.Integer])
-    }
-    else if (obj == null) {
-      statement.setString(idx, null)
-    }
-    else {
-      throw new IllegalArgumentException("unknown obj type: " + obj.toString)
-    }
-  }
-
   //  def pruneHistory(selections: Seq[FileMetaData]) {
   //    //    removeAll(selections.filter(_.getParent != null).map(_.getParent).toSet)
   //    removeAll(Set() ++ selections.flatMap(fmd => if (fmd.getParent == null) {
@@ -461,7 +444,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
   //    }))
   //  }
 
-  private def _deleteFromDb(ctxs: Set[BlockContext]) {
+  private def _deleteBlockContextsFromDb(ctxs: Set[BlockContext]) {
     var db: Connection = null
     var statement: PreparedStatement = null
     try {
@@ -497,7 +480,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     try {
       db = _getDbConnection
       statement = db.prepareStatement("SELECT HASH,TAGS FROM FILE_INDEX WHERE HASH in ?")
-      _bindVar(statement, 1, hashes.mkString(","))
+      SqlUtil.bindVar(statement, 1, hashes.mkString(","))
 
       val blockContexts = new mutable.HashSet[BlockContext]
 
