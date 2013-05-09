@@ -18,33 +18,36 @@ class Ensure extends Command {
   @Opt(opt = "u", longOpt = "uri", description = "adapter URI", required = false) private var _uri: String = null
 
   def exec(commandLine: CommandContext) {
-    Option(_uri) match {
+    val matchedAdapter = Option(_uri) match {
       case Some(uri) => {
         CloudServices.ConfigService.findAdapterByBestMatch(_uri) match {
           case Some(adapter) => {
             System.err.println("ensuring adapter: %s".format(adapter.URI.toASCIIString))
-            val selections = Util.describeToFileBlockContexts(adapter)
-            System.err.println("syncing %d files".format(selections.size))
-            adapter.ensureAll(FileMetaData.toBlockContexts(selections), blockLevelCheck = _blockLevelCheck)
+            adapter
           }
           case None => {
             System.err.println("adapter %s not found.".format(_uri))
+            null
           }
         }
       }
       case None => {
         CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
-
         System.err.println("ensuring all adapters.")
+        CloudServices.BlockStorage
+      }
+    }
 
+    Option(matchedAdapter) match {
+      case Some(adapter) => {
         val selections = if (_syncAll) {
-          Util.describeToFileBlockContexts(CloudServices.BlockStorage)
+          Util.describeToFileBlockContexts(adapter)
         } else {
           FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in))
         }
 
         System.err.println("syncing %d files".format(selections.size))
-        CloudServices.BlockStorage.ensureAll(FileMetaData.toBlockContexts(selections), _blockLevelCheck)
+        adapter.ensureAll(FileMetaData.toBlockContexts(selections), _blockLevelCheck)
       }
     }
   }

@@ -1,7 +1,7 @@
 package cloudcmd.cld.commands
 
 import cloudcmd.common.util.JsonUtil
-import cloudcmd.common.{ContentAddressableStorage, FileMetaData, FileUtil}
+import cloudcmd.common.{IndexedContentAddressableStorage, FileMetaData, FileUtil}
 import jpbetz.cli._
 import java.io.{ByteArrayInputStream, File, FileInputStream}
 import cloudcmd.cld.CloudServices
@@ -18,38 +18,27 @@ class Tag extends Command {
   @Opt(opt = "u", longOpt = "uri", description = "adapter URI", required = false) private var _uri: String = null
 
   def exec(commandLine: CommandContext) {
-    Option(_uri) match {
+    val matchedAdapter = Option(_uri) match {
       case Some(uri) => {
         CloudServices.ConfigService.findAdapterByBestMatch(_uri) match {
           case Some(adapter) => {
-            CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
-
-            import scala.collection.JavaConversions._
-
-            val is = if ((_inputFilePath != null)) new FileInputStream(new File(_inputFilePath)) else System.in
-            try {
-              val selections = FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(is))
-
-              var preparedTags = FileMetaData.prepareTags(_tags.toList)
-              if (_remove) {
-                preparedTags = preparedTags.map("-" + _)
-              }
-
-              val newMeta = adapter.addTags(selections, preparedTags.toSet)
-              System.out.println(newMeta.toString())
-            }
-            finally {
-              if (is ne System.in) FileUtil.SafeClose(is)
-            }
+            System.err.println("adding tags to adapter: %s".format(uri))
+            adapter
           }
           case None => {
             System.err.println("adapter %s not found.".format(_uri))
+            null
           }
         }
       }
       case None => {
-        CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
+        System.err.println("adding tags to all adapters.")
+        CloudServices.BlockStorage
+      }
+    }
 
+    Option(matchedAdapter) match {
+      case Some(adapter) => {
         import scala.collection.JavaConversions._
 
         val is = if ((_inputFilePath != null)) new FileInputStream(new File(_inputFilePath)) else System.in
@@ -61,18 +50,16 @@ class Tag extends Command {
             preparedTags = preparedTags.map("-" + _)
           }
 
-          val newMeta = CloudServices.IndexStorage.addTags(selections, preparedTags.toSet)
-          System.out.println(newMeta.toString())
-        }
-        finally {
+          addTags(adapter, selections, preparedTags.toSet)
+        } finally {
           if (is ne System.in) FileUtil.SafeClose(is)
         }
       }
     }
   }
 
-  def addTags(cas: ContentAddressableStorage, selections: Seq[FileMetaData], tags: Set[String]): Seq[FileMetaData] = {
-    val fmds = selections.par.flatMap {
+  def addTags(cas: IndexedContentAddressableStorage, selections: Seq[FileMetaData], tags: Set[String]) {
+    selections.par.foreach {
       selection =>
         val newTags = FileMetaData.applyTags(selection.getTags, tags)
         if (newTags.equals(selection.getTags)) {
@@ -84,13 +71,8 @@ class Tag extends Command {
 
           val derivedMeta = FileMetaData.deriveMeta(selection.getHash, data)
           cas.store(derivedMeta.createBlockContext, new ByteArrayInputStream(derivedMeta.getDataAsString.getBytes("UTF-8")))
-          List(derivedMeta)
         }
-    }.toList
-
-    addAll(fmds)
-    //    pruneHistory(fmds)
-
-    fmds
+    }
+    cas.flushIndex()
   }
 }

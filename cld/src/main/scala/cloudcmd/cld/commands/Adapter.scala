@@ -42,15 +42,15 @@ class Adapter extends Command {
   }
 
   def list() {
-    System.out.println("Adapters:")
-    System.out.println()
+    System.err.println("Adapters:")
+    System.err.println()
     for (adapter <- CloudServices.ConfigService.getAllAdapters) {
-      System.out.println("Adapter: " + adapter.Type)
-      System.out.println("  URI: " + adapter.URI.toString)
-      System.out.println("  ConfigDir: " + adapter.ConfigDir)
-      System.out.println("  IsOnline: " + adapter.IsOnLine)
-      System.out.println("  IsFull: " + adapter.IsFull)
-      System.out.println()
+      System.err.println("Adapter: " + adapter.Type)
+      System.err.println("  URI: " + adapter.URI.toString)
+      System.err.println("  ConfigDir: " + adapter.ConfigDir)
+      System.err.println("  IsOnline: " + adapter.IsOnLine)
+      System.err.println("  IsFull: " + adapter.IsFull)
+      System.err.println()
     }
   }
 }

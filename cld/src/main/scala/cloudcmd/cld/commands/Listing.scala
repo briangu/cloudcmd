@@ -13,20 +13,29 @@ import cloudcmd.common.util.JsonUtil
   @Opt(opt = "m", longOpt = "maxTier", description = "max tier to verify to", required = false) private var _maxTier: Number = Integer.MAX_VALUE
 
   def exec(commandLine: CommandContext) {
-    Option(_uri) match {
+    val matchedAdapter = Option(_uri) match {
       case Some(uri) => {
         CloudServices.ConfigService.findAdapterByBestMatch(_uri) match {
           case Some(adapter) => {
-            adapter.find(new JSONObject).foreach(selection => System.out.println(selection.getPath))
+            System.err.println("listing from adapter: %s".format(adapter.URI.toASCIIString))
+            adapter
           }
           case None => {
             System.err.println("adapter %s not found.".format(_uri))
+            null
           }
         }
       }
       case None => {
         CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
-        CloudServices.BlockStorage.find(new JSONObject).foreach(selection => System.out.println(selection.getPath))
+        System.err.println("listing from all adapters.")
+        CloudServices.BlockStorage
+      }
+    }
+
+    Option(matchedAdapter) match {
+      case Some(adapter) => {
+        adapter.find(new JSONObject).foreach(selection => System.out.println(selection.getPath))
       }
     }
   }

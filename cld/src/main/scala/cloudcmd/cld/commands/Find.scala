@@ -20,37 +20,44 @@ class Find extends Command {
   @Opt(opt = "u", longOpt = "uri", description = "adapter URI", required = false) private var _uri: String = null
 
   def exec(commandLine: CommandContext) {
-    val filter = new JSONObject
-    if (_tags != null) {
-      import scala.collection.JavaConversions._
-      val tags = FileMetaData.prepareTags(_tags.toList)
-      if (tags.size > 0) filter.put("tags", StringUtil.join(tags, " "))
-    }
-    if (_path != null) filter.put("path", _path)
-    if (_filename != null) filter.put("filename", _filename)
-    if (_fileext != null) filter.put("fileext", _fileext)
-    if (_hash != null) filter.put("hash", _hash)
-    if (_count.intValue > 0) filter.put("count", _count.intValue)
-    if (_offset.intValue > 0) filter.put("offset", _offset.intValue)
-
-    val selections = Option(_uri) match {
+    val matchedAdapter = Option(_uri) match {
       case Some(uri) => {
         CloudServices.ConfigService.findAdapterByBestMatch(_uri) match {
           case Some(adapter) => {
-            System.err.println("reindexing adapter: %s".format(adapter.URI.toASCIIString))
-            adapter.find(filter)
+            System.err.println("searching adapter: %s".format(adapter.URI.toASCIIString))
+            adapter
           }
           case None => {
             System.err.println("adapter %s not found.".format(_uri))
-            Set()
+            null
           }
         }
       }
       case None => {
         CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
-        CloudServices.BlockStorage.find(filter)
+        System.err.println("searching all adapters.")
+        CloudServices.BlockStorage
       }
     }
-    System.out.println(FileMetaData.toJsonArray(selections).toString)
+
+    Option(matchedAdapter) match {
+      case Some(adapter) => {
+        val filter = new JSONObject
+        if (_tags != null) {
+          import scala.collection.JavaConversions._
+          val tags = FileMetaData.prepareTags(_tags.toList)
+          if (tags.size > 0) filter.put("tags", StringUtil.join(tags, " "))
+        }
+        if (_path != null) filter.put("path", _path)
+        if (_filename != null) filter.put("filename", _filename)
+        if (_fileext != null) filter.put("fileext", _fileext)
+        if (_hash != null) filter.put("hash", _hash)
+        if (_count.intValue > 0) filter.put("count", _count.intValue)
+        if (_offset.intValue > 0) filter.put("offset", _offset.intValue)
+
+        val selections = adapter.find(filter)
+        System.out.println(FileMetaData.toJsonArray(selections).toString)
+      }
+    }
  }
 }

@@ -19,9 +19,8 @@ class Remove extends Command {
 
   def exec(commandLine: CommandContext) {
     val jsonFileMetaDataArray = JsonUtil.loadJsonArray(System.in)
-    val blockContexts = FileMetaData.toBlockContextsFromJsonArray(jsonFileMetaDataArray, includeBlockHashes = _removeBlockHashes)
 
-    Option(_uri) match {
+    val matchedAdapter = Option(_uri) match {
       case Some(uri) => {
         CloudServices.ConfigService.findAdapterByBestMatch(_uri) match {
           case Some(adapter) => {
@@ -30,10 +29,11 @@ class Remove extends Command {
             } else {
               System.err.println("removing meta data for %d files from adapter: %s".format(jsonFileMetaDataArray.length()), adapter.URI.toASCIIString)
             }
-            adapter.removeAll(blockContexts)
+            adapter
           }
           case None => {
             System.err.println("adapter %s not found.".format(_uri))
+            null
           }
         }
       }
@@ -44,7 +44,14 @@ class Remove extends Command {
         } else {
           System.err.println("removing meta data for %d files from adapters.".format(jsonFileMetaDataArray.length()))
         }
-        CloudServices.BlockStorage.removeAll(blockContexts)
+        CloudServices.BlockStorage
+      }
+    }
+
+    Option(matchedAdapter) match {
+      case Some(adapter) => {
+        val blockContexts = FileMetaData.toBlockContextsFromJsonArray(jsonFileMetaDataArray, includeBlockHashes = _removeBlockHashes)
+        adapter.removeAll(blockContexts)
       }
     }
   }

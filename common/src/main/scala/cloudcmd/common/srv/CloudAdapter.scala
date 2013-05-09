@@ -138,14 +138,6 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
     server.addRoute(new OAuthGetRestRoute(config, "/blocks", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
         val arr = new JSONArray
-        cas.describe.foreach(ctx => arr.put(ctx.toJson))
-        new JsonResponse(arr)
-      }
-    }))
-
-    server.addRoute(new OAuthGetRestRoute(config, "/blocks/hashes", new OAuthRouteHandler {
-      def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        val arr = new JSONArray
         cas.describe.foreach(arr.put)
         new JsonResponse(arr)
       }

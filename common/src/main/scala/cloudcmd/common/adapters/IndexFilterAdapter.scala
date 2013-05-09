@@ -22,7 +22,6 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
 
   private val BATCH_SIZE = 1024
   private val WHITESPACE = " ,:-._$/\\"// + File.separator
-  private val MAX_FETCH_RETRIES = 3
 
   protected var _rootPath: String = null
   private var _cp: JdbcConnectionPool = null
@@ -39,7 +38,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
 
     _rootPath = URI.getPath
     if (_rootPath.length == 0) _rootPath = ConfigDir
-    _dbDir = _rootPath + File.separator + "db"
+    _dbDir = _rootPath + File.separator + "indexdb"
     _configDir = _dbDir
     new File(_dbDir).mkdirs
 
@@ -71,11 +70,9 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     try {
       db = getDbConnection
       st = db.createStatement
-      st.execute("DROP TABLE if exists BLOCK_INDEX")
-      st.execute("CREATE TABLE BLOCK_INDEX ( HASH VARCHAR, TAGS VARCHAR, PRIMARY KEY(HASH, TAGS) )")
-      st.execute("CREATE INDEX IDX_BI ON BLOCK_INDEX (HASH, TAGS)")
       st.execute("DROP TABLE if exists FILE_INDEX")
       st.execute("CREATE TABLE FILE_INDEX ( HASH VARCHAR, PATH VARCHAR, FILENAME VARCHAR, FILEEXT VARCHAR, FILESIZE BIGINT, FILEDATE BIGINT, CREATEDDATE BIGINT, TAGS VARCHAR, PROPERTIES__OWNERID BIGINT, RAWMETA VARCHAR, PRIMARY KEY (HASH, TAGS))")
+      st.execute("CREATE INDEX IDX_FI ON FILE_INDEX (HASH, TAGS)")
       db.commit()
 
       createLuceneIndex(db)
