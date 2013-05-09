@@ -6,8 +6,8 @@ import jpbetz.cli.CommandContext
 import jpbetz.cli.Opt
 import jpbetz.cli.SubCommand
 import org.json.JSONArray
-import cloudcmd.cld.CloudServices
-import cloudcmd.common.FileMetaData
+import cloudcmd.cld.{Util, CloudServices}
+import cloudcmd.common.{BlockContext, FileMetaData}
 
 @SubCommand(name = "remove", description = "Remove files from storage.")
 class Remove extends Command {
@@ -15,17 +15,22 @@ class Remove extends Command {
   @Opt(opt = "u", longOpt = "uri", description = "adapter URI", required = false) private var _uri: String = null
   @Opt(opt = "n", longOpt = "minTier", description = "min tier to verify to", required = false) private var _minTier: Number = 0
   @Opt(opt = "m", longOpt = "maxTier", description = "max tier to verify to", required = false) private var _maxTier: Number = Integer.MAX_VALUE
+  @Opt(opt = "b", longOpt = "blocks", description = "remove associated blocks", required = false) private var _removeBlockHashes: Boolean = false
 
   def exec(commandLine: CommandContext) {
+    val jsonFileMetaDataArray = JsonUtil.loadJsonArray(System.in)
+    val blockContexts = FileMetaData.toBlockContextsFromJsonArray(jsonFileMetaDataArray, includeBlockHashes = _removeBlockHashes)
+
     Option(_uri) match {
       case Some(uri) => {
         CloudServices.ConfigService.findAdapterByBestMatch(_uri) match {
           case Some(adapter) => {
-            System.err.println("reindexing %s".format(adapter.URI.toASCIIString))
-            val metaHashes = CloudServices.BlockStorage.describe().filter(_.isMeta())
-            metaHashes.par.map{ ctx => FileMetaData.create(ctx.hash, JsonUtil.loadJson(CloudServices.BlockStorage.load(ctx)._1)) }.toList
-            System.err.println("removing %d files".format(selections.length))
-            CloudServices.IndexStorage.remove(FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in)))
+            if (_removeBlockHashes) {
+              System.err.println("removing meta and file data for %d files from adapter %s.".format(jsonFileMetaDataArray.length()), adapter.URI.toASCIIString)
+            } else {
+              System.err.println("removing meta data for %d files from adapter %s.".format(jsonFileMetaDataArray.length()), adapter.URI.toASCIIString)
+            }
+            adapter.removeAll(blockContexts)
           }
           case None => {
             println("adapter %s not found.".format(_uri))
@@ -34,17 +39,13 @@ class Remove extends Command {
       }
       case None => {
         CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
-
-        val selections = if (_syncAll) {
-          val metaHashes = CloudServices.BlockStorage.describe().filter(_.isMeta())
-          metaHashes.par.map{ ctx => FileMetaData.create(ctx.hash, JsonUtil.loadJson(CloudServices.BlockStorage.load(ctx)._1)) }.toList
+        if (_removeBlockHashes) {
+          System.err.println("removing meta and file data for %d files from all adapters.".format(jsonFileMetaDataArray.length()))
         } else {
-          FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in))
+          System.err.println("removing meta data for %d files from adapters.".format(jsonFileMetaDataArray.length()))
         }
-
-        System.err.println("removing %d files".format(selections.length))
-        CloudServices.BlockStorage.remove(FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in)))
+        CloudServices.BlockStorage.removeAll(blockContexts)
       }
     }
- }
+  }
 }

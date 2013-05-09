@@ -24,6 +24,14 @@ object FileMetaData {
     Set() ++ fmds.flatMap(_.createAllBlockContexts)
   }
 
+  def toBlockContextsFromJsonArray(arr: JSONArray, includeBlockHashes: Boolean): Set[BlockContext] = {
+    if (includeBlockHashes) {
+      Set() ++ (0 until arr.length()).flatMap(i => FileMetaData.fromJson(arr.getJSONObject(i)).createAllBlockContexts)
+    } else {
+      Set() ++ (0 until arr.length()).flatMap(i => Set(FileMetaData.fromJson(arr.getJSONObject(i)).createBlockContext))
+    }
+  }
+
   def create(hash: String, data: JSONObject): FileMetaData = {
     val meta: FileMetaData = new FileMetaData
     meta._data = data
