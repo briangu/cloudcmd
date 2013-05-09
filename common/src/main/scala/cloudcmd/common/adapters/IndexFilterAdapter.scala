@@ -42,7 +42,9 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
 
     underlying.init(configDir, tier, adapterType, tags, config)
 
-    if (IsOnLine) _bootstrap(_configDir, _dbDir)
+    if (IsOnLine) {
+      _bootstrap(_configDir, _dbDir)
+    }
   }
 
   def shutdown() {
@@ -123,7 +125,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     * Flush the index cache that may be populated during a series of modifications (e.g. store)
     */
   def flushIndex() {
-    _addAllFileMetaData(_fmdCache.map(meta => FileMetaData.fromJson(new JSONObject(meta))).toSeq)
+    _addAllFileMetaData(_fmdCache.map(meta => FileMetaData.create(new JSONObject(meta))).toSeq, rebuildIndex = true)
     _fmdCache.clear()
   }
 
@@ -333,7 +335,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
       db = _getDbConnection
       st = db.createStatement
       st.execute("DROP TABLE if exists FILE_INDEX")
-      st.execute("CREATE TABLE FILE_INDEX ( HASH VARCHAR, PATH VARCHAR, FILENAME VARCHAR, FILEEXT VARCHAR, FILESIZE BIGINT, FILEDATE BIGINT, CREATEDDATE BIGINT, TAGS VARCHAR, PROPERTIES__OWNERID BIGINT, RAWMETA VARCHAR, PRIMARY KEY (HASH, TAGS))")
+      st.execute("CREATE TABLE FILE_INDEX ( HASH VARCHAR, BLOCK_HASHES VARCHAR, PATH VARCHAR, FILENAME VARCHAR, FILEEXT VARCHAR, FILESIZE BIGINT, FILEDATE BIGINT, CREATEDDATE BIGINT, TAGS VARCHAR, PROPERTIES__OWNERID BIGINT, RAWMETA VARCHAR, PRIMARY KEY (HASH, TAGS))")
       db.commit()
 
       _createLuceneIndex(db)
@@ -522,11 +524,11 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
             }
 
             _description = description
-          }
-          catch {
-            case e: SQLException => log.error(e)
-          }
-          finally {
+          } catch {
+            case e: SQLException => {
+              log.error(e)
+            }
+          } finally {
             SqlUtil.SafeClose(statement)
             SqlUtil.SafeClose(db)
           }

@@ -82,7 +82,7 @@ class Add extends Command {
           } catch {
             case e: Exception => {
               System.err.println("failed to index file: " + file.getAbsolutePath)
-              System.err.println(e.getMessage)
+              System.err.println(e.printStackTrace())
             }
           } finally {
             System.err.println("took %6d ms to index %s".format((System.currentTimeMillis - startTime), file.getName))
