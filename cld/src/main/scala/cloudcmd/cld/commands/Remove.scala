@@ -26,14 +26,14 @@ class Remove extends Command {
         CloudServices.ConfigService.findAdapterByBestMatch(_uri) match {
           case Some(adapter) => {
             if (_removeBlockHashes) {
-              System.err.println("removing meta and file data for %d files from adapter %s.".format(jsonFileMetaDataArray.length()), adapter.URI.toASCIIString)
+              System.err.println("removing meta and file data for %d files from adapter: %s".format(jsonFileMetaDataArray.length()), adapter.URI.toASCIIString)
             } else {
-              System.err.println("removing meta data for %d files from adapter %s.".format(jsonFileMetaDataArray.length()), adapter.URI.toASCIIString)
+              System.err.println("removing meta data for %d files from adapter: %s".format(jsonFileMetaDataArray.length()), adapter.URI.toASCIIString)
             }
             adapter.removeAll(blockContexts)
           }
           case None => {
-            println("adapter %s not found.".format(_uri))
+            System.err.println("adapter %s not found.".format(_uri))
           }
         }
       }

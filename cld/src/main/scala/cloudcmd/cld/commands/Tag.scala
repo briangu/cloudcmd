@@ -43,7 +43,7 @@ class Tag extends Command {
             }
           }
           case None => {
-            println("adapter %s not found.".format(_uri))
+            System.err.println("adapter %s not found.".format(_uri))
           }
         }
       }

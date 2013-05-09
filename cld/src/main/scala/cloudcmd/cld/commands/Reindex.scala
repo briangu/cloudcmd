@@ -13,11 +13,11 @@ import jpbetz.cli.{Opt, Command, CommandContext, SubCommand}
       case Some(uri) => {
         CloudServices.ConfigService.findAdapterByBestMatch(_uri) match {
           case Some(adapter) => {
-            System.err.println("reindexing %s".format(adapter.URI.toASCIIString))
+            System.err.println("reindexing adapter: %s".format(adapter.URI.toASCIIString))
             adapter.reindex()
           }
           case None => {
-            println("adapter %s not found.".format(_uri))
+            System.err.println("adapter %s not found.".format(_uri))
           }
         }
       }

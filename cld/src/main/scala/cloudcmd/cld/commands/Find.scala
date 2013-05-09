@@ -3,7 +3,7 @@ package cloudcmd.cld.commands
 import cloudcmd.common.{FileMetaData, StringUtil}
 import jpbetz.cli._
 import org.json.JSONObject
-import cloudcmd.cld.{Util, CloudServices}
+import cloudcmd.cld.CloudServices
 
 @SubCommand(name = "find", description = "Query the index of archived files.")
 class Find extends Command {

@@ -52,7 +52,7 @@ class Add extends Command {
       }
     })
 
-    println("Flushing metadata...")
+    System.err.println("Flushing metadata...")
     CloudServices.BlockStorage.flushIndex()
   }
 }

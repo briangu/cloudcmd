@@ -20,13 +20,13 @@ import cloudcmd.common.util.JsonUtil
             adapter.find(new JSONObject).foreach(selection => System.out.println(selection.getPath))
           }
           case None => {
-            println("adapter %s not found.".format(_uri))
+            System.err.println("adapter %s not found.".format(_uri))
           }
         }
       }
       case None => {
         CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
-        CloudServices.BlockStorage.find(new JSONObject).foreach(selection => println(selection.getPath))
+        CloudServices.BlockStorage.find(new JSONObject).foreach(selection => System.out.println(selection.getPath))
       }
     }
   }

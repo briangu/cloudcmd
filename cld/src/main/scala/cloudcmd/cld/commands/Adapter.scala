@@ -34,7 +34,7 @@ class Adapter extends Command {
       val uri: URI = new URI(_dumpUri)
       val adapter = CloudServices.ConfigService.getAdapter(uri)
       adapter.describe().foreach { blockContext =>
-        println("%s (%s)".format(blockContext.hash, blockContext.routingTags.mkString(",")))
+        System.err.println("%s (%s)".format(blockContext.hash, blockContext.routingTags.mkString(",")))
       }
     } else if (_list) {
       list()

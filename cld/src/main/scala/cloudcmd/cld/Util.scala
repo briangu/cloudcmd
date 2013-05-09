@@ -10,7 +10,7 @@ object Util {
         List(FileMetaData.create(hash, JsonUtil.loadJson(cas.load(new BlockContext(hash))._1)))
       } catch {
         case e: Exception => {
-          println("Failed to load: %s".format(hash))
+          System.err.println("Failed to load: %s".format(hash))
           // TODO: REPORT via notification center
           Nil
         }

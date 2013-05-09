@@ -45,4 +45,10 @@ object CloudServices {
       AsyncScalr.getService.shutdownNow
     }
   }
+
+  def onMessage(msg: String) {
+    if (_listener != null) {
+      _listener.onMessage(msg)
+    }
+  }
 }

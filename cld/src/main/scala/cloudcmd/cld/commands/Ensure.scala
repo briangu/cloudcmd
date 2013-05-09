@@ -22,21 +22,23 @@ class Ensure extends Command {
       case Some(uri) => {
         CloudServices.ConfigService.findAdapterByBestMatch(_uri) match {
           case Some(adapter) => {
-            System.err.println("reindexing adapter: %s".format(adapter.URI.toASCIIString))
+            System.err.println("ensuring adapter: %s".format(adapter.URI.toASCIIString))
             val selections = Util.describeToFileBlockContexts(adapter)
             System.err.println("syncing %d files".format(selections.size))
             adapter.ensureAll(FileMetaData.toBlockContexts(selections), blockLevelCheck = _blockLevelCheck)
           }
           case None => {
-            println("adapter %s not found.".format(_uri))
+            System.err.println("adapter %s not found.".format(_uri))
           }
         }
       }
       case None => {
         CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
 
+        System.err.println("ensuring all adapters.")
+
         val selections = if (_syncAll) {
-          describeToFileBlockContexts(CloudServices.BlockStorage)
+          Util.describeToFileBlockContexts(CloudServices.BlockStorage)
         } else {
           FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in))
         }
