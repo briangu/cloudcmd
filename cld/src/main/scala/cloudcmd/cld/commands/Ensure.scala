@@ -40,14 +40,18 @@ class Ensure extends Command {
 
     Option(matchedAdapter) match {
       case Some(adapter) => {
-        val selections = if (_syncAll) {
-          Util.describeToFileBlockContexts(adapter)
+        val fmds = if (_syncAll) {
+          Util.describeAsFileMetaData(adapter)
         } else {
           FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in))
         }
 
-        System.err.println("syncing %d files".format(selections.size))
-        adapter.ensureAll(FileMetaData.toBlockContexts(selections), _blockLevelCheck)
+        System.err.println("ensuring %d files.".format(fmds.size))
+        if (fmds.size > 0) {
+          adapter.ensureAll(FileMetaData.toBlockContexts(fmds), _blockLevelCheck)
+        } else {
+          System.err.println("nothing to do.")
+        }
       }
       case None => {
         System.err.println("nothing to do.")

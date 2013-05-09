@@ -160,7 +160,6 @@ class Get extends Command {
       } catch {
         case e: Exception => {
           onMessage("%s failed to read block %s".format(fmd.getFilename, blockHash))
-//          log.error(blockHash, e)
         }
       } finally {
         FileUtil.SafeClose(remoteData)

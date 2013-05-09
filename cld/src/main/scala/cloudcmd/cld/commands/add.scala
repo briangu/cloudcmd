@@ -1,13 +1,11 @@
 package cloudcmd.cld.commands
 
 import cloudcmd.common.util.FileTypeUtil
-import cloudcmd.common.{IndexedContentAddressableStorage, FileMetaData, FileUtil}
+import cloudcmd.common.FileUtil
 import cloudcmd.common.util.FileWalker
 import jpbetz.cli._
 import java.io.File
-import collection.mutable
 import cloudcmd.cld.CloudServices
-import scala.collection.mutable.ArrayBuffer
 import org.json.JSONObject
 import cloudcmd.common.engine.{DefaultFileProcessor, FileProcessor}
 
@@ -47,10 +45,11 @@ class Add extends Command {
       case Some(adapter) => {
         import scala.collection.JavaConversions._
 
-        if (_path == null) _path = FileUtil.getCurrentWorkingDirectory
+        val path = if (_path == null) FileUtil.getCurrentWorkingDirectory else _path
         val properties = if (_inputFilePath != null) { FileUtil.readJson(_inputFilePath) } else { null }
+        val tags = _tags.toSet
 
-        addFiles(new DefaultFileProcessor(adapter), FileTypeUtil.instance, _path, properties, _tags.toSet)
+        addFiles(new DefaultFileProcessor(adapter), FileTypeUtil.instance, path, properties, tags)
 
         System.err.println("Flushing metadata...")
         adapter.flushIndex()
@@ -77,7 +76,17 @@ class Add extends Command {
         val extIndex: Int = fileName.lastIndexOf(".")
         val ext: String = if ((extIndex > 0)) fileName.substring(extIndex + 1) else null
         if (!fileTypeUtil.skipExt(ext)) {
-          fileProcessor.add(file, file.getName, tags, properties)
+          val startTime = System.currentTimeMillis
+          try {
+            fileProcessor.add(file, file.getName, tags, properties)
+          } catch {
+            case e: Exception => {
+              System.err.println("failed to index file: " + file.getAbsolutePath)
+              System.err.println(e.getMessage)
+            }
+          } finally {
+            System.err.println("took %6d ms to index %s".format((System.currentTimeMillis - startTime), file.getName))
+          }
         }
       }
     })
