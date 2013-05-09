@@ -92,7 +92,6 @@ class DirectS3Adapter extends DirectAdapter {
   }
 
   private def store(ctx: BlockContext, data: InputStream, md5Digest: Array[Byte], length: Long) {
-//    if (contains(ctx)) return
     val s3Object: S3Object = new S3Object(ctx.hash)
     s3Object.setDataInputStream(new RepeatableInputStream(data, length.toInt))
     s3Object.setContentLength(length)
@@ -103,7 +102,6 @@ class DirectS3Adapter extends DirectAdapter {
   }
 
   def load(ctx: BlockContext): (InputStream, Int) = {
-//    if (!contains(ctx)) throw new DataNotFoundException(ctx)
     val obj = _s3Service.getObject(_bucketName, ctx.hash)
     (obj.getDataInputStream, obj.getContentLength.toInt)
   }

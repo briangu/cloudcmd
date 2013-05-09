@@ -70,9 +70,15 @@ class Get extends Command {
         if (_uniqueOnly) selections = removeDuplicates(selections)
         prefixPaths(_outdir, selections)
 
-        get(adapter, selections)
+        if (selections.size > 0) {
+          get(adapter, selections)
+        } else {
+          System.err.println("nothing to do.")
+        }
       }
-      case None => ;
+//      case None => {
+//        System.err.println("nothing to do.")
+//      }
     }
   }
 
