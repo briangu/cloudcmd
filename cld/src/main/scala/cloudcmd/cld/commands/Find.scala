@@ -58,6 +58,9 @@ class Find extends Command {
         val selections = adapter.find(filter)
         System.out.println(FileMetaData.toJsonArray(selections).toString)
       }
+      case None => {
+        System.err.println("nothing to do.")
+      }
     }
  }
 }

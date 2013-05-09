@@ -1,13 +1,15 @@
 package cloudcmd.cld.commands
 
 import cloudcmd.common.util.FileTypeUtil
-import cloudcmd.common.{FileMetaData, FileUtil}
+import cloudcmd.common.{IndexedContentAddressableStorage, FileMetaData, FileUtil}
 import cloudcmd.common.util.FileWalker
 import jpbetz.cli._
 import java.io.File
 import collection.mutable
 import cloudcmd.cld.CloudServices
 import scala.collection.mutable.ArrayBuffer
+import org.json.JSONObject
+import cloudcmd.common.engine.{DefaultFileProcessor, FileProcessor}
 
 @SubCommand(name = "add", description = "add files")
 class Add extends Command {
@@ -17,24 +19,52 @@ class Add extends Command {
   @Arg(name = "path", optional = false) var _path: String = null
   @Arg(name = "tags", optional = true, isVararg = true) var _tags: java.util.List[String] = null
   @Opt(opt = "p", longOpt = "properties", description = "file meta properties JSON file", required = false) private var _inputFilePath: String = null
+  @Opt(opt = "u", longOpt = "uri", description = "adapter URI", required = false) private var _uri: String = null
 
   def exec(commandLine: CommandContext) {
 
-    CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
+    val matchedAdapter = Option(_uri) match {
+      case Some(uri) => {
+        CloudServices.ConfigService.findAdapterByBestMatch(_uri) match {
+          case Some(adapter) => {
+            System.err.println("adding to adapter: %s".format(adapter.URI.toASCIIString))
+            adapter
+          }
+          case None => {
+            System.err.println("adapter %s not found.".format(_uri))
+            null
+          }
+        }
+      }
+      case None => {
+        CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
+        System.err.println("adding to all adapters.")
+        CloudServices.BlockStorage
+      }
+    }
 
-    if (_path == null) _path = FileUtil.getCurrentWorkingDirectory
+    Option(matchedAdapter) match {
+      case Some(adapter) => {
+        import scala.collection.JavaConversions._
 
-    val properties = if (_inputFilePath != null) { FileUtil.readJson(_inputFilePath) } else { null }
+        if (_path == null) _path = FileUtil.getCurrentWorkingDirectory
+        val properties = if (_inputFilePath != null) { FileUtil.readJson(_inputFilePath) } else { null }
 
-    val fileTypeUtil: FileTypeUtil = FileTypeUtil.instance
+        addFiles(new DefaultFileProcessor(adapter), FileTypeUtil.instance, _path, properties, _tags.toSet)
 
-    import scala.collection.JavaConversions._
-    val tagList = _tags.toList
-    val fmdBuffer = new ArrayBuffer[FileMetaData] with mutable.SynchronizedBuffer[FileMetaData]
+        System.err.println("Flushing metadata...")
+        adapter.flushIndex()
+      }
+      case None => {
+        System.err.println("nothing to do.")
+      }
+    }
+  }
 
+  def addFiles(fileProcessor: FileProcessor, fileTypeUtil: FileTypeUtil, path: String, properties: JSONObject, tags: Set[String]) {
     FileWalker.enumerateFolders(_path, new FileWalker.FileHandler {
       def skipDir(file: File): Boolean = {
-        val skip: Boolean = fileTypeUtil.skipDir(file.getName)
+        val skip = fileTypeUtil.skipDir(file.getName)
         if (skip) {
           System.err.println(String.format("Skipping dir: " + file.getAbsolutePath))
         }
@@ -47,12 +77,9 @@ class Add extends Command {
         val extIndex: Int = fileName.lastIndexOf(".")
         val ext: String = if ((extIndex > 0)) fileName.substring(extIndex + 1) else null
         if (!fileTypeUtil.skipExt(ext)) {
-          fmdBuffer.add(CloudServices.FileProcessor.add(file, file.getName, tagList, properties))
+          fileProcessor.add(file, file.getName, tags, properties)
         }
       }
     })
-
-    System.err.println("Flushing metadata...")
-    CloudServices.BlockStorage.flushIndex()
   }
 }

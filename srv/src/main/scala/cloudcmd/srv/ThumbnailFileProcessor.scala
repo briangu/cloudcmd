@@ -16,11 +16,11 @@ class ThumbnailFileProcessor(cas: ContentAddressableStorage, thumbWidth: Int, th
 
   final val THUMBNAIL_CREATE_THRESHOLD = 128 * 1024 // TODO: come from config
 
-  def add(file: File, fileName: String, tags: List[String], properties: JSONObject = null, mimeType: String = null) : FileMetaData = {
+  def add(file: File, fileName: String, tags: Set[String], properties: JSONObject = null, mimeType: String = null) : FileMetaData = {
     processFile(file, fileName, tags, null, properties)
   }
 
-  def processFile(file: File, fileName: String, tags: List[String], providedMimeType: String = null, properties: JSONObject = null) : FileMetaData = {
+  def processFile(file: File, fileName: String, tags: Set[String], providedMimeType: String = null, properties: JSONObject = null) : FileMetaData = {
     var blockHash: String = null
 
     val startTime = System.currentTimeMillis

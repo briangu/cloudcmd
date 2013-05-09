@@ -11,7 +11,7 @@ class DefaultFileProcessor(cas: ContentAddressableStorage) extends FileProcessor
 
   private val log = Logger.getLogger(classOf[DefaultFileProcessor])
 
-  def add(file: File, fileName: String, tags: List[String], properties: JSONObject = null, mimeType: String = null) : FileMetaData = {
+  def add(file: File, fileName: String, tags: Set[String], properties: JSONObject = null, mimeType: String = null) : FileMetaData = {
     var blockHash: String = null
 
     val startTime = System.currentTimeMillis

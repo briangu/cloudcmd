@@ -37,6 +37,9 @@ import cloudcmd.common.util.JsonUtil
       case Some(adapter) => {
         adapter.find(new JSONObject).foreach(selection => System.out.println(selection.getPath))
       }
+      case None => {
+        System.err.println("nothing to do.")
+      }
     }
   }
 }

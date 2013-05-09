@@ -55,6 +55,9 @@ class Tag extends Command {
           if (is ne System.in) FileUtil.SafeClose(is)
         }
       }
+      case None => {
+        System.err.println("nothing to do.")
+      }
     }
   }
 

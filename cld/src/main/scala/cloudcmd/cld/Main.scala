@@ -54,7 +54,6 @@ object Main {
       app.addSubCommands(classOf[Remove])
       app.addSubCommands(classOf[Ensure])
       app.addSubCommands(classOf[Tag])
-      app.addSubCommands(classOf[Update])
       app.invoke(args)
     }
     finally {

@@ -392,12 +392,12 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
   }
 */
   def reindex() {
-    val foundContexts = underlying.describe()
-    val cachedContexts = getDescription.toSet
-    val newContexts = foundContexts -- cachedContexts
-    addToDb(newContexts)
-    val deletedContexts = cachedContexts -- foundContexts
-    deleteFromDb(deletedContexts)
+//    val foundContexts = underlying.describe()
+//    val cachedContexts = getDescription.toSet
+//    val newContexts = foundContexts -- cachedContexts
+//    addToDb(newContexts)
+//    val deletedContexts = cachedContexts -- foundContexts
+//    deleteFromDb(deletedContexts)
   }
 
 //  def describe(): Set[BlockContext] = {

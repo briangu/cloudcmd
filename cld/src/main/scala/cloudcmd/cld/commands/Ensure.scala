@@ -49,6 +49,9 @@ class Ensure extends Command {
         System.err.println("syncing %d files".format(selections.size))
         adapter.ensureAll(FileMetaData.toBlockContexts(selections), _blockLevelCheck)
       }
+      case None => {
+        System.err.println("nothing to do.")
+      }
     }
   }
 }

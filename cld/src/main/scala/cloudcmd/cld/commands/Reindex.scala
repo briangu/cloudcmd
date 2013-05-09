@@ -33,6 +33,9 @@ import jpbetz.cli.{Opt, Command, CommandContext, SubCommand}
       case Some(adapter) => {
         adapter.reindex()
       }
+      case None => {
+        System.err.println("nothing to do.")
+      }
     }
   }
 }

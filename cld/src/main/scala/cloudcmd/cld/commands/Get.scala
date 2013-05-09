@@ -76,9 +76,9 @@ class Get extends Command {
           System.err.println("nothing to do.")
         }
       }
-//      case None => {
-//        System.err.println("nothing to do.")
-//      }
+      case None => {
+        System.err.println("nothing to do.")
+      }
     }
   }
 

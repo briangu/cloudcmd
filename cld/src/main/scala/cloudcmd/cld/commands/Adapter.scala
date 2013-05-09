@@ -23,7 +23,7 @@ class Adapter extends Command {
           list()
         }
         case None => {
-          System.err.println("could not find adapter to remove: " + _remove)
+          System.err.println("adapter %s not found.".format(_remove))
         }
       }
     } else if (_add != null) {
@@ -31,10 +31,15 @@ class Adapter extends Command {
       CloudServices.ConfigService.writeConfig()
       list()
     } else if (_dumpUri != null) {
-      val uri: URI = new URI(_dumpUri)
-      val adapter = CloudServices.ConfigService.getAdapter(uri)
-      adapter.describe().foreach { blockContext =>
-        System.err.println("%s (%s)".format(blockContext.hash, blockContext.routingTags.mkString(",")))
+      CloudServices.ConfigService.findAdapterByBestMatch(_dumpUri) match {
+        case Some(adapter) => {
+          adapter.describe().foreach { hash =>
+            System.out.println("%s".format(hash))
+          }
+        }
+        case None => {
+          System.err.println("adapter %s not found.".format(_dumpUri))
+        }
       }
     } else if (_list) {
       list()

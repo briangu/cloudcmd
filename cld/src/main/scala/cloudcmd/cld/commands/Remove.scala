@@ -53,6 +53,9 @@ class Remove extends Command {
         val blockContexts = FileMetaData.toBlockContextsFromJsonArray(jsonFileMetaDataArray, includeBlockHashes = _removeBlockHashes)
         adapter.removeAll(blockContexts)
       }
+      case None => {
+        System.err.println("nothing to do.")
+      }
     }
   }
 }
