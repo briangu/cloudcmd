@@ -104,7 +104,13 @@ class Get extends Command {
 
   def get(cas: ContentAddressableStorage, selections: Iterable[FileMetaData]) {
     selections.par.foreach { fmd =>
-      fetch(cas, fmd)
+      try {
+        fetch(cas, fmd)
+      } catch {
+        case e: Exception => {
+          System.err.println(e.getMessage)
+        }
+      }
     }
   }
 

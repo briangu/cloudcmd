@@ -1,11 +1,11 @@
 package cloudcmd.cld.commands
 
 import cloudcmd.common.util.JsonUtil
-import cloudcmd.common.{FileMetaData, FileUtil}
+import cloudcmd.common.{ContentAddressableStorage, FileMetaData, FileUtil}
 import jpbetz.cli._
-import java.io.File
-import java.io.FileInputStream
+import java.io.{ByteArrayInputStream, File, FileInputStream}
 import cloudcmd.cld.CloudServices
+import org.json.JSONArray
 
 @SubCommand(name = "tag", description = "Add or remove tags to/from archived files.")
 class Tag extends Command {
@@ -69,5 +69,28 @@ class Tag extends Command {
         }
       }
     }
+  }
+
+  def addTags(cas: ContentAddressableStorage, selections: Seq[FileMetaData], tags: Set[String]): Seq[FileMetaData] = {
+    val fmds = selections.par.flatMap {
+      selection =>
+        val newTags = FileMetaData.applyTags(selection.getTags, tags)
+        if (newTags.equals(selection.getTags)) {
+          Nil
+        } else {
+          val selectionJson = selection.toJson
+          val data = selectionJson.getJSONObject("data")
+          data.put("tags", new JSONArray(newTags))
+
+          val derivedMeta = FileMetaData.deriveMeta(selection.getHash, data)
+          cas.store(derivedMeta.createBlockContext, new ByteArrayInputStream(derivedMeta.getDataAsString.getBytes("UTF-8")))
+          List(derivedMeta)
+        }
+    }.toList
+
+    addAll(fmds)
+    //    pruneHistory(fmds)
+
+    fmds
   }
 }
