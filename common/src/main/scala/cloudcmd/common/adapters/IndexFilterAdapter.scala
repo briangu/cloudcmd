@@ -384,7 +384,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     _bootstrapDb()
   }
 
-  private val _fields = List("HASH", "PATH", "FILENAME", "FILEEXT", "FILESIZE", "FILEDATE", "CREATEDDATE", "TAGS", "PROPERTIES__OWNERID", "RAWMETA")
+  private val _fields = List("HASH", "BLOCK_HASHES", "PATH", "FILENAME", "FILEEXT", "FILESIZE", "FILEDATE", "CREATEDDATE", "TAGS", "PROPERTIES__OWNERID", "RAWMETA")
   private val _addMetaSql = "MERGE INTO FILE_INDEX (%s) VALUES (%s)".format(_fields.mkString(","), StringUtil.joinRepeat(_fields.size, "?", ","))
 
   private def _addMetaToDb(db: Connection, fmds: Seq[FileMetaData]) {
@@ -398,6 +398,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
       for (meta <- fmds) {
         bind.clear()
         bind.append(meta.getHash)
+        bind.append(meta.getBlockHashes.mkString(","))
         bind.append(meta.getPath)
         bind.append(meta.getFilename)
         bind.append(meta.getFileExt)
@@ -520,34 +521,36 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
   }
 
   private def _getDescription: mutable.HashSet[String] with mutable.SynchronizedSet[String] = {
-    if (_description != null) return _description
+    if (_description == null) {
+      this synchronized {
+        if (_description == null) {
+          var db: Connection = null
+          var statement: PreparedStatement = null
+          try {
+            db = _getDbConnection
+            statement = db.prepareStatement("SELECT HASH, BLOCK_HASHES FROM FILE_INDEX")
 
-    this synchronized {
-      if (_description == null) {
-        var db: Connection = null
-        var statement: PreparedStatement = null
-        try {
-          db = _getDbConnection
-          statement = db.prepareStatement("SELECT DISTINCT HASH FROM FILE_INDEX")
+            val description = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
 
-          val description = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
+            val resultSet = statement.executeQuery
+            while (resultSet.next) {
+              description.add(resultSet.getString("HASH"))
+              resultSet.getString("BLOCK_HASHES").split(",").foreach(description.add)
+            }
 
-          val resultSet = statement.executeQuery
-          while (resultSet.next) {
-            description.add(resultSet.getString("HASH"))
+            _description = description
           }
-
-          _description = description
-        }
-        catch {
-          case e: SQLException => log.error(e)
-        }
-        finally {
-          SqlUtil.SafeClose(statement)
-          SqlUtil.SafeClose(db)
+          catch {
+            case e: SQLException => log.error(e)
+          }
+          finally {
+            SqlUtil.SafeClose(statement)
+            SqlUtil.SafeClose(db)
+          }
         }
       }
     }
+
     _description
   }
 }
