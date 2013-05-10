@@ -291,10 +291,13 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
   }
 
   def load(ctx: BlockContext): (InputStream, Int) = {
-//    if (ctx.isMeta()) {
-//      // TODO: load from db
-//    }
-    underlying.load(ctx)
+    if (ctx.isMeta() && _getDescription.contains(ctx.hash)) {
+      val rawMeta = _loadRawMetaDataFromDb(ctx)
+      val bytes = rawMeta.getBytes("UTF-8")
+      (new ByteArrayInputStream(bytes), bytes.length)
+    } else {
+      underlying.load(ctx)
+    }
   }
 
   def removeAll(ctxs : Set[BlockContext]) : Map[BlockContext, Boolean] = {
@@ -520,6 +523,31 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
       }
     }
     finally {
+      SqlUtil.SafeClose(statement)
+      SqlUtil.SafeClose(db)
+    }
+  }
+
+  private def _loadRawMetaDataFromDb(ctx: BlockContext): String = {
+    var db: Connection = null
+    var statement: PreparedStatement = null
+    try {
+      db = _getDbConnection
+      statement = db.prepareStatement("SELECT RAWMETA FROM FILE_INDEX WHERE HASH = ?")
+      SqlUtil.bindVar(statement, 1, ctx.hash)
+
+      val resultSet = statement.executeQuery
+      if (resultSet.next) {
+        resultSet.getString("RAWMETA")
+      } else {
+        null
+      }
+    } catch {
+      case e: SQLException => {
+        log.error(e)
+        null
+      }
+    } finally {
       SqlUtil.SafeClose(statement)
       SqlUtil.SafeClose(db)
     }

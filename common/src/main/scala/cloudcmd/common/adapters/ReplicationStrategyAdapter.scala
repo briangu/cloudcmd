@@ -4,6 +4,7 @@ import cloudcmd.common._
 import java.io._
 import cloudcmd.common.engine.ReplicationStrategy
 import org.json.JSONObject
+import scala.util.Random
 
 class ReplicationStrategyAdapter(adapters: List[IndexedAdapter], storage: ReplicationStrategy) extends IndexedContentAddressableStorage {
 
@@ -53,7 +54,8 @@ class ReplicationStrategyAdapter(adapters: List[IndexedAdapter], storage: Replic
     * Refresh the storage index, which may be time consuming
     */
   def reindex(cas: ContentAddressableStorage) {
-    adapters.foreach(_.reindex(cas))
+    // sort in ascending tier so that the lower tiered adapters can provide for the higher tiers
+    adapters.sortBy(x => x.Tier).foreach(_.reindex(cas))
   }
 
   /** *

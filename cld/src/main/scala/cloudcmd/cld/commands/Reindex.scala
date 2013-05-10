@@ -31,7 +31,7 @@ import jpbetz.cli.{Opt, Command, CommandContext, SubCommand}
 
     Option(matchedAdapter) match {
       case Some(adapter) => {
-        adapter.reindex(CloudServices.ConfigService.findAdapterByBestMatch("file:").get)
+        adapter.reindex()
       }
       case None => {
         System.err.println("nothing to do.")
