@@ -50,7 +50,7 @@ class LRUFileCacheAdapter(underlying: DirectAdapter) extends DirectAdapter {
    */
   protected def bootstrap(cacheDir: String) {
     _cacheSize = loadCache(cacheDir, _cacheMap)
-    pruneFiles
+    pruneFiles()
   }
 
   case class FileInfo(name: String, size: Long, var date: Long)
@@ -137,7 +137,7 @@ class LRUFileCacheAdapter(underlying: DirectAdapter) extends DirectAdapter {
         // add reference to map
         val (is, size) = underlying.load(ctx)
         if ((_cacheSize + size) > _maxCacheSize) {
-          pruneFiles // TODO: do async
+          pruneFiles() // TODO: do async
         }
         val (hash, tmpFile) = StreamUtil.spoolStream(is, _cacheDirFile)
         val realFile = fileFromParts(_cacheDir, ctx.getId())
