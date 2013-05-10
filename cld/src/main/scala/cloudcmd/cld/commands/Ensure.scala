@@ -48,7 +48,11 @@ class Ensure extends Command {
 
         System.err.println("ensuring %d files.".format(fmds.size))
         if (fmds.size > 0) {
-          adapter.ensureAll(FileMetaData.toBlockContexts(fmds), _blockLevelCheck)
+          fmds foreach { fmd =>
+            println(fmd.getPath)
+            adapter.ensureAll(fmd.createAllBlockContexts)
+          }
+//          adapter.ensureAll(FileMetaData.toBlockContexts(fmds),blockLevelCheck = _blockLevelCheck)
         } else {
           System.err.println("nothing to do.")
         }

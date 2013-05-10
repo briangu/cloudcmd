@@ -23,7 +23,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
 
   protected var _rootPath: String = null
   private var _cp: JdbcConnectionPool = null
-  private val _fmdCache = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
+  private val _fmdCache = new mutable.HashMap[BlockContext, String] with mutable.SynchronizedMap[BlockContext, String]
   private var _description: mutable.HashSet[String] with mutable.SynchronizedSet[String] = null
   protected var _dbDir: String = null
 
@@ -125,7 +125,10 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     * Flush the index cache that may be populated during a series of modifications (e.g. store)
     */
   def flushIndex() {
-    _addAllFileMetaData(_fmdCache.map(meta => FileMetaData.create(new JSONObject(meta))).toSeq, rebuildIndex = true)
+    val fmds = _fmdCache.map{ case (ctx: BlockContext, meta: String) =>
+      FileMetaData.create(ctx.hash, new JSONObject(meta))
+    }
+    _addAllFileMetaData(fmds.toSeq, rebuildIndex = true)
     _fmdCache.clear()
   }
 
@@ -259,7 +262,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
       }
       try {
         underlying.store(ctx, forwardIs)
-        _fmdCache.add(meta)
+        _fmdCache.put(ctx, meta)
       } finally {
         if (is != forwardIs) {
           forwardIs.close()

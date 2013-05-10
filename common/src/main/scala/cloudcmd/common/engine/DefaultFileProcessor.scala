@@ -14,11 +14,12 @@ class DefaultFileProcessor(cas: ContentAddressableStorage) extends FileProcessor
   def add(file: File, fileName: String, tags: Set[String], properties: JSONObject = null, mimeType: String = null) : FileMetaData = {
     var blockHash: String = null
 
-    var fis = RandomAccessFileInputStream.create(file)
+    val fis = RandomAccessFileInputStream.create(file)
     try {
+      fis.mark(0)
       blockHash = CryptoUtil.computeHashAsString(fis)
     } finally {
-      FileUtil.SafeClose(fis)
+      fis.reset()
     }
 
     val extIdx = file.getName.lastIndexOf(".")
@@ -44,11 +45,12 @@ class DefaultFileProcessor(cas: ContentAddressableStorage) extends FileProcessor
 
     val fmd = FileMetaData.create(rawFmd)
 
-    fis = RandomAccessFileInputStream.create(file)
     try {
       cas.store(fmd.createBlockContext(blockHash), fis)
     } catch {
-      case e:Exception => log.error(e)
+      case e:Exception => {
+        log.error(e)
+      }
     } finally {
       FileUtil.SafeClose(fis)
     }

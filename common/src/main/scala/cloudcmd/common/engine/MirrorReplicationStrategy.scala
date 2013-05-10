@@ -24,7 +24,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
     var containsAdapters = adapters.filter(_.contains(ctx)).toList
     val nis = if (containsAdapters.size == 0) {
       adapters(0).store(ctx, dis)
-      containsAdapters = containsAdapters ++ List(adapters(0))
+      containsAdapters = List(adapters(0))
       null
     } else {
       dis

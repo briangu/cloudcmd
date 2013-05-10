@@ -35,7 +35,7 @@ import cloudcmd.common.util.JsonUtil
 
     Option(matchedAdapter) match {
       case Some(adapter) => {
-        adapter.find(new JSONObject).foreach(selection => System.out.println(selection.getPath))
+        Util.describeAsFileMetaData(adapter).foreach(selection => System.out.println(selection.getPath))
       }
       case None => {
         System.err.println("nothing to do.")

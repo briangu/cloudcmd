@@ -2,6 +2,7 @@ package cloudcmd.common.adapters
 
 import java.net.URI
 import cloudcmd.common.{IndexedContentAddressableStorage, BlockContext, ContentAddressableStorage}
+import java.io.File
 
 trait DirectAdapter extends ContentAddressableStorage {
 
@@ -23,7 +24,7 @@ trait DirectAdapter extends ContentAddressableStorage {
   protected var _isOnline = false
 
   def init(configDir: String, tier: Int, adapterType: String, acceptsTags: Set[String], uri: URI) {
-    _configDir = configDir
+    _configDir = if (configDir.endsWith(File.separator)) configDir.substring(0, configDir.length - 1) else configDir
     _tier = tier
     _type = adapterType
     _acceptsTags = acceptsTags

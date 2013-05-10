@@ -69,6 +69,7 @@ class ReplicationStrategyAdapter(adapters: List[IndexedAdapter], storage: Replic
    * @return a set of meta blocks
    */
   def find(filter: JSONObject): Set[FileMetaData] = {
+    // TODO: doesn't union
     Set() ++ adapters.par.flatMap(_.find(filter))
   }
 }
