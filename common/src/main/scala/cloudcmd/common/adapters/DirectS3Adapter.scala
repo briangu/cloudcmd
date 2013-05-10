@@ -1,14 +1,13 @@
 package cloudcmd.common.adapters
 
-import cloudcmd.common.util.{JsonUtil, CryptoUtil, StreamUtil}
-import cloudcmd.common.{FileMetaData, BlockContext, FileUtil, UriUtil}
+import cloudcmd.common.util.{CryptoUtil, StreamUtil}
+import cloudcmd.common.{BlockContext, FileUtil, UriUtil}
 import org.jets3t.service.impl.rest.httpclient.RestS3Service
 import org.jets3t.service.model.S3Object
 import org.jets3t.service.security.AWSCredentials
 import java.io.{FileInputStream, InputStream}
 import java.net.URI
 import java.nio.channels.Channels
-import collection.mutable
 import org.jets3t.service.io.RepeatableInputStream
 
 //     "s3://<aws id>@<bucket>?tier=2&tags=s3&secret=<aws secret>"

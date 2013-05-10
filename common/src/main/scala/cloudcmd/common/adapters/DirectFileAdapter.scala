@@ -1,7 +1,7 @@
 package cloudcmd.common.adapters
 
 import cloudcmd.common._
-import util.{JsonUtil, CryptoUtil, FileWalker}
+import util.{CryptoUtil, FileWalker}
 import java.io._
 import java.net.URI
 import collection.mutable
