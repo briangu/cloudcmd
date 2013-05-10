@@ -89,8 +89,11 @@ object FileMetaData {
 }
 
 class FileMetaData {
+  private var _hashCode = 0
+
   override def hashCode: Int = {
-    31 * getHash.hashCode * getRawData.hashCode
+    if (_hashCode == 0) _hashCode = 31 * getHash.hashCode * getRawData.hashCode
+    _hashCode
   }
 
   override def equals(other: Any): Boolean = {

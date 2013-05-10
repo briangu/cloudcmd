@@ -52,8 +52,8 @@ class ReplicationStrategyAdapter(adapters: List[IndexedAdapter], storage: Replic
   /** *
     * Refresh the storage index, which may be time consuming
     */
-  def reindex() {
-    adapters.par.foreach(_.reindex())
+  def reindex(cas: ContentAddressableStorage) {
+    adapters.foreach(_.reindex(cas))
   }
 
   /** *

@@ -79,7 +79,7 @@ trait IndexedContentAddressableStorage extends ContentAddressableStorage {
   /***
     * Refresh the storage index, which may be time consuming
     */
-  def reindex()
+  def reindex(cas: ContentAddressableStorage = this)
 
   /***
     * Flush the index cache that may be populated during a series of modifications (e.g. store)

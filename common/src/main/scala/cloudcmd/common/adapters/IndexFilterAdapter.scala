@@ -58,27 +58,44 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     }
   }
 
-  def reindex() {
+  def reindex(cas: ContentAddressableStorage) {
+    //  TODO: in order to take care of local data,
+    //        we should load from all available adapters, not just this one
     val underlyingMeta = underlying.describe().filter(_.endsWith(".meta"))
     val cachedMeta = describe().filter(_.endsWith(".meta"))
     val newMeta = underlyingMeta.diff(cachedMeta)
     val deletedMeta = cachedMeta -- underlyingMeta
 
-    val addedFileMetaData = newMeta.par.flatMap {
-      hash =>
-        try {
-          List(FileMetaData.create(hash, JsonUtil.loadJson(underlying.load(new BlockContext(hash))._1)))
-        } catch {
-          case e: Exception => {
-            log.error(hash, e)
-            Nil
-          }
-        }
-    }.toList
+    if (newMeta.size > 0) {
+      val collections = newMeta.grouped(1024)
+      collections.foreach{
+        group =>
+          val addedFileMetaData = group.par.flatMap {
+            hash =>
+              try {
+                val ctx = new BlockContext(hash)
+                val is = if (cas.contains(ctx)) {
+                  cas.load(ctx)._1
+                } else {
+                  underlying.load(ctx)._1
+                }
+                List(FileMetaData.create(hash, JsonUtil.loadJson(is)))
+              } catch {
+                case e: Exception => {
+                  log.error(hash, e)
+                  Nil
+                }
+              }
+          }.toList
 
-    _addAllFileMetaData(addedFileMetaData, rebuildIndex = false)
+          System.err.println("indexing %d files".format(addedFileMetaData.size))
+          _addAllFileMetaData(addedFileMetaData, rebuildIndex = true)
+      }
+    }
 
-    _deleteBlockContextsFromDb(_getMetaHashesAsBlockContexts(deletedMeta))
+    if (deletedMeta.size > 0) {
+      _deleteBlockContextsFromDb(_getMetaHashesAsBlockContexts(deletedMeta))
+    }
   }
 
 //  def describe(): Set[BlockContext] = {

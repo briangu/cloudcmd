@@ -29,8 +29,9 @@ class DirectS3Adapter extends DirectAdapter {
 
     if (!_s3Service.isBucketAccessible(_bucketName)) {
       _s3Service.getOrCreateBucket(_bucketName)
-      _isOnline = _s3Service.isBucketAccessible(_bucketName)
     }
+
+    _isOnline = _s3Service.isBucketAccessible(_bucketName)
   }
 
   def shutdown() {}
