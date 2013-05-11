@@ -6,6 +6,7 @@ import jpbetz.cli.Opt
 import jpbetz.cli.SubCommand
 import java.net.URI
 import cloudcmd.cld.CloudServices
+import cloudcmd.cld.Notifications._
 
 @SubCommand(name = "adapter", description = "Manager storage adapters.") 
 class Adapter extends Command {
@@ -23,7 +24,7 @@ class Adapter extends Command {
           list()
         }
         case None => {
-          System.err.println("adapter %s not found.".format(_remove))
+          msg("adapter %s not found.".format(_remove))
         }
       }
     } else if (_add != null) {
@@ -38,7 +39,7 @@ class Adapter extends Command {
           }
         }
         case None => {
-          System.err.println("adapter %s not found.".format(_dumpUri))
+          msg("adapter %s not found.".format(_dumpUri))
         }
       }
     } else if (_list) {
@@ -47,15 +48,15 @@ class Adapter extends Command {
   }
 
   def list() {
-    System.err.println("Adapters:")
-    System.err.println()
+    msg("Adapters:")
+    msg("\n")
     for (adapter <- CloudServices.ConfigService.getAllAdapters) {
-      System.err.println("Adapter: " + adapter.Type)
-      System.err.println("  URI: " + adapter.URI.toString)
-      System.err.println("  ConfigDir: " + adapter.ConfigDir)
-      System.err.println("  IsOnline: " + adapter.IsOnLine)
-      System.err.println("  IsFull: " + adapter.IsFull)
-      System.err.println()
+      msg("Adapter: " + adapter.Type)
+      msg("  URI: " + adapter.URI.toString)
+      msg("  ConfigDir: " + adapter.ConfigDir)
+      msg("  IsOnline: " + adapter.IsOnLine)
+      msg("  IsFull: " + adapter.IsFull)
+      msg("\n")
     }
   }
 }

@@ -149,7 +149,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
           isConsistent = adapter.ensure(ctx, blockLevelCheck)
           if (isConsistent) {
             // TODO: enable verbose flag
-            //_wm.make(new MemoryElement("msg", "body", String.format("successfully validated block %s is on adapter %s", hash, adapter.URI)))
+            // String.format("successfully validated block %s is on adapter %s", hash, adapter.URI))
           } else {
 //            onMessage(String.format("bad block %s found on adapter %s", ctx, adapter.URI))
           }

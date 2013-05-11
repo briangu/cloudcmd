@@ -1,21 +1,18 @@
 package cloudcmd.cld.commands
 
-import cloudcmd.common.{ContentAddressableStorage, IndexedContentAddressableStorage, FileMetaData, FileUtil}
+import cloudcmd.common.{IndexedContentAddressableStorage, ContentAddressableStorage, FileMetaData, FileUtil}
 import cloudcmd.common.util.{CryptoUtil, JsonUtil}
-import jpbetz.cli.Command
-import jpbetz.cli.CommandContext
 import jpbetz.cli.Opt
 import jpbetz.cli.SubCommand
 import org.json.JSONObject
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
-import cloudcmd.cld.CloudServices
 import scala.collection.mutable
-import cloudcmd.common.engine.NotificationCenter
+import cloudcmd.cld.Notifications._
 
 @SubCommand(name = "get", description = "Fetch files from the cloud and store locally.")
-class Get extends Command {
+class Get extends AdapterCommand {
 
   private val MAX_FETCH_RETRIES = 3
 
@@ -24,62 +21,31 @@ class Get extends Command {
   @Opt(opt = "d", longOpt = "destdir", description = "destination directory where the files will be stored", required = false) private var _outdir: String = null
   @Opt(opt = "p", longOpt = "prefix", description = "path to prefix the archived file paths with when they are stored locally.", required = false) private var _prefix: String = null
   @Opt(opt = "i", longOpt = "input", description = "input file", required = false) private var _inputFilePath: String = null
-  @Opt(opt = "n", longOpt = "minTier", description = "min tier to verify to", required = false) private var _minTier: Number = 0
-  @Opt(opt = "m", longOpt = "maxTier", description = "max tier to verify to", required = false) private var _maxTier: Number = Integer.MAX_VALUE
   @Opt(opt = "q", longOpt = "unique", description = "only retrieve unique files", required = false) private var _uniqueOnly: Boolean = false
-  @Opt(opt = "u", longOpt = "uri", description = "adapter URI", required = false) private var _uri: String = null
 
-  def exec(commandLine: CommandContext) {
-
-    val matchedAdapter: IndexedContentAddressableStorage = Option(_uri) match {
-      case Some(uri) => {
-        CloudServices.ConfigService.findAdapterByBestMatch(_uri) match {
-          case Some(adapter) => {
-            System.err.println("getting from adapter: %s".format(adapter.URI.toASCIIString))
-            adapter
-          }
-          case None => {
-            System.err.println("adapter %s not found.".format(_uri))
-            null
-          }
-        }
-      }
-      case None => {
-        CloudServices.initWithTierRange(_minTier.intValue, _maxTier.intValue)
-        System.err.println("getting from all adapters.")
-        CloudServices.BlockStorage
+  def execWithAdapter(adapter: IndexedContentAddressableStorage) {
+    var selections: Iterable[FileMetaData] = if (_getAll) {
+      adapter.find(new JSONObject)
+    } else {
+      var is: InputStream = null
+      try {
+        is = if ((_inputFilePath != null)) new FileInputStream(new File(_inputFilePath)) else System.in
+        FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in))
+      } finally {
+        if (is ne System.in) is.close()
       }
     }
 
-    Option(matchedAdapter) match {
-      case Some(adapter) => {
-        var selections: Iterable[FileMetaData] = if (_getAll) {
-          adapter.find(new JSONObject)
-        } else {
-          var is: InputStream = null
-          try {
-            is = if ((_inputFilePath != null)) new FileInputStream(new File(_inputFilePath)) else System.in
-            FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in))
-          } finally {
-            if (is ne System.in) is.close()
-          }
-        }
+    if (_removePaths) removePaths(selections)
+    if (_prefix != null) prefixPaths(_prefix, selections)
+    if (_outdir == null) _outdir = FileUtil.getCurrentWorkingDirectory
+    if (_uniqueOnly) selections = removeDuplicates(selections)
+    prefixPaths(_outdir, selections)
 
-        if (_removePaths) removePaths(selections)
-        if (_prefix != null) prefixPaths(_prefix, selections)
-        if (_outdir == null) _outdir = FileUtil.getCurrentWorkingDirectory
-        if (_uniqueOnly) selections = removeDuplicates(selections)
-        prefixPaths(_outdir, selections)
-
-        if (selections.size > 0) {
-          get(adapter, selections)
-        } else {
-          System.err.println("nothing to do.")
-        }
-      }
-      case None => {
-        System.err.println("nothing to do.")
-      }
+    if (selections.size > 0) {
+      get(adapter, selections)
+    } else {
+      nothingToDo()
     }
   }
 
@@ -90,7 +56,7 @@ class Get extends Command {
     }
     val result = dedupMap.values
     if (result.size < selections.size) {
-      System.err.println("removed %d duplicates".format(selections.size - result.size))
+      msg("removed %d duplicates".format(selections.size - result.size))
     }
     result
   }
@@ -115,7 +81,7 @@ class Get extends Command {
         fetch(cas, fmd)
       } catch {
         case e: Exception => {
-          System.err.println(e.getMessage)
+          msg(e.getMessage)
         }
       }
     }

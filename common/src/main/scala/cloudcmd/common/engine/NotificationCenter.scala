@@ -146,6 +146,10 @@ class NotificationCenter {
 
   private val _center = new mutable.HashMap[String, Subscriptions]
 
+  def removeObserver(observer: Any) {
+    queue.add(new RemoveObserver(observer, None, None))
+  }
+
   def removeObserver(observer: Any, nameOption: Option[String], sourceOption: Option[Any]) {
     queue.add(new RemoveObserver(observer, nameOption, sourceOption))
   }

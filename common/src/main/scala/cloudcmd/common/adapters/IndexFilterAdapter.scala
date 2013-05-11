@@ -88,7 +88,6 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
               }
           }.toList
 
-          System.err.println("indexing %d files".format(addedFileMetaData.size))
           _addAllFileMetaData(addedFileMetaData, rebuildIndex = true)
       }
     }

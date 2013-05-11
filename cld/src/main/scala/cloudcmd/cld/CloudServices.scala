@@ -3,7 +3,6 @@ package cloudcmd.cld
 import cloudcmd.common.config.JsonConfigStorage
 import cloudcmd.common.adapters.ReplicationStrategyAdapter
 import cloudcmd.common.IndexedContentAddressableStorage
-import cloudcmd.common.engine.NotificationCenter
 
 object CloudServices {
 
