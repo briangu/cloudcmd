@@ -98,10 +98,6 @@ class ThumbnailFileProcessor(cas: ContentAddressableStorage, thumbWidth: Int, th
       fmd
     }
     finally {
-      onMessage("took %6d ms to index %s".format((System.currentTimeMillis - startTime), file.getName))
-      if (blockHash == null) {
-        onMessage("failed to index file: " + file.getAbsolutePath)
-      }
     }
   }
 

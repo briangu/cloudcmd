@@ -25,7 +25,7 @@ class NotificationCenter {
 
   private val log = Logger.getLogger(classOf[NotificationCenter])
 
-  private case class Message(name: String, source: Option[Any], userInfo: Option[Map[String, Any]])
+  private case class MessageCommand(name: String, source: Option[Any], userInfo: Option[Map[String, Any]])
   private case class AddObserver(observer: Any, name: String, source: Option[Any], fn: Option[Map[String, Any]] => Unit)
   private case class RemoveObserver(observer: Any, name: Option[String], source: Option[Any])
 
@@ -37,7 +37,7 @@ class NotificationCenter {
       while (!event(0)) {
         try {
           queue.take match {
-            case Message(name, sourceOption, userInfoOption) => {
+            case MessageCommand(name, sourceOption, userInfoOption) => {
               _center.get(name) match {
                 case Some(subscription) => {
                   subscription.postNotification(sourceOption, userInfoOption)
@@ -120,10 +120,10 @@ class NotificationCenter {
       observers.isEmpty
     }
 
-    def removeObserver(observer: Any, source: Option[Any]) {
-      source match {
+    def removeObserver(observer: Any, sourceOption: Option[Any]) {
+      sourceOption match {
         case Some(_) => {
-          observers = observers filter { s => s.observer != observer && s.sourceOption != source }
+          observers = observers filter { s => s.observer != observer && s.sourceOption != sourceOption }
         }
         case None => {
           observers = observers filter { _.observer != observer }
@@ -155,14 +155,14 @@ class NotificationCenter {
   }
 
   def postNotification(name: String, sourceOption: Option[Any] = None, userInfo: Option[Map[String, Any]] = None) {
-    queue.add(new Message(name, sourceOption, userInfo))
+    queue.add(new MessageCommand(name, sourceOption, userInfo))
   }
 
   def postNotification(name: String, source: AnyRef) {
-    queue.add(new Message(name, Option(source), None))
+    queue.add(new MessageCommand(name, Option(source), None))
   }
 
   def postNotification(name: String, source: AnyRef, userInfo: Map[String, Any]) {
-    queue.add(new Message(name, Option(source), Option(userInfo)))
+    queue.add(new MessageCommand(name, Option(source), Option(userInfo)))
   }
 }

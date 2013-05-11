@@ -2,11 +2,8 @@ package cloudcmd.cld
 
 import cloudcmd.cld.commands._
 import cloudcmd.common.FileUtil
-import cloudcmd.common.engine.EngineEventListener
 import jpbetz.cli.CommandSet
 import java.io.File
-import java.util.concurrent.BlockingQueue
-import java.util.concurrent.SynchronousQueue
 
 object Main {
   @SuppressWarnings(Array("unchecked"))
@@ -19,10 +16,8 @@ object Main {
     }
 
     try {
-      CloudServices.setListener(new Main.Listener(queue))
       CloudServices.setConfigRoot(configRoot)
 
-      msgPump.start()
       val app: CommandSet = new CommandSet("cld")
       app.addSubCommands(classOf[Adapter])
       app.addSubCommands(classOf[Find])
@@ -39,23 +34,7 @@ object Main {
     }
     finally {
       CloudServices.shutdown()
-      event(0) = true
-      msgPump.interrupt()
-      msgPump.join()
     }
-  }
-
-  private class Listener extends EngineEventListener {
-    def this(queue: BlockingQueue[String]) {
-      this()
-      _queue = queue
-    }
-
-    def onMessage(msg: String) {
-      _queue.offer(msg)
-    }
-
-    private var _queue: BlockingQueue[String] = null
   }
 
 }

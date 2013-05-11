@@ -12,6 +12,7 @@ import java.io.FileInputStream
 import java.io.InputStream
 import cloudcmd.cld.CloudServices
 import scala.collection.mutable
+import cloudcmd.common.engine.NotificationCenter
 
 @SubCommand(name = "get", description = "Fetch files from the cloud and store locally.")
 class Get extends Command {
@@ -121,7 +122,7 @@ class Get extends Command {
   }
 
   def onMessage(msg: String) {
-    CloudServices.onMessage(msg)
+//    NotificationCenter.defaultCenter.postNotification("")
   }
 
   // TODO: only read the file size bytes back (if the file is one block)

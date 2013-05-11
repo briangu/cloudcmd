@@ -16,7 +16,6 @@ object CloudServices {
   private var _fileProcessor: FileProcessor = null
   private var _blockStorage: IndexedContentAddressableStorage = null
   private var _configRoot: String = null
-  private var _listener: EngineEventListener = null
 
   def setConfigRoot(configRoot: String) {
     _configRoot = configRoot
@@ -24,18 +23,10 @@ object CloudServices {
     CloudServices.ConfigService.init(_configRoot)
   }
 
-  def setListener(listener: EngineEventListener) {
-    _listener = listener
-  }
-
   def initWithTierRange(minTier: Int, maxTier: Int) {
     _configService.setAdapterTierRange(minTier, maxTier)
     _blockStorage = new ReplicationStrategyAdapter(_configService.getFilteredAdapters, _configService.getReplicationStrategy)
     _fileProcessor = new DefaultFileProcessor(_blockStorage)
-
-    CloudServices.ConfigService.getReplicationStrategy.registerListener(_listener)
-
-    CloudServices.FileProcessor.registerListener(_listener)
   }
 
   def shutdown() {

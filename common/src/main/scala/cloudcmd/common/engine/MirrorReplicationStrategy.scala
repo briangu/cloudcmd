@@ -73,7 +73,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
     }
 
     if (pushedCount.get() != adapters.size) {
-      onMessage("failed to store block %s on %d of %d adapters".format(ctx, pushedCount.get, adapters.size))
+//      onMessage("failed to store block %s on %d of %d adapters".format(ctx, pushedCount.get, adapters.size))
     }
   }
 
@@ -89,14 +89,14 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
         try {
           val deleteSuccess = adapter.remove(ctx)
           if (deleteSuccess) {
-            onMessage(String.format("successfully deleted block %s found on adapter %s", ctx, adapter.URI))
+//            onMessage(String.format("successfully deleted block %s found on adapter %s", ctx, adapter.URI))
           } else {
             success = false
-            onMessage(String.format("failed to delete block %s found on adapter %s", ctx, adapter.URI))
+//            onMessage(String.format("failed to delete block %s found on adapter %s", ctx, adapter.URI))
           }
         } catch {
           case e: Exception => {
-            onMessage(String.format("failed to delete block %s on adapter %s", ctx, adapter.URI))
+//            onMessage(String.format("failed to delete block %s on adapter %s", ctx, adapter.URI))
             log.error(ctx, e)
           }
         }
@@ -126,11 +126,11 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
     }
     catch {
       case e: DataNotFoundException => {
-        onMessage("no adapter has block %s".format(ctx))
+//        onMessage("no adapter has block %s".format(ctx))
         log.error(ctx, e)
       }
       case e: Exception => {
-        onMessage("failed to sync block %s".format(ctx))
+//        onMessage("failed to sync block %s".format(ctx))
         log.error(ctx, e)
       }
     }
@@ -151,11 +151,11 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
             // TODO: enable verbose flag
             //_wm.make(new MemoryElement("msg", "body", String.format("successfully validated block %s is on adapter %s", hash, adapter.URI)))
           } else {
-            onMessage(String.format("bad block %s found on adapter %s", ctx, adapter.URI))
+//            onMessage(String.format("bad block %s found on adapter %s", ctx, adapter.URI))
           }
         } catch {
           case e: Exception => {
-            onMessage(String.format("failed to verify block %s on adapter %s", ctx, adapter.URI))
+//            onMessage(String.format("failed to verify block %s on adapter %s", ctx, adapter.URI))
             log.error(ctx, e)
           }
         }
