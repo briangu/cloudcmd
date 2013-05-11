@@ -4,7 +4,7 @@ import cloudcmd.common.adapters.IndexedAdapter
 import java.io.InputStream
 import cloudcmd.common.BlockContext
 
-trait ReplicationStrategy extends EventSource {
+trait ReplicationStrategy {
   def isReplicated(ctx: BlockContext, adapters: List[IndexedAdapter]): Boolean
 
   def store(ctx: BlockContext, is: InputStream, adapters: List[IndexedAdapter])

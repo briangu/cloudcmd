@@ -43,7 +43,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
       }
       catch {
         case e: Exception => {
-          onMessage(String.format("failed to sync block %s to %s", ctx, adapter.URI.toString))
+          NotificationCenter.defaultCenter.postNotification("" , this, Map("msg" -> String.format("failed to sync block %s to %s", ctx, adapter.URI.toString)))
           log.error(ctx, e)
         }
       }
@@ -64,7 +64,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
       catch {
         case e: Exception => {
           log.error(ctx, e)
-          onMessage(String.format("failed to sync block %s to %s", ctx, String.valueOf(adapter.URI)))
+          NotificationCenter.defaultCenter.postNotification("" , this, Map("msg" -> String.format("failed to sync block %s to %s", ctx, String.valueOf(adapter.URI))))
         }
       }
       finally {
