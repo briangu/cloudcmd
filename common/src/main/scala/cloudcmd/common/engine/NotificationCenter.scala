@@ -150,7 +150,7 @@ class NotificationCenter {
     queue.add(new RemoveObserver(observer, nameOption, sourceOption))
   }
 
-  def addObserverForName(observer: Any, name: String, sourceOption: Option[Any], fn: Option[Map[String, Any]] => Unit) {
+  def addObserverForName(observer: Any, name: String, sourceOption: Option[Any], fn: (Option[Map[String, Any]]) => Unit) {
     queue.add(new AddObserver(observer, name, sourceOption, fn))
   }
 

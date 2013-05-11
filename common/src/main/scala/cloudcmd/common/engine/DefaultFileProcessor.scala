@@ -33,7 +33,7 @@ class DefaultFileProcessor(cas: ContentAddressableStorage) extends FileProcessor
         "fileext", fileExt,
         "filesize", file.length.asInstanceOf[AnyRef],
         "filedate", file.lastModified.asInstanceOf[AnyRef],
-        "createdDate", new Date().getTime.asInstanceOf[AnyRef],  // TODO: this is not ideal as it forces duplicates
+//        "createdDate", new Date().getTime.asInstanceOf[AnyRef],  // TODO: this is not ideal as it forces duplicates
         "blocks", JsonUtil.toJsonArray(List(blockHash)),
         "tags", JsonUtil.toJsonArray(tags))
 

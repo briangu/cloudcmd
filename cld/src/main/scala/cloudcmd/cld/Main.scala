@@ -4,8 +4,18 @@ import cloudcmd.cld.commands._
 import cloudcmd.common.FileUtil
 import jpbetz.cli.CommandSet
 import java.io.File
+import cloudcmd.common.engine.NotificationCenter
 
 object Main {
+
+  class ConsoleObserver {
+
+    def apply(userInfo: Option[Map[String, Any]]) {
+
+    }
+
+  }
+
   @SuppressWarnings(Array("unchecked"))
   def main(args: Array[String]) {
 
@@ -14,6 +24,13 @@ object Main {
       configRoot = System.getenv("HOME") + File.separator + ".cld"
       new File(configRoot).mkdir
     }
+
+    NotificationCenter.start()
+
+    val consoleObserver = new ConsoleObserver
+
+    NotificationCenter.defaultCenter.addObserverForName(consoleObserver, "", None, (userInfo: Option[Map[String, Any]]) => {})
+    NotificationCenter.defaultCenter.addObserverForName(consoleObserver, "", None, consoleObserver.apply)
 
     try {
       CloudServices.setConfigRoot(configRoot)
@@ -34,7 +51,7 @@ object Main {
     }
     finally {
       CloudServices.shutdown()
+      NotificationCenter.shutdown()
     }
   }
-
 }

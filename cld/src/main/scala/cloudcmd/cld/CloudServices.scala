@@ -23,13 +23,9 @@ object CloudServices {
   def initWithTierRange(minTier: Int, maxTier: Int) {
     _configService.setAdapterTierRange(minTier, maxTier)
     _blockStorage = new ReplicationStrategyAdapter(_configService.getFilteredAdapters, _configService.getReplicationStrategy)
-
-    // TODO: where does this go?
-    NotificationCenter.start()
   }
 
   def shutdown() {
     ConfigService.shutdown()
-    NotificationCenter.shutdown()
   }
 }
