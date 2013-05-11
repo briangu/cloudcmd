@@ -18,25 +18,6 @@ object Main {
       new File(configRoot).mkdir
     }
 
-    val event: Array[Boolean] = new Array[Boolean](1)
-    event(0) = false
-
-    val queue = new SynchronousQueue[String]
-
-    val msgPump: Thread = new Thread(new Runnable {
-      def run() {
-        while (!event(0)) {
-          try {
-            val msg: String = queue.take
-            System.err.println(msg)
-          }
-          catch {
-            case e: InterruptedException => ;
-          }
-        }
-      }
-    })
-
     try {
       CloudServices.setListener(new Main.Listener(queue))
       CloudServices.setConfigRoot(configRoot)

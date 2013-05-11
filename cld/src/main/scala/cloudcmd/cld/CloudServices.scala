@@ -1,10 +1,9 @@
 package cloudcmd.cld
 
-import cloudcmd.common.engine._
 import cloudcmd.common.config.JsonConfigStorage
-import com.thebuzzmedia.imgscalr.AsyncScalr
 import cloudcmd.common.adapters.ReplicationStrategyAdapter
 import cloudcmd.common.IndexedContentAddressableStorage
+import cloudcmd.common.engine.NotificationCenter
 
 object CloudServices {
 
@@ -14,7 +13,6 @@ object CloudServices {
   private val _configService = new JsonConfigStorage
   private var _blockStorage: IndexedContentAddressableStorage = null
   private var _configRoot: String = null
-  private var _listener: EngineEventListener = null
 
   def setConfigRoot(configRoot: String) {
     _configRoot = configRoot
@@ -22,28 +20,14 @@ object CloudServices {
     CloudServices.ConfigService.init(_configRoot)
   }
 
-  def setListener(listener: EngineEventListener) {
-    _listener = listener
-  }
-
   def initWithTierRange(minTier: Int, maxTier: Int) {
     _configService.setAdapterTierRange(minTier, maxTier)
     _blockStorage = new ReplicationStrategyAdapter(_configService.getFilteredAdapters, _configService.getReplicationStrategy)
-
-    CloudServices.ConfigService.getReplicationStrategy.registerListener(_listener)
+    NotificationCenter.start()
   }
 
   def shutdown() {
     ConfigService.shutdown()
-
-    if (AsyncScalr.getService != null) {
-      AsyncScalr.getService.shutdownNow
-    }
-  }
-
-  def onMessage(msg: String) {
-    if (_listener != null) {
-      _listener.onMessage(msg)
-    }
+    NotificationCenter.shutdown()
   }
 }
