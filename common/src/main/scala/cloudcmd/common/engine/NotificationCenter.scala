@@ -158,6 +158,14 @@ class NotificationCenter {
     queue.add(new MessageCommand(name, sourceOption, userInfo))
   }
 
+  def postNotification(name: String) {
+    queue.add(new MessageCommand(name, None, None))
+  }
+
+  def postNotification(name: String, userInfo: Map[String, Any]) {
+    queue.add(new MessageCommand(name, None, Some(userInfo)))
+  }
+
   def postNotification(name: String, source: AnyRef) {
     queue.add(new MessageCommand(name, Option(source), None))
   }
