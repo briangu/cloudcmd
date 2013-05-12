@@ -49,12 +49,10 @@ class Ensure extends Command {
 
         System.err.println("ensuring %d files.".format(fmds.size))
         if (fmds.size > 0) {
-          fmds foreach { fmd =>
+          fmds.par foreach { fmd =>
             System.err.println("ensuring: %s".format(fmd.getPath))
-            adapter.ensureAll(fmd.createAllBlockContexts)
+            adapter.ensureAll(fmd.createAllBlockContexts, blockLevelCheck = _blockLevelCheck)
           }
-//          adapter.ensureAll(FileMetaData.toBlockContexts(fmds),blockLevelCheck = _blockLevelCheck)
-
           System.err.println("Flushing metadata...")
           adapter.flushIndex()
         } else {
