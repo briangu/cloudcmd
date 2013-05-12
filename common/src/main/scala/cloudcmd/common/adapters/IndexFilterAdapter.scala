@@ -98,49 +98,6 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     }
   }
 
-//  def describe(): Set[BlockContext] = {
-//    val hashes = describeHashes()
-//
-//    val extraHashes = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
-//    val referencedBlockHashes = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
-//
-//    val ctxs = new mutable.HashSet[BlockContext] with mutable.SynchronizedSet[BlockContext]
-//    hashes.par.foreach{ hash =>
-//      if (hash.endsWith(".meta")) {
-//        val fis = _s3Service.getObject(_bucketName, hash).getDataInputStream
-//        try {
-//          val fmd = FileMetaData.create(hash, JsonUtil.loadJson(fis))
-//          ctxs.add(fmd.createBlockContext)
-//          fmd.getBlockHashes.foreach{ blockHash =>
-//            if (hashes.contains(blockHash)) {
-//              ctxs.add(fmd.createBlockContext(blockHash))
-//              referencedBlockHashes.add(blockHash)
-//            } else {
-//              // TODO: log as we should have the blockHash in the description on the same adapter
-//              println("missing blockhash %s (%s) on adapter: %s".format(blockHash, fmd.getPath, this.URI))
-//            }
-//          }
-//        } finally {
-//          FileUtil.SafeClose(fis)
-//        }
-//      } else {
-//        extraHashes.add(hash)
-//      }
-//    }
-//
-//    if (extraHashes.size > 0) {
-//      val unreferencedHashes = extraHashes.diff(referencedBlockHashes)
-//      unreferencedHashes.foreach { hash =>
-//        ctxs.add(FileMetaData.createBlockContext(hash, Set[String]()))
-//      }
-//    }
-//
-//    ctxs.toSet
-//  }
-
-  /***
-    * Flush the index cache that may be populated during a series of modifications (e.g. store)
-    */
   def flushIndex() {
     val fmds = _fmdCache.map{ case (ctx: BlockContext, meta: String) =>
       FileMetaData.create(ctx.hash, new JSONObject(meta))
@@ -149,11 +106,6 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     _fmdCache.clear()
   }
 
-  /**
-   * Find a set of meta blocks based on a filter.
-   * @param filter
-   * @return a set of meta blocks
-   */
   def find(filter: JSONObject): Set[FileMetaData] = {
     val results = new ListBuffer[FileMetaData]
 
@@ -268,36 +220,16 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
 
   def store(ctx: BlockContext, is: InputStream) {
     if (ctx.isMeta()) {
-      val (meta, forwardIs) = if (is.markSupported()) {
-        is.mark(0)
-        val meta = StreamUtil.spoolStreamToString(is)
-        is.reset()
-        (meta, is)
-      } else {
-        val meta = StreamUtil.spoolStreamToString(is)
-        (meta, StreamUtil.stringToInputStream(meta))
-      }
-      try {
-        underlying.store(ctx, forwardIs)
-        _fmdCache.put(ctx, meta)
-      } finally {
-        if (is != forwardIs) {
-          forwardIs.close()
-        }
-      }
+      val bytes = StreamUtil.spoolStreamToBytes(is)
+      underlying.store(ctx, new ByteArrayInputStream(bytes))
+      _fmdCache.put(ctx, new String(bytes, "UTF-8"))
     } else {
       underlying.store(ctx, is)
     }
   }
 
   def load(ctx: BlockContext): (InputStream, Int) = {
-    if (ctx.isMeta() && _getDescription.contains(ctx.hash)) {
-      val rawMeta = _loadRawMetaDataFromDb(ctx)
-      val bytes = rawMeta.getBytes("UTF-8")
-      (new ByteArrayInputStream(bytes), bytes.length)
-    } else {
-      underlying.load(ctx)
-    }
+    underlying.load(ctx)
   }
 
   def removeAll(ctxs : Set[BlockContext]) : Map[BlockContext, Boolean] = {
@@ -523,31 +455,6 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
       }
     }
     finally {
-      SqlUtil.SafeClose(statement)
-      SqlUtil.SafeClose(db)
-    }
-  }
-
-  private def _loadRawMetaDataFromDb(ctx: BlockContext): String = {
-    var db: Connection = null
-    var statement: PreparedStatement = null
-    try {
-      db = _getDbConnection
-      statement = db.prepareStatement("SELECT RAWMETA FROM FILE_INDEX WHERE HASH = ?")
-      SqlUtil.bindVar(statement, 1, ctx.hash)
-
-      val resultSet = statement.executeQuery
-      if (resultSet.next) {
-        resultSet.getString("RAWMETA")
-      } else {
-        null
-      }
-    } catch {
-      case e: SQLException => {
-        log.error(e)
-        null
-      }
-    } finally {
       SqlUtil.SafeClose(statement)
       SqlUtil.SafeClose(db)
     }
