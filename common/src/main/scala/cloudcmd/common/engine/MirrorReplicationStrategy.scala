@@ -117,7 +117,9 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
   }
 
   private def sync(ctx: BlockContext, hashProviders: List[IndexedAdapter], adapters: List[IndexedAdapter]) : Boolean = {
-    if (isReplicated(ctx, adapters)) return true
+    if (isReplicated(ctx, adapters)) {
+      return true
+    }
 
     var is: InputStream = null
     try {

@@ -173,7 +173,11 @@ class FileMetaData {
   }
 
   def createAllBlockContexts: Set[BlockContext] = {
-    Set(createBlockContext) ++ getBlockHashes.map(createBlockContext(_))
+    Set(createBlockContext) ++ createBlockHashBlockContexts
+  }
+
+  def createBlockHashBlockContexts: Set[BlockContext] = {
+    getBlockHashes.map(createBlockContext(_)).toSet
   }
 
   def hasProperties : Boolean = _data.has("properties")

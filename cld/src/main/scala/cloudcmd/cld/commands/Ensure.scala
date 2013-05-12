@@ -48,11 +48,22 @@ class Ensure extends Command {
         }
 
         System.err.println("ensuring %d files.".format(fmds.size))
+
         if (fmds.size > 0) {
-          fmds.par foreach { fmd =>
+          fmds foreach { fmd =>
             System.err.println("ensuring: %s".format(fmd.getPath))
-            adapter.ensureAll(fmd.createAllBlockContexts, blockLevelCheck = _blockLevelCheck)
+
+            val metaBlock = fmd.createBlockContext
+            System.err.println("\tmeta: %s".format(metaBlock.getId()))
+            adapter.ensure(metaBlock, blockLevelCheck = _blockLevelCheck)
+
+            val blockHashes = fmd.createBlockHashBlockContexts
+            blockHashes.foreach{ blockHash =>
+              System.err.println("\tblockhash: %s".format(blockHash.getId()))
+              adapter.ensure(blockHash, blockLevelCheck = _blockLevelCheck)
+            }
           }
+
           System.err.println("Flushing metadata...")
           adapter.flushIndex()
         } else {
