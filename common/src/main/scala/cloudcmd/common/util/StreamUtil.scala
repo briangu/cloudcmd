@@ -31,6 +31,10 @@ object StreamUtil {
     (hash, tmpFile)
   }
 
+  def spoolStreamToBytes(is: InputStream): Array[Byte] = {
+    Stream.continually(is.read).takeWhile(-1 !=).map(_.toByte).toArray
+  }
+
   def spoolStreamToString(is: InputStream): String = {
     scala.io.Source.fromInputStream(is).mkString
   }
