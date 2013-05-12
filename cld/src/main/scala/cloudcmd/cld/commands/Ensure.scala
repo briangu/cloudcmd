@@ -1,12 +1,12 @@
 package cloudcmd.cld.commands
 
-import cloudcmd.common.{ContentAddressableStorage, BlockContext, FileMetaData}
+import cloudcmd.common.FileMetaData
 import cloudcmd.common.util.JsonUtil
 import jpbetz.cli.Command
 import jpbetz.cli.CommandContext
 import jpbetz.cli.Opt
 import jpbetz.cli.SubCommand
-import cloudcmd.cld.{Util, CloudServices}
+import cloudcmd.cld.CloudServices
 
 @SubCommand(name = "ensure", description = "Validate storage and ensure files are properly replicated.")
 class Ensure extends Command {
@@ -40,8 +40,9 @@ class Ensure extends Command {
 
     Option(matchedAdapter) match {
       case Some(adapter) => {
+        System.err.println("scanning adapters.")
         val fmds = if (_syncAll) {
-          Util.describeAsFileMetaData(adapter)
+          adapter.find()
         } else {
           FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in))
         }
@@ -49,10 +50,13 @@ class Ensure extends Command {
         System.err.println("ensuring %d files.".format(fmds.size))
         if (fmds.size > 0) {
           fmds foreach { fmd =>
-            println(fmd.getPath)
+            System.err.println("ensuring: %s".format(fmd.getPath))
             adapter.ensureAll(fmd.createAllBlockContexts)
           }
 //          adapter.ensureAll(FileMetaData.toBlockContexts(fmds),blockLevelCheck = _blockLevelCheck)
+
+          System.err.println("Flushing metadata...")
+          adapter.flushIndex()
         } else {
           System.err.println("nothing to do.")
         }
