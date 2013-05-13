@@ -59,13 +59,10 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
   }
 
   def reindex(cas: ContentAddressableStorage) {
-    //  TODO: in order to take care of local data,
-    //        we should load from all available adapters, not just this one
-
     val allHashes = underlying.describe()
 
     val underlyingMeta = allHashes.filter(_.endsWith(".meta"))
-    val cachedMeta = describe().filter(_.endsWith(".meta"))
+    val cachedMeta = find().map(_.getHash)
     val newMeta = underlyingMeta.diff(cachedMeta)
     val deletedMeta = cachedMeta -- underlyingMeta
 
@@ -289,7 +286,8 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
 
       if (rebuild) {
         st = db.createStatement()
-        st.execute("DROP FROM HASH_INDEX")
+        st.execute("DROP TABLE if exists HASH_INDEX")
+        st.execute("CREATE TABLE HASH_INDEX ( HASH VARCHAR PRIMARY KEY )")
       }
 
       db.setAutoCommit(false)
@@ -324,6 +322,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
       st = db.createStatement
       st.execute("DROP TABLE if exists FILE_INDEX")
       st.execute("CREATE TABLE FILE_INDEX ( HASH VARCHAR, PATH VARCHAR, FILENAME VARCHAR, FILEEXT VARCHAR, FILESIZE BIGINT, FILEDATE BIGINT, CREATEDDATE BIGINT, TAGS VARCHAR, PROPERTIES__OWNERID BIGINT, RAWMETA VARCHAR, PRIMARY KEY (HASH, TAGS))")
+      st.execute("DROP TABLE if exists HASH_INDEX")
       st.execute("CREATE TABLE HASH_INDEX ( HASH VARCHAR PRIMARY KEY )")
       db.commit()
 

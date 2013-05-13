@@ -76,16 +76,10 @@ class Ensure extends Command {
             case (blockHash: String, fmds: ListBuffer[FileMetaData]) => {
               fmds foreach { fmd =>
                 val metaBlock = fmd.createBlockContext
-                if (metaBlock.getId() == "06137672553cb6e0b8a29be19c3de47b9a52ef7b6858a0923a85e1d1b746e2f6.meta") {
-                  println("here!")
-                }
                 val metaOK = adapter.ensure(metaBlock, blockLevelCheck = _blockLevelCheck)
 
                 var blockHashesOK = true
                 val blockHashEnsureResults = fmd.createBlockHashBlockContexts flatMap { blockHash =>
-                  if (blockHash.getId() == "550e1a25a6070568967e04dbf6524c40392e1ad2b3492f368d6ecbc5071ee1d5") {
-                    println("here!")
-                  }
                   val blockHashOK = adapter.ensure(blockHash, blockLevelCheck = _blockLevelCheck)
                   if (!blockHashOK) {
                     blockHashesOK = false
