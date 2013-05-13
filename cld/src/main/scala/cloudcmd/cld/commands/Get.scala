@@ -121,7 +121,7 @@ class Get extends Command {
   }
 
   def onMessage(msg: String) {
-    CloudServices.onMessage(msg)
+    System.err.println(msg)
   }
 
   // TODO: only read the file size bytes back (if the file is one block)

@@ -7,6 +7,8 @@ import jpbetz.cli.CommandContext
 import jpbetz.cli.Opt
 import jpbetz.cli.SubCommand
 import cloudcmd.cld.CloudServices
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
 @SubCommand(name = "ensure", description = "Validate storage and ensure files are properly replicated.")
 class Ensure extends Command {
@@ -49,43 +51,60 @@ class Ensure extends Command {
 
         System.err.println("ensuring %d files.".format(fmds.size))
 
+        val blockMap = new mutable.HashMap[String, ListBuffer[FileMetaData]]
+        fmds foreach { fmd =>
+          fmd.getBlockHashes foreach { blockHash =>
+            blockMap.get(blockHash) match {
+              case Some(list) => list.append(fmd)
+              case None => {
+                val newList = new ListBuffer[FileMetaData]
+                newList.append(fmd)
+                blockMap.put(blockHash, newList)
+              }
+            }
+          }
+        }
+
+        System.err.println("ensuring %d unique underlying blocks.".format(blockMap.size))
+
         var failedCount = 0
 
-        if (fmds.size > 0) {
-          fmds.par foreach { fmd =>
-            val sb = new StringBuilder
+        if (blockMap.size > 0) {
+          blockMap.par.foreach{
+            case (blockHash: String, fmds: ListBuffer[FileMetaData]) => {
+              fmds foreach { fmd =>
+                val metaBlock = fmd.createBlockContext
+                val metaOK = adapter.ensure(metaBlock, blockLevelCheck = _blockLevelCheck)
 
-            sb.append("ensuring: %s\n".format(fmd.getPath))
-            var fileSuccess = true
-
-            val metaBlock = fmd.createBlockContext
-            adapter.ensure(metaBlock, blockLevelCheck = _blockLevelCheck) match {
-              case true => {
-                sb.append("\tOK meta: %s\n".format(metaBlock.getId()))
-              }
-              case false => {
-                sb.append("\tFAILED meta: %s\n".format(metaBlock.getId()))
-                fileSuccess = false
-              }
-            }
-
-            val blockHashes = fmd.createBlockHashBlockContexts
-            blockHashes.foreach{ blockHash =>
-              adapter.ensure(blockHash, blockLevelCheck = _blockLevelCheck) match {
-                case true => {
-                  sb.append("\tOK blockhash: %s\n".format(blockHash.getId()))
+                var blockHashesOK = true
+                val blockHashEnsureResults = fmd.createBlockHashBlockContexts flatMap { blockHash =>
+                  val blockHashOK = adapter.ensure(blockHash, blockLevelCheck = _blockLevelCheck)
+                  if (!blockHashOK) {
+                    blockHashesOK = false
+                  }
+                  List(blockHashOK)
                 }
-                case false => {
-                  sb.append("\tFAILED blockhash: %s\n".format(blockHash.getId()))
-                  fileSuccess = false
+
+                if (!metaOK || !blockHashesOK) {
+                  val sb = new StringBuilder
+
+                  metaOK match {
+                    case true => sb.append("\tOK meta: %s\n".format(metaBlock.getId()))
+                    case false => sb.append("\tFAILED meta: %s\n".format(metaBlock.getId()))
+                  }
+
+                  (0 until blockHashEnsureResults.size) foreach { idx =>
+                    blockHashEnsureResults(idx) match {
+                      case true => sb.append("\tOK blockhash: %s\n".format(fmd.getBlockHashes(idx)))
+                      case false => sb.append("\tFAILED blockhash: %s\n".format(fmd.getBlockHashes(idx)))
+                    }
+                  }
+
+                  sb.append("FAILED ensuring: %s\n".format(fmd.getPath))
+                  System.err.println(sb.toString())
+                  failedCount = failedCount + 1
                 }
               }
-            }
-
-            if (!fileSuccess) {
-              sb.append("FAILED file.")
-              System.err.println(sb.toString())
-              failedCount = failedCount + 1
             }
           }
 

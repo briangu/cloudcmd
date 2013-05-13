@@ -4,7 +4,7 @@ import cloudcmd.common._
 import java.io._
 import cloudcmd.common.engine.ReplicationStrategy
 import org.json.JSONObject
-import scala.util.Random
+import scala.collection.mutable
 
 class ReplicationStrategyAdapter(adapters: List[IndexedAdapter], storage: ReplicationStrategy) extends IndexedContentAddressableStorage {
 
@@ -71,7 +71,10 @@ class ReplicationStrategyAdapter(adapters: List[IndexedAdapter], storage: Replic
    * @return a set of meta blocks
    */
   def find(filter: JSONObject): Set[FileMetaData] = {
-    // TODO: doesn't union
-    Set() ++ adapters.par.flatMap(_.find(filter))
+    val results = new mutable.HashSet[FileMetaData] with mutable.SynchronizedSet[FileMetaData]
+    adapters.par.foreach { adapter =>
+      adapter.find(filter) foreach { results.add }
+    }
+    results.toSet
   }
 }
