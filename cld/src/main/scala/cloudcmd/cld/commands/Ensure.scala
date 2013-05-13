@@ -90,6 +90,8 @@ class Ensure extends Command {
                 if (!metaOK || !blockHashesOK) {
                   val sb = new StringBuilder
 
+                  sb.append("FAILED ensuring: %s\n".format(fmd.getPath))
+
                   metaOK match {
                     case true => sb.append("\tOK meta: %s\n".format(metaBlock.getId()))
                     case false => sb.append("\tFAILED meta: %s\n".format(metaBlock.getId()))
@@ -102,7 +104,6 @@ class Ensure extends Command {
                     }
                   }
 
-                  sb.append("FAILED ensuring: %s\n".format(fmd.getPath))
                   System.err.println(sb.toString())
                   failedCount = failedCount + 1
                 }

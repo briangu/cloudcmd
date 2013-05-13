@@ -29,7 +29,13 @@ class ReplicationStrategyAdapter(adapters: List[IndexedAdapter], storage: Replic
   }
 
   override def ensure(ctx: BlockContext, blockLevelCheck: Boolean) : Boolean = {
-    storage.ensure(ctx, getHashProviders(ctx), getAdaptersAccepts(ctx), blockLevelCheck)
+    try {
+      storage.ensure(ctx, getHashProviders(ctx), getAdaptersAccepts(ctx), blockLevelCheck)
+    } catch {
+      case e: DataNotFoundException => {
+        false
+      }
+    }
   }
 
   def ensureAll(ctxs: Set[BlockContext], blockLevelCheck: Boolean) : Map[BlockContext, Boolean] = {
