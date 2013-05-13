@@ -226,6 +226,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     } else {
       underlying.store(ctx, is)
     }
+    _getDescription.add(ctx.hash)
   }
 
   def load(ctx: BlockContext): (InputStream, Int) = {

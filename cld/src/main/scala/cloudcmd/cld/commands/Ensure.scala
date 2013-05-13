@@ -49,19 +49,48 @@ class Ensure extends Command {
 
         System.err.println("ensuring %d files.".format(fmds.size))
 
+        var failedCount = 0
+
         if (fmds.size > 0) {
-          fmds foreach { fmd =>
-            System.err.println("ensuring: %s".format(fmd.getPath))
+          fmds.par foreach { fmd =>
+            val sb = new StringBuilder
+
+            sb.append("ensuring: %s\n".format(fmd.getPath))
+            var fileSuccess = true
 
             val metaBlock = fmd.createBlockContext
-            System.err.println("\tmeta: %s".format(metaBlock.getId()))
-            adapter.ensure(metaBlock, blockLevelCheck = _blockLevelCheck)
+            adapter.ensure(metaBlock, blockLevelCheck = _blockLevelCheck) match {
+              case true => {
+                sb.append("\tOK meta: %s\n".format(metaBlock.getId()))
+              }
+              case false => {
+                sb.append("\tFAILED meta: %s\n".format(metaBlock.getId()))
+                fileSuccess = false
+              }
+            }
 
             val blockHashes = fmd.createBlockHashBlockContexts
             blockHashes.foreach{ blockHash =>
-              System.err.println("\tblockhash: %s".format(blockHash.getId()))
-              adapter.ensure(blockHash, blockLevelCheck = _blockLevelCheck)
+              adapter.ensure(blockHash, blockLevelCheck = _blockLevelCheck) match {
+                case true => {
+                  sb.append("\tOK blockhash: %s\n".format(blockHash.getId()))
+                }
+                case false => {
+                  sb.append("\tFAILED blockhash: %s\n".format(blockHash.getId()))
+                  fileSuccess = false
+                }
+              }
             }
+
+            if (!fileSuccess) {
+              sb.append("FAILED file.")
+              System.err.println(sb.toString())
+              failedCount = failedCount + 1
+            }
+          }
+
+          if (failedCount > 0) {
+            System.err.println("failed %d/%d".format(failedCount, fmds.size))
           }
 
           System.err.println("Flushing metadata...")

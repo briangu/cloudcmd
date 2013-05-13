@@ -19,7 +19,9 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
   }
 
   def store(ctx: BlockContext, dis: InputStream, adapters: List[IndexedAdapter]) {
-    if (adapters == null || adapters.size == 0) throw new IllegalArgumentException("no adapters to store to")
+    if (adapters == null || adapters.size == 0) {
+      throw new IllegalArgumentException("no adapters to store to")
+    }
 
     var containsAdapters = adapters.filter(_.contains(ctx)).toList
     val nis = if (containsAdapters.size == 0) {
