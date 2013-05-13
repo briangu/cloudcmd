@@ -55,7 +55,9 @@ class Ensure extends Command {
         fmds foreach { fmd =>
           fmd.getBlockHashes foreach { blockHash =>
             blockMap.get(blockHash) match {
-              case Some(list) => list.append(fmd)
+              case Some(list) => {
+                list.append(fmd)
+              }
               case None => {
                 val newList = new ListBuffer[FileMetaData]
                 newList.append(fmd)

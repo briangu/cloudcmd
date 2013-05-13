@@ -89,15 +89,13 @@ object FileMetaData {
 }
 
 class FileMetaData {
-  private var _hashCode = 0
 
   override def hashCode: Int = {
-    if (_hashCode == 0) _hashCode = 31 * getHash.hashCode * getRawData.hashCode
-    _hashCode
+    _hash.hashCode
   }
 
   override def equals(other: Any): Boolean = {
-    other.isInstanceOf[FileMetaData] && other.asInstanceOf[FileMetaData].getHash.equals(getHash) && other.asInstanceOf[FileMetaData].getRawData.equals(getRawData)
+    other.isInstanceOf[FileMetaData] && other.asInstanceOf[FileMetaData].getHash.equals(getHash)
   }
 
   def getBlockHashes: Seq[String] = {
