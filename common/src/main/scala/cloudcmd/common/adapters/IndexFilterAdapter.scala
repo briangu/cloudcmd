@@ -61,10 +61,15 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
   def reindex(cas: ContentAddressableStorage) {
     //  TODO: in order to take care of local data,
     //        we should load from all available adapters, not just this one
-    val underlyingMeta = underlying.describe().filter(_.endsWith(".meta"))
+
+    val allHashes = underlying.describe()
+
+    val underlyingMeta = allHashes.filter(_.endsWith(".meta"))
     val cachedMeta = describe().filter(_.endsWith(".meta"))
     val newMeta = underlyingMeta.diff(cachedMeta)
     val deletedMeta = cachedMeta -- underlyingMeta
+
+    _addAllHashData(allHashes, rebuild = true)
 
     if (newMeta.size > 0) {
       val collections = newMeta.grouped(1024)
@@ -88,7 +93,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
               }
           }.toList
 
-          System.err.println("indexing %d files".format(addedFileMetaData.size))
+          System.err.println("indexing %d files on %s".format(addedFileMetaData.size, underlying.URI.toASCIIString))
           _addAllFileMetaData(addedFileMetaData, rebuildIndex = true)
       }
     }
@@ -104,6 +109,8 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     }
     _addAllFileMetaData(fmds.toSeq, rebuildIndex = true)
     _fmdCache.clear()
+
+    _addAllHashData(_getDescription.toSet)
   }
 
   def find(filter: JSONObject): Set[FileMetaData] = {
@@ -274,6 +281,31 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     }
   }
 
+  def _addAllHashData(hashes: Set[String], rebuild: Boolean = false) {
+    var db: Connection = null
+    var st: Statement = null
+    try {
+      db = _getDbConnection
+
+      if (rebuild) {
+        st = db.createStatement()
+        st.execute("DROP FROM HASH_INDEX")
+      }
+
+      db.setAutoCommit(false)
+      _addHashesToDb(db, hashes)
+      db.commit()
+    }
+    catch {
+      case e: JSONException => log.error(e)
+      case e: SQLException => log.error(e)
+    }
+    finally {
+      SqlUtil.SafeClose(st)
+      SqlUtil.SafeClose(db)
+    }
+  }
+
   protected def _bootstrap(dataPath: String, dbPath: String) {
     Class.forName("org.h2.Driver")
     Class.forName("org.h2.fulltext.FullTextLucene")
@@ -291,7 +323,8 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
       db = _getDbConnection
       st = db.createStatement
       st.execute("DROP TABLE if exists FILE_INDEX")
-      st.execute("CREATE TABLE FILE_INDEX ( HASH VARCHAR, BLOCK_HASHES VARCHAR, PATH VARCHAR, FILENAME VARCHAR, FILEEXT VARCHAR, FILESIZE BIGINT, FILEDATE BIGINT, CREATEDDATE BIGINT, TAGS VARCHAR, PROPERTIES__OWNERID BIGINT, RAWMETA VARCHAR, PRIMARY KEY (HASH, TAGS))")
+      st.execute("CREATE TABLE FILE_INDEX ( HASH VARCHAR, PATH VARCHAR, FILENAME VARCHAR, FILEEXT VARCHAR, FILESIZE BIGINT, FILEDATE BIGINT, CREATEDDATE BIGINT, TAGS VARCHAR, PROPERTIES__OWNERID BIGINT, RAWMETA VARCHAR, PRIMARY KEY (HASH, TAGS))")
+      st.execute("CREATE TABLE HASH_INDEX ( HASH VARCHAR PRIMARY KEY )")
       db.commit()
 
       _createLuceneIndex(db)
@@ -343,8 +376,11 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     _bootstrapDb()
   }
 
-  private val _fields = List("HASH", "BLOCK_HASHES", "PATH", "FILENAME", "FILEEXT", "FILESIZE", "FILEDATE", "CREATEDDATE", "TAGS", "PROPERTIES__OWNERID", "RAWMETA")
-  private val _addMetaSql = "MERGE INTO FILE_INDEX (%s) VALUES (%s)".format(_fields.mkString(","), StringUtil.joinRepeat(_fields.size, "?", ","))
+  private val _addMetaFields = List("HASH", "PATH", "FILENAME", "FILEEXT", "FILESIZE", "FILEDATE", "CREATEDDATE", "TAGS", "PROPERTIES__OWNERID", "RAWMETA")
+  private val _addMetaSql = "MERGE INTO FILE_INDEX (%s) VALUES (%s)".format(_addMetaFields.mkString(","), StringUtil.joinRepeat(_addMetaFields.size, "?", ","))
+
+  private val _addHashFields = List("HASH")
+  private val _addHashSql = "MERGE INTO HASH_INDEX (%s) VALUES (%s)".format(_addHashFields.mkString(","), StringUtil.joinRepeat(_addHashFields.size, "?", ","))
 
   private def _addMetaToDb(db: Connection, fmds: Seq[FileMetaData]) {
     var statement: PreparedStatement = null
@@ -357,7 +393,6 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
       for (meta <- fmds) {
         bind.clear()
         bind.append(meta.getHash)
-        bind.append(meta.getBlockHashes.mkString(","))
         bind.append(meta.getPath)
         bind.append(meta.getFilename)
         bind.append(meta.getFileExt)
@@ -387,20 +422,38 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     }
   }
 
+  private def _addHashesToDb(db: Connection, hashes: Set[String]) {
+    var statement: PreparedStatement = null
+    try {
+      statement = db.prepareStatement(_addHashSql)
+
+      var k = 0
+
+      for (hash <- hashes) {
+        SqlUtil.bindVar(statement, 1, hash)
+        statement.addBatch()
+
+        k += 1
+        if (k > BATCH_SIZE) {
+          statement.executeBatch
+          k = 0
+        }
+      }
+      statement.executeBatch
+    }
+    catch {
+      case e: Exception => log.error(e)
+    }
+    finally {
+      SqlUtil.SafeClose(statement)
+    }
+  }
+
   private def _buildTags(meta: FileMetaData): String = {
     var tagSet = meta.getTags
     if (meta.getType != null) tagSet = tagSet ++ meta.getType.split("/")
     tagSet.mkString(" ")
   }
-
-  //  def pruneHistory(selections: Seq[FileMetaData]) {
-  //    //    removeAll(selections.filter(_.getParent != null).map(_.getParent).toSet)
-  //    removeAll(Set() ++ selections.flatMap(fmd => if (fmd.getParent == null) {
-  //      Nil
-  //    } else {
-  //      Set(fmd.getParent)
-  //    }))
-  //  }
 
   private def _deleteBlockContextsFromDb(ctxs: Set[BlockContext]) {
     var db: Connection = null
@@ -469,14 +522,13 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
           var statement: PreparedStatement = null
           try {
             db = _getDbConnection
-            statement = db.prepareStatement("SELECT HASH, BLOCK_HASHES FROM FILE_INDEX")
+            statement = db.prepareStatement("SELECT HASH FROM HASH_INDEX")
 
             val description = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
 
             val resultSet = statement.executeQuery
             while (resultSet.next) {
               description.add(resultSet.getString("HASH"))
-              resultSet.getString("BLOCK_HASHES").split(",").foreach(description.add)
             }
 
             _description = description

@@ -61,7 +61,13 @@ class ReplicationStrategyAdapter(adapters: List[IndexedAdapter], storage: Replic
     */
   def reindex(cas: ContentAddressableStorage) {
     // sort in ascending tier so that the lower tiered adapters can provide for the higher tiers
-    adapters.sortBy(x => x.Tier).foreach(_.reindex(cas))
+    adapters groupBy(x => x.Tier) foreach {
+      case (tier: Int, group: List[IndexedAdapter]) => {
+        group.par foreach {
+          adapter => adapter.reindex(cas)
+        }
+      }
+    }
   }
 
   /** *
