@@ -7,7 +7,8 @@ import jpbetz.cli.CommandContext
 import jpbetz.cli.SubCommand
 import java.io.File
 
-@SubCommand(name = "init", description = "Create a CloudCmd project with the current directory as the root.") class Init extends Command {
+@SubCommand(name = "init", description = "Create a CloudCmd project with the current directory as the root.")
+class Init extends Command {
   def exec(commandLine: CommandContext) {
     val path = FileUtil.getCurrentWorkingDirectory + File.separatorChar + ".cld"
     new File(path).mkdirs

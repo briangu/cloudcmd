@@ -231,6 +231,14 @@ class JsonConfigStorage extends ConfigStorage {
     _allAdapters
   }
 
+  def getMaxAdapterTier: Int = {
+    _allAdapters.map(_.Tier).max
+  }
+
+  def getMinAdapterTier: Int = {
+    _allAdapters.map(_.Tier).min
+  }
+
   def getFilteredAdapters: List[IndexedAdapter] = {
     _allAdapters.filter(a => a.Tier >= _minTier && a.Tier <= _maxTier && a.IsOnLine && !a.IsFull).toList
   }

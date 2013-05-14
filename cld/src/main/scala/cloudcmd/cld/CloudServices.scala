@@ -2,7 +2,6 @@ package cloudcmd.cld
 
 import cloudcmd.common.engine._
 import cloudcmd.common.config.JsonConfigStorage
-import com.thebuzzmedia.imgscalr.AsyncScalr
 import cloudcmd.common.adapters.ReplicationStrategyAdapter
 import cloudcmd.common.IndexedContentAddressableStorage
 
@@ -35,10 +34,6 @@ object CloudServices {
 
   def shutdown() {
     ConfigService.shutdown()
-
-    if (AsyncScalr.getService != null) {
-      AsyncScalr.getService.shutdownNow
-    }
   }
 
   def onMessage(msg: String) {

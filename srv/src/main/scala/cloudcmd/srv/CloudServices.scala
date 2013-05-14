@@ -3,8 +3,7 @@ package cloudcmd.srv
 import cloudcmd.common.engine._
 import cloudcmd.common.config.JsonConfigStorage
 import cloudcmd.common.adapters.ReplicationStrategyAdapter
-import cloudcmd.common.{IndexedContentAddressableStorage, ContentAddressableStorage}
-import com.thebuzzmedia.imgscalr.AsyncScalr
+import cloudcmd.common.IndexedContentAddressableStorage
 
 object CloudServices {
 

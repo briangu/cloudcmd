@@ -1,12 +1,10 @@
 package cloudcmd.srv
 
-import java.io.{ByteArrayOutputStream, ByteArrayInputStream, File}
+import java.io.{ByteArrayInputStream, File}
 import cloudcmd.common.{ContentAddressableStorage, RandomAccessFileInputStream, FileMetaData, FileUtil}
 import cloudcmd.common.util.{JsonUtil, FileTypeUtil, CryptoUtil}
 import org.json.JSONObject
-import javax.imageio.ImageIO
 import org.apache.log4j.Logger
-import com.thebuzzmedia.imgscalr.{Scalr, AsyncScalr}
 import java.util.Date
 import cloudcmd.common.engine.FileProcessor
 
@@ -105,6 +103,7 @@ class ThumbnailFileProcessor(cas: ContentAddressableStorage, thumbWidth: Int, th
     }
   }
 
+/*
   def createThumbnail(srcFile : File, thumbWidth: Int, thumbHeight: Int) : Array[Byte] = {
     if (srcFile.exists()) {
       val os = new ByteArrayOutputStream()
@@ -139,4 +138,5 @@ class ThumbnailFileProcessor(cas: ContentAddressableStorage, thumbWidth: Int, th
       null
     }
   }
+*/
 }
