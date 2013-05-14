@@ -69,7 +69,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     _addAllHashData(allHashes, rebuild = true)
 
     if (newMeta.size > 0) {
-      val collections = newMeta.grouped(1024)
+      val collections = newMeta.grouped(64 * 1024)
       collections.foreach{
         group =>
           val addedFileMetaData = group.par.flatMap {
