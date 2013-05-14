@@ -390,13 +390,19 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
       var k = 0
 
       for (meta <- fmds) {
+        val uri = meta.getURI
+        val file = new File(uri.getPath)
+        val filename = file.getName
+        val extIdx = filename.lastIndexOf('.')
+        val fileext = if (extIdx > 0) filename.substring(extIdx + 1) else null
+
         bind.clear()
         bind.append(meta.getHash)
         bind.append(meta.getPath)
-        bind.append(meta.getFilename)
-        bind.append(meta.getFileExt)
+        bind.append(filename)
+        bind.append(fileext)
         bind.append(meta.getFileSize.asInstanceOf[AnyRef])
-        bind.append(meta.getFileDate.asInstanceOf[AnyRef])
+        bind.append(meta.getDate.asInstanceOf[AnyRef])
         bind.append(meta.getCreatedDate.asInstanceOf[AnyRef])
         bind.append(_buildTags(meta))
         // TODO: TOTAL HACK...USE STORED.IO ASAP

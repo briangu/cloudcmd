@@ -121,19 +121,19 @@ class Get extends Command {
       var remoteData: InputStream = null
       try {
         remoteData = cas.load(fmd.createBlockContext(blockHash))._1
-        val destFile = new File(fmd.getPath)
+        val destFile = new File(fmd.getURI.getPath)
         destFile.getParentFile.mkdirs
         val remoteDataHash = CryptoUtil.digestToString(CryptoUtil.writeAndComputeHash(remoteData, destFile))
         if (remoteDataHash.equals(blockHash)) {
           onMessage("retrieved: %s".format(fmd.getPath))
           success = true
         } else {
-          onMessage("%s is corrupted after download using block %s".format(fmd.getFilename, blockHash))
+          onMessage("%s is corrupted after download using block %s".format(fmd.getPath, blockHash))
           destFile.delete
         }
       } catch {
         case e: Exception => {
-          onMessage("%s failed to read block %s".format(fmd.getFilename, blockHash))
+          onMessage("%s failed to read block %s".format(fmd.getPath, blockHash))
         }
       } finally {
         FileUtil.SafeClose(remoteData)
@@ -143,7 +143,7 @@ class Get extends Command {
         retries -= 1
         cas.ensure(fmd.createBlockContext(blockHash), blockLevelCheck = true)
         if (!cas.contains(fmd.createBlockContext(blockHash))) {
-          onMessage("giving up on %s, block %s not currently available!".format(fmd.getFilename, blockHash))
+          onMessage("giving up on %s, block %s not currently available!".format(fmd.getPath, blockHash))
           retries = 0
         }
       }

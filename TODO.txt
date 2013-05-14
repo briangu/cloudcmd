@@ -15,17 +15,8 @@ purge cache
 rebalance - apply replication policy and purge unnecessary blocks, while also balancing disk space on file adapter
 verify (partially done) -- need to trace back to the holding meta files and ensure the files are still readable
 
-skip cache and push directly to at least one adapter
-allow for .cld optional blacklists (e.g. in user-custom properties)
-
-[x] repair - do verify and then push
-[x] remove file - have to account for references to a subblock
-
-
 srv presentation layer
 srv based adapter
 
 compression bson
 packing small files into pack files
-
-[x]remove block from adapter

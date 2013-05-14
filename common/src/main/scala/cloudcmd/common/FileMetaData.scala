@@ -4,6 +4,7 @@ import java.io.{File, ByteArrayInputStream}
 import org.json.JSONArray
 import org.json.JSONObject
 import util.{CryptoUtil, JsonUtil}
+import java.net.URI
 
 object FileMetaData {
   def fromJson(serialized: JSONObject): FileMetaData = {
@@ -45,15 +46,11 @@ object FileMetaData {
   }
 
   def create(file: File, blockHashes: List[String], tags: Set[String], properties: JSONObject = new JSONObject): FileMetaData = {
-    val fileName = file.getName
-    val extIndex = fileName.lastIndexOf(".")
     FileMetaData.create(
       JsonUtil.createJsonObject(
-        "path", file.getCanonicalPath,
-        "filename", fileName,
-        "fileext", if (extIndex >= 0) fileName.substring(extIndex + 1) else null,
-        "filesize", file.length.asInstanceOf[AnyRef],
-        "filedate", file.lastModified.asInstanceOf[AnyRef],
+        "path", file.toURI.toASCIIString,
+        "size", file.length.asInstanceOf[AnyRef],
+        "date", file.lastModified.asInstanceOf[AnyRef],
         "blocks", JsonUtil.toJsonArray(blockHashes),
         "tags", JsonUtil.toJsonArray(tags),
         "properties", if (properties.length > 0) properties else null))
@@ -103,15 +100,9 @@ class FileMetaData {
     (0 until blocks.length).map(blocks.getString)
   }
 
-  def getThumbHash: String = {
-    if (_data.has("thumbHash")) _data.getString("thumbHash") else null
+  def getTags: Set[String] = {
+    _tags
   }
-
-  def getThumbSize: Int = {
-    if (_data.has("thumbSize")) _data.getInt("thumbSize") else -1
-  }
-
-  def getTags: Set[String] = _tags
 
   def toJson: JSONObject = {
     val obj: JSONObject = new JSONObject
@@ -125,33 +116,79 @@ class FileMetaData {
   }
 
   def getParent: String = {
-    if (_data.has("parent")) _data.getString("parent") else null
+    if (_data.has("parent")) {
+      _data.getString("parent")
+    } else {
+      null
+    }
   }
 
   def getPath: String = {
     _data.getString("path")
   }
 
-  def getType: String = if (_data.has("mimeType")) _data.getString("mimeType") else null
+  def getURI: URI = {
+    try {
+      new URI(getPath)
+    } catch {
+      case e: Exception => {
+        new File(getPath).toURI
+      }
+    }
+  }
+
+  def getType: String = {
+    if (_data.has("mimeType")) {
+      _data.getString("mimeType")
+    } else {
+      null
+    }
+  }
 
   def getFilename: String = {
-    _data.getString("filename")
+    if (_data.has("filename")) {
+      _data.getString("filename")
+    } else {
+      new File(getURI).getName
+    }
   }
 
   def getFileExt: String = {
-    if (_data.has("fileext")) _data.getString("fileext") else null
+    if (_data.has("fileext")) {
+      _data.getString("fileext")
+    } else {
+      val fileName = getFilename
+      val idx = fileName.lastIndexOf('.')
+      if (idx > 0) {
+        fileName.substring(idx + 1)
+      } else {
+        null
+      }
+    }
   }
 
-  def getFileDate: Long = {
-    _data.getLong("filedate")
+  def getDate: Long = {
+    if (_data.has("filedate")) {
+      _data.getLong("filedate")
+    } else {
+      _data.getLong("date")
+    }
   }
 
   def getCreatedDate: Long = {
-    if (_data.has("createdDate")) _data.getLong("createdDate") else getFileDate
+    if (_data.has("createdDate")) {
+      _data.getLong("createdDate")
+    } else {
+      getDate
+    }
   }
 
   def getFileSize: Long = {
-    _data.getLong("filesize")
+    if (_data.has("filesize")) {
+      _data.getLong("filesize")
+    } else {
+      _data.getLong("size")
+    }
   }
 
   def getRawData: JSONObject = {
@@ -178,9 +215,17 @@ class FileMetaData {
     getBlockHashes.map(createBlockContext(_))
   }
 
-  def hasProperties : Boolean = _data.has("properties")
+  def hasProperties : Boolean = {
+    _data.has("properties")
+  }
 
-  def getProperties : JSONObject = _data.getJSONObject("properties")
+  def getProperties : JSONObject = {
+    if (_data.has("properties")) {
+      _data.getJSONObject("properties")
+    } else {
+      null
+    }
+  }
 
   def hasProperty(name: String) : Boolean = {
     hasProperties && getProperties.has(name)

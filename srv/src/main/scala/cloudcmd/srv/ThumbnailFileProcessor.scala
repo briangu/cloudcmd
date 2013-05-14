@@ -40,12 +40,9 @@ class ThumbnailFileProcessor(cas: ContentAddressableStorage, thumbWidth: Int, th
 
       val rawFmd =
         JsonUtil.createJsonObject(
-          "path", file.getCanonicalPath,
-          "filename", fileName,
-          "fileext", fileExt,
-          "filesize", file.length.asInstanceOf[AnyRef],
-          "filedate", file.lastModified.asInstanceOf[AnyRef],
-          "createdDate", new Date().getTime.asInstanceOf[AnyRef],  // TODO: this is not ideal as it forces duplicates
+          "path", file.toURI.toASCIIString,
+          "size", file.length.asInstanceOf[AnyRef],
+          "date", file.lastModified.asInstanceOf[AnyRef],
           "blocks", JsonUtil.toJsonArray(List(blockHash)),
           "tags", JsonUtil.toJsonArray(tags))
 
