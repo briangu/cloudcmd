@@ -26,11 +26,18 @@ class DirectS3Adapter extends DirectAdapter {
     _bucketName = awsBucketName
     _useReducedRedundancy = useRRS
 
-    if (!_s3Service.isBucketAccessible(_bucketName)) {
-      _s3Service.getOrCreateBucket(_bucketName)
+    _isOnline = try {
+      if (!_s3Service.isBucketAccessible(_bucketName)) {
+        _s3Service.getOrCreateBucket(_bucketName)
+        _s3Service.isBucketAccessible(_bucketName)
+      } else {
+        true
+      }
+    } catch {
+      case e: Exception => {
+        false
+      }
     }
-
-    _isOnline = _s3Service.isBucketAccessible(_bucketName)
   }
 
   def shutdown() {}
