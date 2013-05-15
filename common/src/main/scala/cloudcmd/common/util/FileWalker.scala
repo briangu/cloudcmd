@@ -11,11 +11,11 @@ object FileWalker {
   }
 
   def enumerateFolders(directory: String, handler: FileWalker.FileHandler) {
-    enumerateFolders(directory, handler)
+    new FileWalker().enumerateFolders(directory, handler)
   }
 }
 
-class FileWalker(threadCount: Int) {
+class FileWalker {
 
   private case class FileTask(file: File, handler: FileWalker.FileHandler)
 
