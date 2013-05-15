@@ -32,7 +32,6 @@ class Add extends Command {
     val tags = _tags.toSet
 
     addFiles(new DefaultFileProcessor(adapter), FileTypeUtil.instance, path, properties, tags)
-//    FileWalker.shutdown()
 
     CloudServices.onMessage("Flushing metadata...")
     adapter.flushIndex()
