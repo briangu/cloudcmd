@@ -4,6 +4,7 @@ import cloudcmd.common.engine._
 import cloudcmd.common.config.JsonConfigStorage
 import cloudcmd.common.adapters.ReplicationStrategyAdapter
 import cloudcmd.common.IndexedContentAddressableStorage
+import cloudcmd.common.util.FileWalker
 
 object CloudServices {
 
@@ -30,10 +31,12 @@ object CloudServices {
     _blockStorage = new ReplicationStrategyAdapter(_configService.getFilteredAdapters, _configService.getReplicationStrategy)
 
     CloudServices.ConfigService.getReplicationStrategy.registerListener(_listener)
+    FileWalker.start()
   }
 
   def shutdown() {
     ConfigService.shutdown()
+    FileWalker.shutdown()
   }
 
   def onMessage(msg: String) {
