@@ -7,7 +7,7 @@ import jpbetz.cli._
 import java.io.File
 import org.json.JSONObject
 import cloudcmd.common.engine.{DefaultFileProcessor, FileProcessor}
-import cloudcmd.cld.AdapterUtil
+import cloudcmd.cld.{CloudServices, AdapterUtil}
 
 @SubCommand(name = "add", description = "add files")
 class Add extends Command {
@@ -32,8 +32,9 @@ class Add extends Command {
     val tags = _tags.toSet
 
     addFiles(new DefaultFileProcessor(adapter), FileTypeUtil.instance, path, properties, tags)
+//    FileWalker.shutdown()
 
-    System.err.println("Flushing metadata...")
+    CloudServices.onMessage("Flushing metadata...")
     adapter.flushIndex()
   }
 

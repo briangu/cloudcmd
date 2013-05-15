@@ -5,7 +5,20 @@ import java.util.concurrent.SynchronousQueue
 
 object FileWalker {
 
+  trait FileHandler {
+    def skipDir(file: File): Boolean
+    def process(file: File)
+  }
+
+  def enumerateFolders(directory: String, handler: FileWalker.FileHandler) {
+    new FileWalker().enumerateFolders(directory, handler)
+  }
+}
+
+class FileWalker {
   private case class FileTask(file: File, handler: FileWalker.FileHandler)
+
+  private val SHUTDOWN_DELAY = 5000 // 5 seconds
 
   private val queue = new SynchronousQueue[Option[FileTask]]
 
@@ -29,46 +42,48 @@ object FileWalker {
     }
   })
 
-  def start() {
+  private def start() {
     msgPump.start()
   }
 
-  def shutdown() {
+  private def shutdown() {
     if (msgPump.isAlive) {
       queue.put(None)
-      msgPump.join(1000)
+      msgPump.join(SHUTDOWN_DELAY)
     }
   }
 
   def enumerateFolders(directory: String, handler: FileWalker.FileHandler) {
+
     val rootDir = new File(directory)
     if (!rootDir.exists) {
       throw new IllegalArgumentException("directory does not exist: " + directory)
     }
 
-    val stack = new collection.mutable.Stack[File]
-    stack.push(rootDir)
+    start()
 
-    while (!stack.isEmpty) {
-      val curFile = stack.pop()
-      val subFiles = curFile.listFiles
-      if (subFiles != null) {
-        subFiles.foreach {
-          file =>
-            if (file.isDirectory) {
-              if (!handler.skipDir(file)) {
-                stack.push(file)
+    try {
+
+      val stack = new collection.mutable.Stack[File]
+      stack.push(rootDir)
+
+      while (!stack.isEmpty) {
+        val subFiles = stack.pop().listFiles
+        if (subFiles != null) {
+          subFiles.foreach {
+            file =>
+              if (file.isDirectory) {
+                if (!handler.skipDir(file)) {
+                  stack.push(file)
+                }
+              } else {
+                queue.put(Some(FileTask(file, handler)))
               }
-            } else {
-              queue.put(Some(FileTask(file, handler)))
-            }
+          }
         }
       }
+    } finally {
+      shutdown()
     }
-  }
-
-  trait FileHandler {
-    def skipDir(file: File): Boolean
-    def process(file: File)
   }
 }
