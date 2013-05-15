@@ -15,6 +15,7 @@ class Add extends Command {
   @Arg(name = "path", optional = false) var _path: String = null
   @Arg(name = "tags", optional = true, isVararg = true) var _tags: java.util.List[String] = null
   @Opt(opt = "p", longOpt = "properties", description = "file meta properties JSON file", required = false) private var _inputFilePath: String = null
+//  @Opt(opt = "t", longOpt = "threads", description = "number of add threads to use", required = false) private var _threadCount: Number = 1
 
   @Opt(opt = "n", longOpt = "minTier", description = "min tier to verify to", required = false) var _minTier: Number = 0
   @Opt(opt = "m", longOpt = "maxTier", description = "max tier to verify to", required = false) var _maxTier: Number = Integer.MAX_VALUE

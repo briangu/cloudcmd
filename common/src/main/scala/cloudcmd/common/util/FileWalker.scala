@@ -1,7 +1,7 @@
 package cloudcmd.common.util
 
 import java.io.File
-import java.util.concurrent.SynchronousQueue
+import java.util.concurrent.{CountDownLatch, SynchronousQueue}
 
 object FileWalker {
 
@@ -11,18 +11,34 @@ object FileWalker {
   }
 
   def enumerateFolders(directory: String, handler: FileWalker.FileHandler) {
-    new FileWalker().enumerateFolders(directory, handler)
+    enumerateFolders(directory, handler)
   }
 }
 
-class FileWalker {
+class FileWalker(threadCount: Int) {
+
   private case class FileTask(file: File, handler: FileWalker.FileHandler)
 
   private val SHUTDOWN_DELAY = 5000 // 5 seconds
 
+  private val doneSignal = new CountDownLatch(1)
+
   private val queue = new SynchronousQueue[Option[FileTask]]
 
-  private val msgPump: Thread = new Thread(new Runnable {
+//  import java.util.concurrent.Executors
+//  import scala.concurrent._
+//
+//  implicit val ec = new ExecutionContext {
+//    val threadPool = Executors.newFixedThreadPool(threadCount)
+//
+//    def execute(runnable: Runnable) {
+//      threadPool.submit(runnable)
+//    }
+//
+//    def reportFailure(t: Throwable) {}
+//  }
+
+  private val fileTaskConsumer: Thread = new Thread(new Runnable {
     def run() {
       try {
         var done = false
@@ -38,18 +54,21 @@ class FileWalker {
         }
       } catch {
         case e: Exception => ;
+      } finally {
+        doneSignal.countDown()
       }
     }
   })
 
   private def start() {
-    msgPump.start()
+    fileTaskConsumer.start()
   }
 
   private def shutdown() {
-    if (msgPump.isAlive) {
+    if (fileTaskConsumer.isAlive) {
       queue.put(None)
-      msgPump.join(SHUTDOWN_DELAY)
+      doneSignal.await()
+      fileTaskConsumer.join(SHUTDOWN_DELAY)
     }
   }
 
