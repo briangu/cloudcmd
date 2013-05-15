@@ -76,7 +76,7 @@ class Get extends Command {
 
   private def prefixPaths(prefix: String, selections: Iterable[FileMetaData]) {
     selections.foreach{ selection =>
-      var path: String = selection.getRawData.getString("path")
+      var path = selection.getURI.getPath
       path = prefix + (if (path.startsWith(File.separator)) path else File.separator + path)
       selection.getRawData.put("path", path)
     }
