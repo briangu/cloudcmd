@@ -21,10 +21,6 @@ class DefaultFileProcessor(cas: ContentAddressableStorage) extends FileProcessor
       fis.reset()
     }
 
-    val extIdx = file.getName.lastIndexOf(".")
-    val fileExt = if (extIdx > -1) file.getName.substring(extIdx + 1) else null
-    val mimeType = FileTypeUtil.instance.getTypeFromExtension(fileExt)
-
     val rawFmd =
       JsonUtil.createJsonObject(
         "path", file.toURI.toASCIIString,
