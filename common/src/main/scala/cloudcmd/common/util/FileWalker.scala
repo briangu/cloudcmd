@@ -34,8 +34,10 @@ object FileWalker {
   }
 
   def shutdown() {
-    queue.put(None)
-    msgPump.join(1000)
+    if (msgPump.isAlive) {
+      queue.put(None)
+      msgPump.join(1000)
+    }
   }
 
   def enumerateFolders(directory: String, handler: FileWalker.FileHandler) {
