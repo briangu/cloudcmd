@@ -71,7 +71,7 @@ object Main {
     }
 
     def onMessage(msg: String) {
-      _queue.offer(msg)
+      _queue.put(msg)
     }
 
     private var _queue: BlockingQueue[String] = null

@@ -10,8 +10,7 @@ import collection.mutable
 
 class DirectFileAdapter extends DirectAdapter {
 
-  val MIN_FREE_STORAGE_SIZE: Int = 1024 * 1024
-  val LARGE_FILE_CUTOFF: Int = 128 * 1024 * 1024
+  val MIN_FREE_STORAGE_SIZE: Int = 1024 * 1024 * 128 // ensure 128MB free
 
   private var _dataDir: String = null
 
@@ -21,7 +20,9 @@ class DirectFileAdapter extends DirectAdapter {
     val rootPathDir = new File(_configDir)
     rootPathDir.mkdirs
     _isOnline = rootPathDir.exists
-    if (IsOnLine) bootstrap(_dataDir)
+    if (IsOnLine) {
+      bootstrap(_dataDir)
+    }
   }
 
   def shutdown() {}
@@ -34,6 +35,7 @@ class DirectFileAdapter extends DirectAdapter {
     Map() ++ ctxs.par.flatMap( ctx => Map(ctx -> new File(getDataFileFromHash(ctx.hash)).exists()))
   }
 
+  // TODO: use FileLock: this operation is not thread safe.
   def removeAll(ctxs: Set[BlockContext]): Map[BlockContext, Boolean] = {
     Map() ++ ctxs.par.flatMap{ ctx =>
       val file = new File(getDataFileFromHash(ctx.hash))
@@ -42,6 +44,7 @@ class DirectFileAdapter extends DirectAdapter {
     }
   }
 
+  // TODO: use FileLock: this operation is not thread safe.
   override def ensure(ctx: BlockContext, blockLevelCheck: Boolean) : Boolean = {
     val file = new File(getDataFileFromHash(ctx.hash))
     val valid = if (blockLevelCheck) {
@@ -62,6 +65,8 @@ class DirectFileAdapter extends DirectAdapter {
     Map() ++ ctxs.par.flatMap{ ctx => Map(ctx -> ensure(ctx, blockLevelCheck)) }
   }
 
+  // TODO: use FileLock: this operation is not thread safe.
+  //       If two stores of the same context co-occur, they will collide causing a fail (probably of both)
   def store(ctx: BlockContext, is: InputStream) {
     val writeHash = FileUtil.writeFileAndComputeHash(is, new File(getDataFileFromHash(ctx.hash)))
     val success = (writeHash == getHashFromDataFile(ctx.hash))
@@ -71,6 +76,7 @@ class DirectFileAdapter extends DirectAdapter {
     }
   }
 
+  // TODO: use FileLock: this operation is not thread safe.
   def load(ctx: BlockContext): (InputStream, Int) = {
     val file = new File(getDataFileFromHash(ctx.hash))
     if (!file.exists) throw new DataNotFoundException(ctx)
