@@ -3,25 +3,25 @@ cloudcmd
 
 Cloudcmd (cloud command) is a generalized storage system with the aim of pretty much enabling users to:
 
-    * store files where and how they want
-    * store files with a level of data integrity they want
-    * find and retrieve files they want
+* store files where and how they want
+* store files with a level of data integrity they want
+* find and retrieve files they want
 
 The system as a whole can be described as a generalization of a dropbox, google drive, skydrive, enabling people to combine different kinds of storage in useful ways to free themselves of single providers.
 
 Technology features:
 
-    * Compose content-addressable-storage (CAS) endpoints to form a virtual storage layer.
-    * Mirroring and other replication strategies can be used to ensure data integrity.
-    * Easily replace underlying storage (CAS) while maintaining a consistent view of the storage contents.
-    * Syncing is naturally supported do to the built-in replication strategies.  For example, if the mirroring remote storage would enable the local storage to mirror remote content (and vice versa).
-    * Ephemeral storage, storage that may come and go, is supported as indexing occurs 'close' to the storage.  For example, if a USB drive is used, then the index will live on the drive.  When the drive leaves, the index is no longer used so the files will not be returned when searching.
+* Compose content-addressable-storage (CAS) endpoints to form a virtual storage layer.
+* Mirroring and other replication strategies can be used to ensure data integrity.
+* Easily replace underlying storage (CAS) while maintaining a consistent view of the storage contents.
+* Syncing is naturally supported do to the built-in replication strategies.  For example, if the mirroring remote storage would enable the local storage to mirror remote content (and vice versa).
+* Ephemeral storage, storage that may come and go, is supported as indexing occurs 'close' to the storage.  For example, if a USB drive is used, then the index will live on the drive.  When the drive leaves, the index is no longer used so the files will not be returned when searching.
 
 There are 3 parts to cloudcmd.
 
-    1. The core is the engine, which implements the specified configuration.
-    2. A simple command-line-interface (cli) called cld to manage it.
-    3. Support for remote http endpoints via the srv component.
+1. The core is the engine, which implements the specified configuration.
+2. A simple command-line-interface (cli) called cld to manage it.
+3. Support for remote http endpoints via the srv component.
 
 Examples
 --------
