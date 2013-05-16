@@ -9,6 +9,8 @@ add ability to blacklist adding files by matching regex
 
 add new replication policy - min copies
 
+TODO: support storage profiles?
+
 space optimization
   gc
     aggregate meta data as a single file

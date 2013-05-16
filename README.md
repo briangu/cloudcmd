@@ -1,15 +1,27 @@
 cloudcmd
 ========
 
-Cloudcmd (cloud command) is a generalized storage system that supports combining different kinds of underlying storage to produce a virtual, searchable, object store. 
+Cloudcmd (cloud command) is a generalized storage system with the aim of pretty much enabling users to:
 
-The system is composed of a collection of content-addressable-storage endpoints, upon which a virtualization layer is built.  By virtualizing the CAS endpoints, mirroring and other replication strategies can be used to ensure data integrity.  Additionally, since the underlying storage is abstracted, it can be easily replaced without accecting the perception of an enduring file storage utility. 
+    * store files where and how they want
+    * store files with a level of data integrity they want
+    * find and retrieve files they want
 
-When using remote or mobile storage (e.g. USB or portable drive), syncing is naturally supported do to the built-in replication strategies.  For example, if the mirroring strategy is used, then attaching to remote storage would enable the local storage to mirror remote content (and vice versa).
+The system as a whole can be described as a generalization of a dropbox, google drive, skydrive, enabling people to combine different kinds of storage in useful ways to free themselves of single providers.
 
-Indexing occurs 'close' to the storage.  For example, if a USB drive is used, then the index will live on the drive.  When the drive leaves, the index is no longer used so the files will not be returned when searching.  This effectively means cloudcmd supports ephemeral storage.
+Technology features:
 
-There are 3 parts to cloudcmd.  The core is the engine and there is also a simple command-line-interface (cli) called cld to manage it.  Cloudcmd also supports remote http endpoints, and this is the srv component.
+    * Compose content-addressable-storage (CAS) endpoints to form a virtual storage layer.
+    * Mirroring and other replication strategies can be used to ensure data integrity.
+    * Easily replace underlying storage (CAS) while maintaining a consistent view of the storage contents.
+    * Syncing is naturally supported do to the built-in replication strategies.  For example, if the mirroring remote storage would enable the local storage to mirror remote content (and vice versa).
+    * Ephemeral storage, storage that may come and go, is supported as indexing occurs 'close' to the storage.  For example, if a USB drive is used, then the index will live on the drive.  When the drive leaves, the index is no longer used so the files will not be returned when searching.
+
+There are 3 parts to cloudcmd.
+
+    1. The core is the engine, which implements the specified configuration.
+    2. A simple command-line-interface (cli) called cld to manage it.
+    3. Support for remote http endpoints via the srv component.
 
 Examples
 --------
@@ -81,17 +93,23 @@ The init command creates a .cld directory that holds all the config.
 
 Add a file system adapter using URI notation (file system adapter pointing to /media/big_disk/cld_storage)
 
-    $ cld adapter file:////media/big_disk/cld_storage
+    $ cld adapter file:///media/big_disk/cld_storage
 
 Or add an adapter that only accepts files with image,vacation,movie tags and at tier 1
 
-    $ cld adapter file:////media/big_disk/cld_storage?tier=1&tags=movie,vacation,image
+    $ cld adapter file:///media/big_disk/cld_storage?tier=1&tags=movie,vacation,image
 
-TBD: s3 adapter support
+S3 adapter support
 
-    $ cld adapter s3:///<aws id>:<aws secret>@<s3 bucket>
+    $ cld adapter s3://<aws-key>@<bucket-id>?secret=<aws-secret>
 
-Afterwards, the config file can be like:
+    If the bucket does not exist, it will be created.
+
+OAuth HTTP adapter (Works with HttpAdapter and CloudServer):
+
+    $ cld adapter http://consumerKey:consumerSecret:userKey:userSecret@host:port/<path>
+
+Example config:
 
     {
       "adapterHandlers": {
@@ -102,7 +120,8 @@ Afterwards, the config file can be like:
       "defaultTier": 1
     }
 
-Cloudcmd enables users to create additonal configurations to all for different storage solutions:
+
+Cloudcmd enables users to create additional configurations to all for different storage solutions:
 
 For example, say a user wanted to store huge files reliably, but didn't want to have the s3 expense.  The user can create a new configuration that uses two huge disks (raid 1 mirror) and store the huge files there.
 
@@ -113,8 +132,6 @@ For example, say a user wanted to store huge files reliably, but didn't want to 
     $ cld adapter file:///media/huge_disk_a
     $ cld adapter file:///media/huge_disk_b
     $ cld add ~/Videos hawaii videos
-
-TODO: support storage profiles?
 
 Build it
 -----------
