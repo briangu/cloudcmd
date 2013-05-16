@@ -171,6 +171,9 @@ Maven and a few other related projects required.  CloudCmd will include a web se
     cd cloudcmd
     git submodule init
     git submodule update
+    cd viper.io
+    mvn clean install
+    cd ..
     mvn clean install
 
 Next, open your .bashrc, .profile, or whatever you use and add a CLOUDCMD_HOME environment variable pointing to your cloudcmd root directory.
