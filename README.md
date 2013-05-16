@@ -26,6 +26,8 @@ There are 3 parts to cloudcmd.
 
 Another way to think of cloudcmd is that it shares a similar philosophy of git.  All files are hashed and referenced by hash.  In contrast to git, the system is not tree based.  The file metadata chain may be relative to itself, but is not tied to a directory or commit tree.  This greatly simplifies merge complexities.  Changes to the same file will simply result in additions of metadata which can be handled on a case-by-case basis.  For many types of files, they are immutable (e.g. photos), so merge issues simply don't exist.
 
+For Amazon S3 storage, RRS (reduced redundancy storage) is used by default since there is likely a local-disk backed copy.  As a result, this reduces costs.
+
 Examples
 --------
 
