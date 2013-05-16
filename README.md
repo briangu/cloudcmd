@@ -16,12 +16,15 @@ Technology features:
 * Easily replace underlying storage (CAS) while maintaining a consistent view of the storage contents.
 * Syncing is naturally supported do to the built-in replication strategies.  For example, if the mirroring remote storage would enable the local storage to mirror remote content (and vice versa).
 * Ephemeral storage, storage that may come and go, is supported as indexing occurs 'close' to the storage.  For example, if a USB drive is used, then the index will live on the drive.  When the drive leaves, the index is no longer used so the files will not be returned when searching.
+* Deduplication is supported due to use of SHA-2 hashing. Adding the same file to the system will only cause the addition of a small amount of metadata.
 
 There are 3 parts to cloudcmd.
 
 1. The core is the engine, which implements the specified configuration.
 2. A simple command-line-interface (cli) called cld to manage it.
 3. Support for remote http endpoints via the srv component.
+
+Another way to think of cloudcmd is that it shares a similar philosophy of git.  All files are hashed and referenced by hash.  In contrast to git, the system is not tree based.  The file metadata may chain relative to itself, but is not tied to a directory or commit tree.  This greatly simplifies merge complexities.  Changes to the same file will simply result in additions of metadata which can be handled on a case-by-case basis.  For many types of files, they are immutable (E.g. photos), so merge issues simply don't exist.
 
 Examples
 --------
