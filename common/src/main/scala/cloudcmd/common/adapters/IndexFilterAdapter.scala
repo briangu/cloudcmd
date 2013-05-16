@@ -90,9 +90,11 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
               }
           }.toList
 
-          System.err.println("indexing %d files on %s".format(addedFileMetaData.size, underlying.URI.toASCIIString))
+          System.err.println("indexing %d new files on %s".format(addedFileMetaData.size, underlying.URI.toASCIIString))
           _addAllFileMetaData(addedFileMetaData, rebuildIndex = true)
       }
+    } else {
+      System.err.println("nothing to do for %s".format(addedFileMetaData.size, underlying.URI.toASCIIString))
     }
 
     if (deletedMeta.size > 0) {
