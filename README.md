@@ -26,11 +26,28 @@ There are 3 parts to cloudcmd.
 Examples
 --------
 
-Add photos from a trip to Hawaii:
+Setup and Add photos from a trip to Hawaii to a new s3 and locally-backed configuration:
 
+    $ cd ~
+    $ cld init
+    $ cld adapter -a file:///media/big_disk/cld_storage
+    $ cld adapter -a <s3 URI see below>
     $ cld add ~/Pictures/hawaii_2009 s3 image vacation hawaii 2009
 
-    NOTE: "s3 image vacation hawawii 2009" are tags associated with the added files
+    NOTE: "s3 image vacation hawaii 2009" are tags associated with the added files
+
+Move to another computer and fetch pictures from the Hawaii trip
+
+    $ cd ~
+    $ cld init
+    $ cld adapter -a <s3 URI see below>
+    $ cld reindex
+    $ cld find hawaii 2009 | cld get
+
+Ensure files are properly mirrored locally (mirror is the default replication):
+
+    $ cld adapter -a file:///Users/user/cld_storage
+    $ cld ensure
 
 Find pictures from the hawaii 2009 trip:
 
@@ -93,21 +110,21 @@ The init command creates a .cld directory that holds all the config.
 
 Add a file system adapter using URI notation (file system adapter pointing to /media/big_disk/cld_storage)
 
-    $ cld adapter file:///media/big_disk/cld_storage
+    $ cld adapter -a file:///media/big_disk/cld_storage
 
 Or add an adapter that only accepts files with image,vacation,movie tags and at tier 1
 
-    $ cld adapter file:///media/big_disk/cld_storage?tier=1&tags=movie,vacation,image
+    $ cld adapter -a file:///media/big_disk/cld_storage?tier=1&tags=movie,vacation,image
 
 S3 adapter support
 
-    $ cld adapter s3://<aws-key>@<bucket-id>?secret=<aws-secret>
+    $ cld adapter -a s3://<aws-key>@<bucket-id>?secret=<aws-secret>
 
     If the bucket does not exist, it will be created.
 
 OAuth HTTP adapter (Works with HttpAdapter and CloudServer):
 
-    $ cld adapter http://consumerKey:consumerSecret:userKey:userSecret@host:port/<path>
+    $ cld adapter -a http://consumerKey:consumerSecret:userKey:userSecret@host:port/<path>
 
 Example config:
 
