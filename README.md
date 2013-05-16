@@ -1,29 +1,40 @@
 cloudcmd
 ========
 
-Cloudcmd is a distributed cloud storage engine that enables file indexing, de-duplication, tagging, and replication to arbitrary storage endpoints implemented as adapters.
+Cloudcmd (cloud command) is a generalized storage system that supports combining different kinds of underlying storage to produce a virtual, searchable, object store. 
 
-The cloudcmd engine has a simple command line interface (cli) called cld that is heavily influenced by git.  Most cld commands accept JSON emitted by other cld commands (e.g. find) to allow easy piping and usage of archive file sets.
+The system is composed of a collection of content-addressable-storage endpoints, upon which a virtualization layer is built.  By virtualizing the CAS endpoints, mirroring and other replication strategies can be used to ensure data integrity.  Additionally, since the underlying storage is abstracted, it can be easily replaced without accecting the perception of an enduring file storage utility. 
+
+When using remote or mobile storage (e.g. USB or portable drive), syncing is naturally supported do to the built-in replication strategies.  For example, if the mirroring strategy is used, then attaching to remote storage would enable the local storage to mirror remote content (and vice versa).
+
+Indexing occurs 'close' to the storage.  For example, if a USB drive is used, then the index will live on the drive.  When the drive leaves, the index is no longer used so the files will not be returned when searching.  This effectively means cloudcmd supports ephemeral storage.
+
+There are 3 parts to cloudcmd.  The core is the engine and there is also a simple command-line-interface (cli) called cld to manage it.  Cloudcmd also supports remote http endpoints, and this is the srv component.
 
 Examples
 --------
 
-The following shows how a user might index a set of pictures tagged for s3 and other useful attributes.
+Add photos from a trip to Hawaii:
 
-    $ cld index ~/Pictures/hawaii_2009 s3 image vacation hawaii 2009
+    $ cld add ~/Pictures/hawaii_2009 s3 image vacation hawaii 2009
 
-Send the files to all the adapters
+    NOTE: "s3 image vacation hawawii 2009" are tags associated with the added files
 
-    $ cld push
+Find pictures from the hawaii 2009 trip:
 
-Send the files to all the adapters at or below tier 2
+    $ cld find hawaii 2009
 
-    $ cld push -t 2
+Get pictures from the hawaii 2009 trip:
 
-See what's in the cloud storage
+    $ cld find hawaii 2009 | cld get
+
+See what's in the cloud storage:
+
+    $ cld ls
+
+Dump all metadata about the files in storage:
 
     $ cld find | cld print
-    $ cld ls
 
 See which files are tagged with hawaii
 
@@ -32,14 +43,13 @@ See which files are tagged with hawaii
 Add a new tag to the hawaii pictures and push the tag changes to the cloud
 
     $ cld find hawaii | cld tag awesome
-    $ cld push
+    $ cld ensure 
 
-On another computer, the user can sync to the same storage
+On another computer, the remote storage can be used to download images: 
 
-    ...<same setup>...
-    $ cld pull
-    $ mkdir ~/Pictures/hawaii_2009
-    $ cd ~/Pictures/hawaii_2009
+    $ cld adapter -a <s3 URI> 
+    $ cld reindex -u s3
+    $ cld find hawaii 2009 | cld get 
 
 Fetch all the hawaii files (dropping the path info with -f)
 
@@ -102,9 +112,9 @@ For example, say a user wanted to store huge files reliably, but didn't want to 
     $ cld init
     $ cld adapter file:///media/huge_disk_a
     $ cld adapter file:///media/huge_disk_b
-    $ cld index ~/Videos hawaii videos
+    $ cld add ~/Videos hawaii videos
 
-TODO: should we just use storage profiles?
+TODO: support storage profiles?
 
 Build it
 -----------
@@ -113,25 +123,10 @@ At this point cloudcmd is under active development, so setup can be a little tri
 
 Maven and a few other related projects required.  CloudCmd will include a web server for hosting storage, so that's why viper.io is included.
 
-    git clone git://github.com/briangu/httpjsonclient.git
-    cd httpjsonclient
-    mvn clean install
-
-    git clone git://github.com/briangu/viper.io.git
-    cd viper.io
-    ./bin/mvn-install.sh
-    mvn clean install
-
-    git clone git://github.com/briangu/cli-util.git
-    cd cli-util
-    mvn clean install
-
-    git clone git://github.com/briangu/cyclops.git
-    cd cyclops
-    mvn clean install
-
     git clone git://github.com/briangu/cloudcmd.git
     cd cloudcmd
+    git submodule init
+    git submodule update
     mvn clean install
 
 Next, open your .bashrc, .profile, or whatever you use and add a CLOUDCMD_HOME environment variable pointing to your cloudcmd root directory.
@@ -142,5 +137,4 @@ For bash style shells:
 
     export CLOUDCMD_HOME=~/scm/cloudcmd
     export PATH=$CLOUDCMD_HOME/cld/bin:$PATH
-
 
