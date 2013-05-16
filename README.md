@@ -84,6 +84,13 @@ Fetch all the hawaii files (dropping the path info with -f)
 
     $ cld find hawaii | cld get -f
 
+Get help:
+
+    $ cld help
+
+Get help for specific command:
+
+    $ cld help <command>
 
 Setup
 -----
