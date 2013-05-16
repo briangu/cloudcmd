@@ -94,7 +94,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
           _addAllFileMetaData(addedFileMetaData, rebuildIndex = true)
       }
     } else {
-      System.err.println("nothing to do for %s".format(addedFileMetaData.size, underlying.URI.toASCIIString))
+      System.err.println("nothing to do for %s".format(underlying.URI.toASCIIString))
     }
 
     if (deletedMeta.size > 0) {
