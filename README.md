@@ -14,7 +14,7 @@ Technology features:
 * Compose content-addressable-storage (CAS) endpoints to form a virtual storage layer.
 * Mirroring and other replication strategies can be used to ensure data integrity.
 * Easily replace underlying storage (CAS) while maintaining a consistent view of the storage contents.
-* Syncing is naturally supported do to the built-in replication strategies.  For example, if the mirroring remote storage would enable the local storage to mirror remote content (and vice versa).
+* Syncing is naturally supported do to the built-in replication strategies.  For example, mirroring remote storage enables local storage to mirror remote content (and vice versa).
 * Ephemeral storage, storage that may come and go, is supported as indexing occurs 'close' to the storage.  For example, if a USB drive is used, then the index will live on the drive.  When the drive leaves, the index is no longer used so the files will not be returned when searching.
 * Deduplication is supported due to use of SHA-2 hashing. Adding the same file to the system will only cause the addition of a small amount of metadata.
 
