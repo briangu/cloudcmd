@@ -72,7 +72,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
       val collections = newMeta.grouped(64 * 1024)
       collections.foreach{
         group =>
-          val addedFileMetaData = group.par.flatMap {
+          val addedFileMetaData = group.flatMap {
             hash =>
               try {
                 val ctx = new BlockContext(hash)
@@ -542,7 +542,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
 
             _description = description
           } catch {
-            case e: SQLException => {
+            case e: Exception => {
               log.error(e)
             }
           } finally {

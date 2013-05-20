@@ -17,6 +17,8 @@ Technology features:
 * Syncing is naturally supported do to the built-in replication strategies.  For example, mirroring remote storage enables local storage to mirror remote content (and vice versa).
 * Ephemeral storage, storage that may come and go, is supported as indexing occurs 'close' to the storage.  For example, if a USB drive is used, then the index will live on the drive.  When the drive leaves, the index is no longer used so the files will not be returned when searching.
 * Deduplication is supported due to use of SHA-2 hashing. Adding the same file to the system will only cause the addition of a small amount of metadata.
+* Tag-based content routing. Adapters may accept or reject tags to filter which content goes where.  For example, all files tagged with 'cloud' could be sent to s3 while the s3 adapter may reject all 'movie' files.
+* Tiered storage as a cost factor.  Adapters may be labeled with a numerical tier to describe the relative cost to other adapters.  For example, file adapters may be tier 1 while an s3 adapter may be tier 2.  By default, lower tier adapters will be used first for retrieval.
 
 There are 3 parts to cloudcmd.
 
@@ -96,6 +98,38 @@ Get help:
 Get help for specific command:
 
     $ cld help <command>
+
+Tags
+-----
+
+In order to allow appropriate usage of each kind of adapter, whether the motivation is cost or speed, tags enable adapters to have strict accept/reject policies.  
+
+Tags are usually specified at 'add' time.  For files, the extension is automatically included as a tag.  This is a convenience to allow adapters to simply reject/accpt files based on extension.  Content may be retagged as well.
+
+By default, all adapters accept all content.
+
+Tags are specified by adding a query tag on the adapter URI:
+
+    file:///Volumes/disk/cldstorage/?tags=jpg
+
+Multiple tags are separated by commas.
+
+    file:///Volumes/disk/cldstorage/?tags=jpg
+
+There are two kinds of adapter tags, accepts and rejects.
+
+Accepts tags are specified as-is, while reject tags are prefixed by a hyphen '-':
+
+    file:///Volumes/disk/cldstorage/?tags=jpg,png,-gif,-tiff
+
+In this example, the adapter will accept content tagged with jpg and png, and reject content tagged with gif and tiff.
+
+A very useful scenario is use tag filtering to manage which content goes where for cost purposes.  For example, let's say there are 3 adapters in the configuration.  The first is an s3 adapter and the other two are file adapters using external storage.  Imagine we are storing raw photos and that we extract the thumbnails out using dcraw.  To save cost, we can have the s3 adapter accept everything and reject CR2 (raw) files.
+   
+    s3: tags=-CR2
+    file adapters do not need tags, as they accept everything.
+
+In this configuration the raw files are mirrored across two local external disks and the thumbnails are stored on s3.
 
 Setup
 -----
