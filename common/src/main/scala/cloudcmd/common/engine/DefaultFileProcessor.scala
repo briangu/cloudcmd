@@ -21,13 +21,22 @@ class DefaultFileProcessor(cas: ContentAddressableStorage) extends FileProcessor
       fis.reset()
     }
 
+    // Include the extension has this is most likely the tag that adapters will filter by.
+    val fileExtensionIdx = file.getName.lastIndexOf('.')
+    val extendedTags = if (fileExtensionIdx >= 0) {
+      val fileExtension = file.getName.substring(fileExtensionIdx + 1)
+      tags ++ Set(fileExtension)
+    } else {
+      tags
+    }
+
     val rawFmd =
       JsonUtil.createJsonObject(
         "path", file.toURI.toASCIIString,
         "size", file.length.asInstanceOf[AnyRef],
         "date", file.lastModified.asInstanceOf[AnyRef],
         "blocks", JsonUtil.toJsonArray(List(blockHash)),
-        "tags", JsonUtil.toJsonArray(tags))
+        "tags", JsonUtil.toJsonArray(extendedTags))
 
     if (properties != null && properties.length() > 0) {
       rawFmd.put("properties", properties)

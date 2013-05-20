@@ -90,10 +90,12 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
               }
           }.toList
 
+          // TODO: use notification center
           System.err.println("indexing %d new files on %s".format(addedFileMetaData.size, underlying.URI.toASCIIString))
           _addAllFileMetaData(addedFileMetaData, rebuildIndex = true)
       }
     } else {
+      // TODO: use notification center
       System.err.println("nothing to do for %s".format(underlying.URI.toASCIIString))
     }
 
@@ -106,7 +108,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     val fmds = _fmdCache.map{ case (ctx: BlockContext, meta: String) =>
       FileMetaData.create(ctx.hash, new JSONObject(meta))
     }
-    _addAllFileMetaData(fmds.toSeq, rebuildIndex = true)
+    _addAllFileMetaData(fmds.toSeq, rebuildIndex = false)
     _fmdCache.clear()
 
     _addAllHashData(_getDescription.toSet)

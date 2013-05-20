@@ -94,6 +94,15 @@ class JsonConfigStorage extends ConfigStorage {
     }
   }
 
+  private def getAdapterSignature(uri: URI): String = {
+    val path = uri.getPath
+    if (path.length == 0) {
+      uri.getAuthority
+    } else {
+      path
+    }
+  }
+
   private def loadAdapter(adapterUri: URI): IndexedAdapter = {
     var adapter: IndexedAdapter = null
     val scheme = adapterUri.getScheme
@@ -106,12 +115,13 @@ class JsonConfigStorage extends ConfigStorage {
     val clazz = classOf[JsonConfigStorage].getClassLoader.loadClass(handlerType)
     try {
       adapter = clazz.newInstance.asInstanceOf[IndexedAdapter]
-      val adapterIdHash = CryptoUtil.digestToString(CryptoUtil.computeMD5Hash(Channels.newChannel(new ByteArrayInputStream(adapterUri.toASCIIString.getBytes("UTF-8")))))
+      val adapterSignature = getAdapterSignature(adapterUri)
+      val adapterIdHash = CryptoUtil.digestToString(CryptoUtil.computeMD5Hash(Channels.newChannel(new ByteArrayInputStream(adapterSignature.getBytes("UTF-8")))))
       adapter.init(_configRoot + File.separator + "adapterCaches" + File.separator + adapterIdHash, tier, handlerType, tags.toSet, adapterUri)
     }
     catch {
       case e: Exception => {
-        throw new RuntimeException(String.format("failed to initialize adapter %s for adapter %s", handlerType, adapterUri))
+        throw new RuntimeException(String.format("failed to initialize adapter %s for adapter %s", handlerType, adapterUri), e)
       }
     }
     adapter

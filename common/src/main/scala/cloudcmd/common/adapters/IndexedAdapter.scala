@@ -28,6 +28,8 @@ trait DirectAdapter extends ContentAddressableStorage {
     _tier = tier
     _type = adapterType
     _acceptsTags = acceptsTags
+    _keepTags = _acceptsTags.filter(!_.startsWith("-"))
+    _ignoreTags = _acceptsTags.filter(_.startsWith("-")).map(_.substring(1))
     _uri = uri
   }
 
