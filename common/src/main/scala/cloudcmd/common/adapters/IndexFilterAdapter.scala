@@ -108,7 +108,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     val fmds = _fmdCache.map{ case (ctx: BlockContext, meta: String) =>
       FileMetaData.create(ctx.hash, new JSONObject(meta))
     }
-    _addAllFileMetaData(fmds.toSeq, rebuildIndex = false)
+    _addAllFileMetaData(fmds.toSeq, rebuildIndex = true)
     _fmdCache.clear()
 
     _addAllHashData(_getDescription.toSet)

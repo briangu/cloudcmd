@@ -74,7 +74,8 @@ class ReplicationStrategyAdapter(adapters: List[IndexedAdapter], storage: Replic
     * Flush the index cache that may be populated during a series of modifications (e.g. store)
     */
   def flushIndex() {
-    adapters.par.foreach(_.flushIndex())
+    // we do this serially for now as each index may require a lot of ram
+    adapters.foreach(_.flushIndex())
   }
 
   /**
