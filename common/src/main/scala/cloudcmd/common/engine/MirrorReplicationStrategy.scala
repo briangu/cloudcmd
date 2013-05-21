@@ -23,7 +23,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
       throw new IllegalArgumentException("no adapters to store to")
     }
 
-    var containsAdapters = adapters.filter(_.contains(ctx)).toList
+    var containsAdapters = adapters.filter(_.contains(ctx)).sortBy(_.Tier).toList
     val nis = if (containsAdapters.size == 0) {
       adapters(0).store(ctx, dis)
       containsAdapters = List(adapters(0))
@@ -42,6 +42,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
         adapter.store(ctx, is)
         pushedCount.incrementAndGet()
         containsAdapters = containsAdapters ++ List(adapter)
+        missingAdapters = missingAdapters.drop(1)
       }
       catch {
         case e: Exception => {
@@ -52,25 +53,27 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
       finally {
         FileUtil.SafeClose(is)
       }
-
-      missingAdapters = missingAdapters.drop(1)
     }
 
-    missingAdapters.par.foreach{ adapter =>
-      val is: InputStream = load(ctx, containsAdapters)._1
-      try {
-        adapter.store(ctx, is)
-        pushedCount.incrementAndGet()
-        containsAdapters = containsAdapters ++ List(adapter)
-      }
-      catch {
-        case e: Exception => {
-          log.error(ctx, e)
-          onMessage(String.format("failed to sync block %s to %s", ctx, String.valueOf(adapter.URI)))
+    if (containsAdapters.size > 0) {
+      // TODO: we should have better planning here on which containsAdapters to use so the same
+      //       one doesn't get overused if there are equal options
+      missingAdapters.par.foreach { adapter =>
+        val is: InputStream = load(ctx, containsAdapters)._1
+        try {
+          adapter.store(ctx, is)
+          pushedCount.incrementAndGet()
+          containsAdapters = containsAdapters ++ List(adapter)
         }
-      }
-      finally {
-        FileUtil.SafeClose(is)
+        catch {
+          case e: Exception => {
+            log.error(ctx, e)
+            onMessage(String.format("failed to sync block %s to %s", ctx, String.valueOf(adapter.URI)))
+          }
+        }
+        finally {
+          FileUtil.SafeClose(is)
+        }
       }
     }
 
