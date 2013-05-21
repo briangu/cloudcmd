@@ -51,7 +51,13 @@ class DirectFileAdapter extends DirectAdapter {
       if (file.exists) {
         val idx = ctx.hash.lastIndexOf(".")
         val testHash = if (idx >= 0) ctx.hash.substring(0, idx) else ctx.hash
-        CryptoUtil.computeHashAsString(file) == testHash
+        val same = CryptoUtil.computeHashAsString(file) == testHash
+        if (!same) {
+          // TODO: notification center
+          System.err.println("deleting corrupt block: %s".format(file.getAbsoluteFile))
+          file.delete()
+        }
+        same
       } else {
         false
       }

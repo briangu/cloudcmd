@@ -30,9 +30,9 @@ class Remove extends Command {
       }
     } else {
       if (_removeBlockHashes) {
-        System.err.println("removing meta and file data for %d files from adapter: %s".format(jsonFileMetaDataArray.length()), adapter.asInstanceOf[DirectAdapter].URI.toASCIIString)
+        System.err.println("removing meta and file data for %d files from adapter: %s".format(jsonFileMetaDataArray.length(), adapter.asInstanceOf[DirectAdapter].URI.toASCIIString))
       } else {
-        System.err.println("removing meta data for %d files from adapter: %s".format(jsonFileMetaDataArray.length()), adapter.asInstanceOf[DirectAdapter].URI.toASCIIString)
+        System.err.println("removing meta data for %d files from adapter: %s".format(jsonFileMetaDataArray.length(), adapter.asInstanceOf[DirectAdapter].URI.toASCIIString))
       }
     }
 
