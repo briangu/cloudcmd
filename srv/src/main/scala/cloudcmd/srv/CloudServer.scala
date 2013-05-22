@@ -12,8 +12,8 @@ object CloudServer {
   }
 
   def main(args: Array[String]) {
-    val ipAddress = args(0)
-    val port = args(1).toInt
+    val ipAddress = if (args.length > 0) args(0) else "127.0.0.1"
+    val port = if (args.length > 1) args(1).toInt else 8080
     println("booting at http://%s:%d".format(ipAddress, port))
 
     var configRoot: String = FileUtil.findConfigDir(FileUtil.getCurrentWorkingDirectory, ".cld")
@@ -29,6 +29,7 @@ object CloudServer {
     try {
       val baseHostPort = "http://%s:%d".format(ipAddress, port)
       val apiConfig = new OAuthRouteConfig(baseHostPort, SimpleOAuthSessionService.instance)
+      CloudServices.initWithTierRange(0, Int.MaxValue)
       NestServer.run(8080, new CloudServer(CloudServices.BlockStorage, apiConfig))
     } finally {
       CloudServices.shutdown()

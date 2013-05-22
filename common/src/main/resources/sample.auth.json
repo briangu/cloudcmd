@@ -1,0 +1,10 @@
+{
+  "<userId>": {
+    "key": "1234",
+    "secret": "5678"
+  },
+  "cloudcmd": {
+    "key": "cloudcmd",
+    "secret": "1234"
+  }
+}

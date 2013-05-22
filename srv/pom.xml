@@ -55,7 +55,8 @@
       <plugin>
         <groupId>org.scala-tools</groupId>
         <artifactId>maven-scala-plugin</artifactId>
-        <executions>
+          <version>2.15.2</version>
+          <executions>
           <execution>
             <id>compile</id>
             <goals>

@@ -48,6 +48,7 @@ object SimpleOAuthSessionService {
     if (file.exists()) {
       new JSONObject(FileUtil.readFile(file))
     } else {
+      System.err.println("Warning: could find auth.json")
       new JSONObject()
     }
   }
@@ -63,7 +64,9 @@ class SimpleOAuthSessionService extends OAuthSessionService {
     }
   }
 
-  def setSession(key: String, session: OAuthSession) = SimpleOAuthSessionService.sessions.put(key, session)
+  def setSession(key: String, session: OAuthSession) = {
+    SimpleOAuthSessionService.sessions.put(key, session)
+  }
 
   def deleteSession(key: String) {
     SimpleOAuthSessionService.sessions.remove(key)
@@ -196,7 +199,9 @@ class OAuthRestRoute(route: String, handler: OAuthRouteHandler, method: HttpMeth
       return
     }
 
-    val (isValid, session, args) = OAuthRestRoute.validate(config, request)
+    val (isValid, session, args) = {
+      OAuthRestRoute.validate(config, request)
+    }
 
     val response = if (isValid) {
       try {

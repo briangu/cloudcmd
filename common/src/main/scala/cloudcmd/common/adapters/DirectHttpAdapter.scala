@@ -15,20 +15,18 @@ class DirectHttpAdapter extends DirectAdapter {
   val asyncHttpClient = new AsyncHttpClient()
 
   var _host: String = null
-  var _urlRefreshCache : String = null
+  var _urlPing : String = null
   var _urlContainsAll : String = null
   var _urlRemoveAll : String = null
   var _urlEnsureAll : String = null
   var _urlDescribe : String = null
-  var _urlDescribeHashes : String = null
 
   private def buildUrls() {
-    _urlRefreshCache = "%s/refreshCache".format(_host)
+    _urlPing = "%s/ping".format(_host)
     _urlContainsAll = "%s/blocks/containsAll".format(_host)
     _urlRemoveAll = "%s/blocks/removeAll".format(_host)
     _urlEnsureAll = "%s/blocks/ensureAll".format(_host)
     _urlDescribe = "%s/blocks".format(_host)
-    _urlDescribeHashes = "%s/blocks/hashes".format(_host)
   }
 
   override def init(configDir: String, tier: Int, adapterType: String, acceptsTags: Set[String], uri: URI) {
@@ -36,6 +34,23 @@ class DirectHttpAdapter extends DirectAdapter {
     _host = "http://%s:%d".format(URI.getHost, URI.getPort)
     initOAuthInfo(URI)
     buildUrls()
+
+    _isOnline = try {
+      ping
+    } catch {
+      case e: Exception => {
+        e.printStackTrace()
+        false
+      }
+    }
+  }
+
+  def ping: Boolean = {
+    val response = asyncHttpClient
+      .prepareGet(_urlPing)
+      .execute
+      .get
+    response.getStatusCode == HttpResponseStatus.OK.getCode
   }
 
   def initOAuthInfo(adapterUri: URI): Boolean = {
@@ -162,7 +177,7 @@ class DirectHttpAdapter extends DirectAdapter {
    */
   def describe() : Set[String] = {
     val response = asyncHttpClient
-      .prepareGet(_urlDescribeHashes)
+      .prepareGet(_urlDescribe)
       .execute
       .get
     if (response.getStatusCode != HttpResponseStatus.OK.getCode) throw new RuntimeException("unable to describe")

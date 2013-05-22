@@ -128,9 +128,8 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
 
     // ACTIONS
 
-    server.addRoute(new OAuthPostRestRoute(config, "/cache/refresh", new OAuthRouteHandler {
+    server.addRoute(new OAuthGetRestRoute(config, "/ping", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        cas.reindex()
         new StatusResponse(HttpResponseStatus.OK)
       }
     }))
