@@ -60,7 +60,7 @@ class Add extends Command {
             fileProcessor.add(file, file.getName, tags, properties)
           } catch {
             case e: Exception => {
-              System.err.println("failed to index file: " + file.getAbsolutePath)
+              System.err.println("\rfailed to add file: " + file.getAbsolutePath)
               System.err.println(e.printStackTrace())
             }
           } finally {
