@@ -48,7 +48,7 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentA
           val (hash, file) = StreamUtil.spoolStream(is)
           try {
             if (ctx.hashEquals(hash)) {
-              is.close
+              is.close()
               is = new FileInputStream(file)
               cas.store(ctx, is)
               val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CREATED)
@@ -103,7 +103,7 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
           response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, length)
           new RouteResponse(response, new RouteResponseDispose {
             def dispose() {
-              is.close
+              is.close()
             }
           })
         } else {
@@ -137,7 +137,7 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
     server.addRoute(new OAuthGetRestRoute(config, "/blocks", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
         val arr = new JSONArray
-        cas.describe.foreach(arr.put)
+        cas.describe().foreach(arr.put)
         new JsonResponse(arr)
       }
     }))
@@ -190,6 +190,7 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
   }
 
   private def fromJsonArray(arr: JSONArray): Set[BlockContext] = {
+    // TODO: use par here?
     Set() ++ (0 until arr.length).par.map(idx => BlockContext.fromJson(arr.getJSONObject(idx)))
   }
 }

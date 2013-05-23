@@ -19,7 +19,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
   override def IsOnLine: Boolean = underlying.IsOnLine
 
   private val BATCH_SIZE = 1024
-  private val WHITESPACE = " ,:-._$/\\"// + File.separator
+  private val WHITESPACE = " ,:-._$/\\"
 
   protected var _rootPath: String = null
   private var _cp: JdbcConnectionPool = null
