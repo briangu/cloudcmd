@@ -46,16 +46,15 @@ class DefaultFileProcessor(cas: ContentAddressableStorage) extends FileProcessor
 
     try {
       cas.store(fmd.createBlockContext(blockHash), fis)
+      cas.store(fmd.createBlockContext, new ByteArrayInputStream(fmd.getDataAsString.getBytes("UTF-8")))
+      fmd
     } catch {
       case e:Exception => {
-        log.error(e)
+        log.error("failed to index file %s".format(file.getAbsoluteFile), e)
+        throw e
       }
     } finally {
       FileUtil.SafeClose(fis)
     }
-
-    cas.store(fmd.createBlockContext, new ByteArrayInputStream(fmd.getDataAsString.getBytes("UTF-8")))
-
-    fmd
   }
 }
