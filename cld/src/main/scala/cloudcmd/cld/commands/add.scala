@@ -56,6 +56,7 @@ class Add extends Command {
         if (!fileTypeUtil.skipExt(ext)) {
           val startTime = System.currentTimeMillis
           try {
+            System.err.print("adding: %s".format(file.getAbsolutePath))
             fileProcessor.add(file, file.getName, tags, properties)
           } catch {
             case e: Exception => {
@@ -63,7 +64,7 @@ class Add extends Command {
               System.err.println(e.printStackTrace())
             }
           } finally {
-            System.err.println("took %6d ms to index %s".format((System.currentTimeMillis - startTime), file.getName))
+            System.err.println("\rtook %6d ms to add %s".format((System.currentTimeMillis - startTime), file.getName))
           }
         }
       }
