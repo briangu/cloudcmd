@@ -499,7 +499,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     var statement: PreparedStatement = null
     try {
       db = _getDbConnection
-      statement = db.prepareStatement("SELECT HASH,TAGS FROM FILE_INDEX WHERE HASH in ?")
+      statement = db.prepareStatement("SELECT HASH,TAGS FROM FILE_INDEX WHERE HASH in (?)")
       SqlUtil.bindVar(statement, 1, hashes.mkString(","))
 
       val blockContexts = new mutable.HashSet[BlockContext]
