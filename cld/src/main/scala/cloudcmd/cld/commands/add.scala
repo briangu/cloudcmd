@@ -14,7 +14,7 @@ class Add extends Command {
 
   @Arg(name = "path", optional = false) var _path: String = null
   @Arg(name = "tags", optional = true, isVararg = true) var _tags: java.util.List[String] = null
-  @Opt(opt = "p", longOpt = "properties", description = "file meta properties JSON file", required = false) private var _inputFilePath: String = null
+  @Opt(opt = "p", longOpt = "properties", description = "file meta properties JSON file", required = false) private var _propertiesFilePath: String = null
 //  @Opt(opt = "t", longOpt = "threads", description = "number of add threads to use", required = false) private var _threadCount: Number = 1
 
   @Opt(opt = "n", longOpt = "minTier", description = "min tier to verify to", required = false) var _minTier: Number = 0
@@ -29,7 +29,7 @@ class Add extends Command {
     import scala.collection.JavaConversions._
 
     val path = if (_path == null) FileUtil.getCurrentWorkingDirectory else _path
-    val properties = if (_inputFilePath != null) { FileUtil.readJson(_inputFilePath) } else { null }
+    val properties = if (_propertiesFilePath != null) { FileUtil.readJson(_propertiesFilePath) } else { null }
     val tags = _tags.toSet
 
     addFiles(new DefaultFileProcessor(adapter), FileTypeUtil.instance, path, properties, tags)
@@ -38,7 +38,18 @@ class Add extends Command {
     adapter.flushIndex()
   }
 
+  def getAbsoluteInputPath: String = {
+    new File(_path).getAbsolutePath
+  }
+
+  def removePathPrefix(cwd: String, path: String): String = {
+    path.substring(cwd.length + 1)
+  }
+
   def addFiles(fileProcessor: FileProcessor, fileTypeUtil: FileTypeUtil, path: String, properties: JSONObject, tags: Set[String]) {
+
+    val absoluteInputPath = getAbsoluteInputPath
+
     FileWalker.enumerateFolders(_path, new FileWalker.FileHandler {
       def skipDir(file: File): Boolean = {
         val skip = fileTypeUtil.skipDir(file.getName)
@@ -56,15 +67,15 @@ class Add extends Command {
         if (!fileTypeUtil.skipExt(ext)) {
           val startTime = System.currentTimeMillis
           try {
-            System.err.print("adding: %s".format(file.getAbsoluteFile))
+            System.err.print("adding: %s".format(removePathPrefix(absoluteInputPath, file.getAbsolutePath)))
             fileProcessor.add(file, file.getName, tags, properties)
           } catch {
             case e: Exception => {
-              System.err.println("\rfailed to add file: " + file.getAbsolutePath)
+              System.err.println("\rfailed to add file: " + removePathPrefix(absoluteInputPath, file.getAbsolutePath))
               System.err.println(e.printStackTrace())
             }
           } finally {
-            System.err.println("\r%6d ms to add %s".format((System.currentTimeMillis - startTime), file.getAbsoluteFile))
+            System.err.println("\r%6d ms to add %s".format((System.currentTimeMillis - startTime), removePathPrefix(absoluteInputPath, file.getAbsolutePath)))
           }
         }
       }
