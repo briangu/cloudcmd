@@ -7,7 +7,7 @@ import jpbetz.cli._
 import java.io.File
 import org.json.JSONObject
 import cloudcmd.common.engine.{DefaultFileProcessor, FileProcessor}
-import cloudcmd.cld.{CloudServices, AdapterUtil}
+import cloudcmd.cld.AdapterUtil
 
 @SubCommand(name = "add", description = "add files")
 class Add extends Command {
@@ -34,7 +34,7 @@ class Add extends Command {
 
     addFiles(new DefaultFileProcessor(adapter), FileTypeUtil.instance, path, properties, tags)
 
-    CloudServices.onMessage("Flushing metadata...")
+    System.err.println("Flushing metadata...")
     adapter.flushIndex()
   }
 
@@ -64,7 +64,7 @@ class Add extends Command {
               System.err.println(e.printStackTrace())
             }
           } finally {
-            System.err.println("\rtook %6d ms to add %s".format((System.currentTimeMillis - startTime), file.getAbsoluteFile))
+            System.err.println("\r%6d ms to add %s".format((System.currentTimeMillis - startTime), file.getAbsoluteFile))
           }
         }
       }

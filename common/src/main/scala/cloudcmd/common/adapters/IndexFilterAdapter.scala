@@ -91,12 +91,12 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
           }.toList
 
           // TODO: use notification center
-          System.err.println("indexing %d new files on %s".format(addedFileMetaData.size, underlying.URI.toASCIIString))
+          System.err.println("indexing %d new files on %s".format(addedFileMetaData.size, underlying.getSignature))
           _addAllFileMetaData(addedFileMetaData, rebuildIndex = true)
       }
     } else {
       // TODO: use notification center
-      System.err.println("nothing to do for %s".format(underlying.URI.toASCIIString))
+      System.err.println("nothing to do for %s".format(underlying.getSignature))
     }
 
     if (deletedMeta.size > 0) {

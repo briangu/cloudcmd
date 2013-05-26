@@ -50,16 +50,17 @@ class DefaultFileProcessor(cas: ContentAddressableStorage) extends FileProcessor
         cas.store(fmd.createBlockContext(blockHash), fis)
       } catch {
         case e:Exception => {
-          log.error("failed to index block for %s".format(file.getAbsoluteFile), e)
+          log.error("failed to add block %s for %s".format(blockHash, file.getAbsoluteFile), e)
           throw e
         }
       }
 
       try {
+        // TODO: store canonical json
         cas.store(fmd.createBlockContext, new ByteArrayInputStream(fmd.getDataAsString.getBytes("UTF-8")))
       } catch {
         case e:Exception => {
-          log.error("failed to index meta for %s".format(file.getAbsoluteFile), e)
+          log.error("failed to add meta %s for %s".format(fmd.getHash, file.getAbsoluteFile), e)
           throw e
         }
       }

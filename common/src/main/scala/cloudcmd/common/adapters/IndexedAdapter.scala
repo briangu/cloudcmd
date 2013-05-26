@@ -11,7 +11,10 @@ trait DirectAdapter extends ContentAddressableStorage {
   def URI: URI = _uri
   def Tier: Int = _tier
   def AcceptsTags: Set[String] = _acceptsTags
+
+  // TODO: this is dynamic
   def IsOnLine: Boolean = _isOnline
+  // TODO: this is dynamic
   def IsFull: Boolean = false
 
   protected var _configDir: String = null
@@ -39,6 +42,20 @@ trait DirectAdapter extends ContentAddressableStorage {
     if (_ignoreTags.intersect(ctx.routingTags).size > 0) return false
     if (_keepTags.size == 0) return true
     _keepTags.intersect(ctx.routingTags).size > 0
+  }
+
+  def getSignature: String = {
+    val path = URI.getPath
+    val hostOrPath = if (path.length == 0) {
+      if (URI.getPort > 0) {
+        "%s:%d".format(URI.getHost, URI.getPort)
+      } else {
+        URI.getHost
+      }
+    } else {
+      path
+    }
+    "%s://%s".format(URI.getScheme, hostOrPath)
   }
 
   override def hashCode: Int = {

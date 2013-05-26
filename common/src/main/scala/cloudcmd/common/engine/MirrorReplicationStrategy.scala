@@ -1,7 +1,7 @@
 package cloudcmd.common.engine
 
 import cloudcmd.common.{BlockContext, FileUtil}
-import cloudcmd.common.adapters.{DataNotFoundException, IndexedAdapter}
+import cloudcmd.common.adapters.{MultiWriteBlockException, DataNotFoundException, IndexedAdapter}
 import org.apache.log4j.Logger
 import java.io.InputStream
 import util.Random
@@ -25,6 +25,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
 
     var containsAdapters = adapters.filter(_.contains(ctx)).sortBy(_.Tier).toList
     val nis = if (containsAdapters.size == 0) {
+      log.debug("storing %s to adapter %s".format(ctx.getId(), adapters(0).getSignature))
       adapters(0).store(ctx, dis)
       containsAdapters = List(adapters(0))
       null
@@ -32,53 +33,64 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
       dis
     }
 
-    var missingAdapters = adapters.diff(containsAdapters)
-    val pushedCount = new AtomicInteger(containsAdapters.size)
+    val startContainsCount = containsAdapters.size
+    var failedAdapters = List[IndexedAdapter]()
+    var missingAdapters = adapters.diff(containsAdapters).sortBy(_.Tier).toList
+    if (missingAdapters.size > 0) {
 
-    if (missingAdapters.size > 0 && nis != null) {
-      val adapter = missingAdapters(0)
-      val is: InputStream = nis
-      try {
-        adapter.store(ctx, is)
-        pushedCount.incrementAndGet()
-        containsAdapters = containsAdapters ++ List(adapter)
-        missingAdapters = missingAdapters.drop(1)
-      }
-      catch {
-        case e: Exception => {
-          onMessage(String.format("failed to sync block %s to %s", ctx, adapter.URI.toString))
-          log.error(ctx, e)
-        }
-      }
-      finally {
-        FileUtil.SafeClose(is)
-      }
-    }
+      val pushedCount = new AtomicInteger()
 
-    if (containsAdapters.size > 0) {
-      // TODO: we should have better planning here on which containsAdapters to use so the same
-      //       one doesn't get overused if there are equal options
-      missingAdapters.par.foreach { adapter =>
-        val is: InputStream = load(ctx, containsAdapters)._1
+      if (nis != null) {
+        val adapter = missingAdapters(0)
+        val is: InputStream = nis
         try {
+          log.debug("storing %s to adapter %s".format(ctx.getId(), adapter.getSignature))
           adapter.store(ctx, is)
           pushedCount.incrementAndGet()
           containsAdapters = containsAdapters ++ List(adapter)
+          missingAdapters = missingAdapters.drop(1)
         }
         catch {
           case e: Exception => {
-            log.error(ctx, e)
-            onMessage(String.format("failed to sync block %s to %s", ctx, String.valueOf(adapter.URI)))
+            log.error(String.format("failed to sync block %s to %s", ctx, adapter.getSignature), e)
+            failedAdapters = failedAdapters ++ List(adapter)
           }
         }
         finally {
           FileUtil.SafeClose(is)
         }
       }
-    }
 
-    if (pushedCount.get() != adapters.size) {
-      onMessage("failed to store block %s on %d of %d adapters".format(ctx, pushedCount.get, adapters.size))
+      if (missingAdapters.size > 0) {
+        if (containsAdapters.size > 0) {
+          // TODO: we should have better planning here on which containsAdapters to use so the same
+          //       one doesn't get overused if there are equal options
+          missingAdapters.par.foreach { adapter =>
+            val is: InputStream = load(ctx, containsAdapters)._1
+            try {
+              log.debug("storing %s to adapter %s".format(ctx.getId(), adapter.getSignature))
+              adapter.store(ctx, is)
+              pushedCount.incrementAndGet()
+              containsAdapters = containsAdapters ++ List(adapter)
+            }
+            catch {
+              case e: Exception => {
+                log.error(String.format("failed to sync block %s to %s", ctx, String.valueOf(adapter.URI)), e)
+                failedAdapters = failedAdapters ++ List(adapter)
+              }
+            }
+            finally {
+              FileUtil.SafeClose(is)
+            }
+          }
+        }
+      }
+
+      if ((pushedCount.get() + startContainsCount) != adapters.size) {
+        val missingCount = adapters.size - startContainsCount - pushedCount.get()
+        log.error("failed to store block %s on %d of %d adapters".format(ctx, missingCount, adapters.size))
+        throw new MultiWriteBlockException(ctx, failedAdapters)
+      }
     }
   }
 
@@ -94,15 +106,14 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
         try {
           val deleteSuccess = adapter.remove(ctx)
           if (deleteSuccess) {
-            onMessage(String.format("successfully deleted block %s found on adapter %s", ctx, adapter.URI))
+            log.debug(String.format("successfully deleted block %s found on adapter %s", ctx, adapter.URI))
           } else {
             success = false
-            onMessage(String.format("failed to delete block %s found on adapter %s", ctx, adapter.URI))
+            log.error(String.format("failed to delete block %s found on adapter %s", ctx, adapter.URI))
           }
         } catch {
           case e: Exception => {
-            onMessage(String.format("failed to delete block %s on adapter %s", ctx, adapter.URI))
-            log.error(ctx, e)
+            log.error(String.format("failed to delete block %s on adapter %s", ctx, adapter.URI), e)
           }
         }
     }
@@ -133,12 +144,10 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
     }
     catch {
       case e: DataNotFoundException => {
-        onMessage("no adapter has block %s".format(ctx))
-        log.error(ctx, e)
+        log.error("no adapter has block %s".format(ctx), e)
       }
       case e: Exception => {
-        onMessage("failed to sync block %s".format(ctx))
-        log.error(ctx, e)
+        log.error("failed to sync block %s".format(ctx), e)
       }
     }
     finally {
@@ -158,12 +167,11 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
             // TODO: enable verbose flag
             //_wm.make(new MemoryElement("msg", "body", String.format("successfully validated block %s is on adapter %s", hash, adapter.URI)))
           } else {
-            onMessage(String.format("bad block %s found on adapter %s", ctx, adapter.URI))
+            log.warn(String.format("bad block %s found on adapter %s", ctx, adapter.URI))
           }
         } catch {
           case e: Exception => {
-            onMessage(String.format("failed to verify block %s on adapter %s", ctx, adapter.URI))
-            log.error(ctx, e)
+            log.error(String.format("failed to verify block %s on adapter %s", ctx, adapter.URI), e)
           }
         }
         Map(adapter -> isConsistent)

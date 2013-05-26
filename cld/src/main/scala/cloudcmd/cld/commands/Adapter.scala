@@ -53,6 +53,7 @@ class Adapter extends Command {
     for (adapter <- CloudServices.ConfigService.getAllAdapters) {
       System.err.println("Adapter: " + adapter.Type)
       System.err.println("  URI: " + adapter.URI.toString)
+      System.err.println("  Signature: " + adapter.getSignature)
       System.err.println("  ConfigDir: " + adapter.ConfigDir)
       System.err.println("  IsOnline: " + adapter.IsOnLine)
       System.err.println("  IsFull: " + adapter.IsFull)

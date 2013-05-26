@@ -5,15 +5,19 @@ import util.{CryptoUtil, FileWalker}
 import java.io._
 import java.net.URI
 import collection.mutable
+import org.apache.log4j.Logger
 
 //     "file:///tmp/storage?tier=1&tags=image,movie,vacation"
 
 class DirectFileAdapter extends DirectAdapter {
 
+  private val log = Logger.getLogger(classOf[DirectFileAdapter])
+
   val MIN_FREE_STORAGE_SIZE: Int = 1024 * 1024 * 128 // ensure 128MB free
 
   private var _dataDir: String = null
 
+  // TODO: OnLine and IsFull are dynamic
   override def init(configDir: String, tier: Int, adapterType: String, tags: Set[String], config: URI) {
     super.init(config.getPath, tier, adapterType, tags, config)
     _dataDir = _configDir + File.separator + "data"
@@ -74,11 +78,19 @@ class DirectFileAdapter extends DirectAdapter {
   // TODO: use FileLock: this operation is not thread safe.
   //       If two stores of the same context co-occur, they will collide causing a fail (probably of both)
   def store(ctx: BlockContext, is: InputStream) {
-    val writeHash = FileUtil.writeFileAndComputeHash(is, new File(getDataFileFromHash(ctx.hash)))
+    if (IsFull) {
+      throw new AdapterFullException(ctx, this)
+    }
+
+    val hashFile = new File(getDataFileFromHash(ctx.hash))
+    val writeHash = FileUtil.writeFileAndComputeHash(is, hashFile)
     val success = (writeHash == getHashFromDataFile(ctx.hash))
-    if (!success) {
-      FileUtil.delete(new File(getDataFileFromHash(ctx.hash)))
-      throw new RuntimeException("failed to store data: expected %s got %s".format(ctx.hash, writeHash))
+    if (success) {
+      log.debug("%s stored %s".format(getSignature, ctx))
+    } else {
+      FileUtil.delete(hashFile)
+      log.error("failed to store data: expected %s got %s".format(ctx.hash, writeHash))
+      throw new CASWriteBlockException(ctx, this)
     }
   }
 

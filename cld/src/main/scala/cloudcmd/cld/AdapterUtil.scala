@@ -1,7 +1,6 @@
 package cloudcmd.cld
 
-import cloudcmd.common.{IndexedContentAddressableStorage, BlockContext, FileMetaData, ContentAddressableStorage}
-import cloudcmd.common.util.JsonUtil
+import cloudcmd.common.IndexedContentAddressableStorage
 import jpbetz.cli.CommandContext
 
 object AdapterUtil {
@@ -11,7 +10,7 @@ object AdapterUtil {
       case Some(uri) => {
         CloudServices.ConfigService.findAdapterByBestMatch(uri) match {
           case Some(adapter) => {
-            System.err.println("using adapter: %s".format(adapter.URI.toASCIIString))
+            System.err.println("using adapter: %s".format(adapter.getSignature))
             adapter
           }
           case None => {
@@ -23,9 +22,12 @@ object AdapterUtil {
       case None => {
         CloudServices.initWithTierRange(minTier.intValue, maxTier.intValue)
         if (minTier != 0 || maxTier != Integer.MAX_VALUE) {
-          System.err.println("using all adapters in tier range: (%d, %d)".format(CloudServices.ConfigService.getMinAdapterTier, CloudServices.ConfigService.getMaxAdapterTier))
+          System.err.println("using all adapters in tier range (%d, %d):".format(CloudServices.ConfigService.getMinAdapterTier, CloudServices.ConfigService.getMaxAdapterTier))
         } else {
-          System.err.println("using all adapters.")
+          System.err.println("using all available adapters:")
+        }
+        CloudServices.ConfigService.getFilteredAdapters foreach { adapter =>
+          System.err.println("\t%s".format(adapter.getSignature))
         }
         CloudServices.BlockStorage
       }

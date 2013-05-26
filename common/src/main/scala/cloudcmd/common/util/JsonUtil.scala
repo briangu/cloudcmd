@@ -5,6 +5,7 @@ import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import java.io._
+import scala.collection.mutable
 
 object JsonUtil {
 
@@ -22,7 +23,9 @@ object JsonUtil {
 
   def toStringMap(obj: JSONObject) : Map[String, String] = {
     import scala.collection.JavaConversions._
-    Map() ++ obj.keys().flatMap{key => Map(key.asInstanceOf[String] -> obj.getString(key.asInstanceOf[String]))}
+    Map() ++ obj.keys().flatMap { key =>
+      Map(key.asInstanceOf[String] -> obj.getString(key.asInstanceOf[String]))
+    }
   }
 
   def mergeLeft(dest: JSONObject, src: JSONObject) {

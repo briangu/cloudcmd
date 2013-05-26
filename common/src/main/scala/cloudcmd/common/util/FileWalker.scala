@@ -1,7 +1,7 @@
 package cloudcmd.common.util
 
 import java.io.File
-import java.util.concurrent.{CountDownLatch, SynchronousQueue}
+import java.util.concurrent.{LinkedBlockingQueue, CountDownLatch}
 
 object FileWalker {
 
@@ -23,7 +23,7 @@ class FileWalker {
 
   private val doneSignal = new CountDownLatch(1)
 
-  private val queue = new SynchronousQueue[Option[FileTask]]
+  private val queue = new LinkedBlockingQueue[Option[FileTask]]
 
 //  import java.util.concurrent.Executors
 //  import scala.concurrent._
