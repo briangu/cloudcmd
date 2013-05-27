@@ -3,24 +3,23 @@ package cloudcmd.common.engine
 import cloudcmd.common.{BlockContext, FileUtil}
 import cloudcmd.common.adapters.{MultiWriteBlockException, DataNotFoundException, IndexedAdapter}
 import org.apache.log4j.Logger
-import java.io.{ByteArrayInputStream, InputStream}
+import java.io.InputStream
 import util.Random
 import java.util.concurrent.atomic.AtomicInteger
 import java.nio.ByteBuffer
-import java.nio.channels.Channels
 
 class MirrorReplicationStrategy extends ReplicationStrategy {
 
-  val BUFFER_SIZE = 32 * 1024 * 1024
-  val READ_BUFFER_SIZE = 1024 * 1024
-
-  private val readBuffer = new ThreadLocal[ByteBuffer] {
-    override def initialValue = ByteBuffer.allocate(READ_BUFFER_SIZE)
-  }
-  private val buffer = new ThreadLocal[ByteBuffer] {
-    override def initialValue = ByteBuffer.allocate(BUFFER_SIZE)
-  }
-
+//  val BUFFER_SIZE = 32 * 1024 * 1024
+//  val READ_BUFFER_SIZE = 1024 * 1024
+//
+//  private val readBuffer = new ThreadLocal[ByteBuffer] {
+//    override def initialValue = ByteBuffer.allocate(READ_BUFFER_SIZE)
+//  }
+//  private val buffer = new ThreadLocal[ByteBuffer] {
+//    override def initialValue = ByteBuffer.allocate(BUFFER_SIZE)
+//  }
+//
   private val log: Logger = Logger.getLogger(classOf[MirrorReplicationStrategy])
 
   def isReplicated(ctx: BlockContext, adapters: List[IndexedAdapter]): Boolean = {
@@ -50,7 +49,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
         storeViaMultiStreamBootstrap(ctx, dis, adapters)
       }
     } else {
-      storeViaStreamMirror(ctx, adapters)
+      storeViaTierClusters(ctx, adapters)
     }
   }
 
@@ -70,107 +69,107 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
     }
   }
 
-  def storeViaMemoryStream(ctx: BlockContext, dis: InputStream, adapters: List[IndexedAdapter]) {
-    val length = dis.available()
-    if (length > BUFFER_SIZE) {
-      throw new IllegalArgumentException("InputStream size %d > BUFFER_SIZE %d".format(length, BUFFER_SIZE))
-    }
+//  def storeViaMemoryStream(ctx: BlockContext, dis: InputStream, adapters: List[IndexedAdapter]) {
+//    val length = dis.available()
+//    if (length > BUFFER_SIZE) {
+//      throw new IllegalArgumentException("InputStream size %d > BUFFER_SIZE %d".format(length, BUFFER_SIZE))
+//    }
+//
+//    val containsAdapters = adapters.filter(_.contains(ctx))
+//    val missingAdapters = adapters.diff(containsAdapters)
+//
+//    val readBuff = readBuffer.get()
+//    val buff = buffer.get()
+//    val channel = Channels.newChannel(dis)
+//
+//    var count = 0
+//    readBuff.clear
+//    buff.clear
+//    while (channel.read(readBuff) != -1) {
+//      readBuff.flip()
+//      System.arraycopy(readBuff.array(), 0, buff.array(), count, readBuff.limit())
+//      count = count + readBuff.limit()
+//      readBuff.clear
+//    }
+//    buff.flip()
+//
+//    val pushedCount = new AtomicInteger()
+//    var failedAdapters = List[IndexedAdapter]()
+//
+//    missingAdapters.par.foreach { adapter =>
+//      val is: InputStream = new ByteArrayInputStream(buff.array(), 0, length)
+//
+//      try {
+//        log.debug("storing %s to adapter %s".format(ctx.getId(), adapter.getSignature))
+//        adapter.store(ctx, is)
+//        pushedCount.incrementAndGet()
+//      }
+//      catch {
+//        case e: Exception => {
+//          log.error(String.format("failed to sync block %s to %s", ctx, String.valueOf(adapter.URI)), e)
+//          failedAdapters = failedAdapters ++ List(adapter)
+//        }
+//      }
+//      finally {
+//        FileUtil.SafeClose(is)
+//      }
+//    }
+//
+//    if (pushedCount.get() != adapters.size) {
+//      val missingCount = adapters.size - pushedCount.get()
+//      log.error("failed to store block %s on %d of %d adapters".format(ctx, missingCount, adapters.size))
+//      val successAdapters = adapters.diff(failedAdapters)
+//      throw new MultiWriteBlockException(ctx, adapters, successAdapters, failedAdapters)
+//    }
+//  }
 
-    val containsAdapters = adapters.filter(_.contains(ctx))
-    val missingAdapters = adapters.diff(containsAdapters)
-
-    val readBuff = readBuffer.get()
-    val buff = buffer.get()
-    val channel = Channels.newChannel(dis)
-
-    var count = 0
-    readBuff.clear
-    buff.clear
-    while (channel.read(readBuff) != -1) {
-      readBuff.flip()
-      System.arraycopy(readBuff.array(), 0, buff.array(), count, readBuff.limit())
-      count = count + readBuff.limit()
-      readBuff.clear
-    }
-    buff.flip()
-
-    val pushedCount = new AtomicInteger()
-    var failedAdapters = List[IndexedAdapter]()
-
-    missingAdapters.par.foreach { adapter =>
-      val is: InputStream = new ByteArrayInputStream(buff.array(), 0, length)
-
-      try {
-        log.debug("storing %s to adapter %s".format(ctx.getId(), adapter.getSignature))
-        adapter.store(ctx, is)
-        pushedCount.incrementAndGet()
-      }
-      catch {
-        case e: Exception => {
-          log.error(String.format("failed to sync block %s to %s", ctx, String.valueOf(adapter.URI)), e)
-          failedAdapters = failedAdapters ++ List(adapter)
-        }
-      }
-      finally {
-        FileUtil.SafeClose(is)
-      }
-    }
-
-    if (pushedCount.get() != adapters.size) {
-      val missingCount = adapters.size - pushedCount.get()
-      log.error("failed to store block %s on %d of %d adapters".format(ctx, missingCount, adapters.size))
-      val successAdapters = adapters.diff(failedAdapters)
-      throw new MultiWriteBlockException(ctx, adapters, successAdapters, failedAdapters)
-    }
-  }
-
-  def storeViaStreamMirror(ctx: BlockContext, adapters: List[IndexedAdapter]) {
-    val containsAdapters = adapters.filter(_.contains(ctx))
-    val missingAdapters = adapters.diff(containsAdapters).sortBy(_.Tier).toList
-
-    if (containsAdapters.size > 0) {
-      if (missingAdapters.size > 0) {
-        val startContainsAdapters = containsAdapters
-        var failedAdapters = List[IndexedAdapter]()
-
-        val pushedCount = new AtomicInteger()
-
-        missingAdapters.par.foreach { adapter =>
-          val is: InputStream = load(ctx, containsAdapters)._1
-          try {
-            log.debug("storing %s to adapter %s".format(ctx.getId(), adapter.getSignature))
-            adapter.store(ctx, is)
-            pushedCount.incrementAndGet()
-          }
-          catch {
-            case e: Exception => {
-              log.error(String.format("failed to sync block %s to %s", ctx, String.valueOf(adapter.URI)), e)
-              failedAdapters = failedAdapters ++ List(adapter)
-            }
-          }
-          finally {
-            FileUtil.SafeClose(is)
-          }
-        }
-
-        if ((pushedCount.get() + startContainsAdapters.size) != adapters.size) {
-          val missingCount = adapters.size - startContainsAdapters.size - pushedCount.get()
-          log.error("failed to store block %s on %d of %d adapters".format(ctx, missingCount, adapters.size))
-          val successAdapters = containsAdapters.diff(startContainsAdapters)
-          throw new MultiWriteBlockException(ctx, adapters, successAdapters, failedAdapters)
-        }
-      }
-    } else {
-      throw new IllegalArgumentException("no adapters contain the blocks")
-    }
-  }
+//  def storeViaStreamMirror(ctx: BlockContext, adapters: List[IndexedAdapter]) {
+//    val containsAdapters = adapters.filter(_.contains(ctx))
+//    val missingAdapters = adapters.diff(containsAdapters).sortBy(_.Tier).toList
+//
+//    if (containsAdapters.size > 0) {
+//      if (missingAdapters.size > 0) {
+//        val startContainsAdapters = containsAdapters
+//        var failedAdapters = List[IndexedAdapter]()
+//
+//        val pushedCount = new AtomicInteger()
+//
+//        missingAdapters.par.foreach { adapter =>
+//          val is: InputStream = load(ctx, containsAdapters)._1
+//          try {
+//            log.debug("storing %s to adapter %s".format(ctx.getId(), adapter.getSignature))
+//            adapter.store(ctx, is)
+//            pushedCount.incrementAndGet()
+//          }
+//          catch {
+//            case e: Exception => {
+//              log.error(String.format("failed to sync block %s to %s", ctx, String.valueOf(adapter.URI)), e)
+//              failedAdapters = failedAdapters ++ List(adapter)
+//            }
+//          }
+//          finally {
+//            FileUtil.SafeClose(is)
+//          }
+//        }
+//
+//        if ((pushedCount.get() + startContainsAdapters.size) != adapters.size) {
+//          val missingCount = adapters.size - startContainsAdapters.size - pushedCount.get()
+//          log.error("failed to store block %s on %d of %d adapters".format(ctx, missingCount, adapters.size))
+//          val successAdapters = containsAdapters.diff(startContainsAdapters)
+//          throw new MultiWriteBlockException(ctx, adapters, successAdapters, failedAdapters)
+//        }
+//      }
+//    } else {
+//      throw new IllegalArgumentException("no adapters contain the blocks")
+//    }
+//  }
 
   def storeViaMultiStreamBootstrap(ctx: BlockContext, dis: InputStream, adapters: List[IndexedAdapter]) {
     val containsAdapters = adapters.filter(_.contains(ctx))
     val missingAdapters = adapters.diff(containsAdapters).sortBy(_.Tier).toList
 
     if (missingAdapters.size > 0) {
-      if (containsAdapters == 0) {
+      if (containsAdapters.size == 0) {
         try {
           log.debug("storing %s to adapter %s".format(ctx.getId(), adapters(0).getSignature))
           missingAdapters(0).store(ctx, dis)
@@ -183,7 +182,64 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
         }
       }
 
-      storeViaStreamMirror(ctx, adapters)
+      storeViaTierClusters(ctx, adapters)
+    }
+  }
+
+  def storeViaTierClusters(ctx: BlockContext, adapters: List[IndexedAdapter]) {
+    val containsAdapters = adapters.filter(_.contains(ctx))
+    val missingAdapterGroups = adapters.diff(containsAdapters).sortBy(_.Tier).groupBy(_.Tier)
+
+    missingAdapterGroups foreach {
+      case (tier, missingAdapters) =>
+        val containsTierAdapters = adapters.filter(_.contains(ctx)).filter(_.Tier <= tier)
+        storeViaFanFold(ctx, containsTierAdapters, missingAdapters)
+    }
+  }
+
+  def storeViaFanFold(ctx: BlockContext, containsAdapters: List[IndexedAdapter], missingAdapters: List[IndexedAdapter]) {
+    if (containsAdapters.size == 0) {
+      throw new IllegalArgumentException("containsAdapters.size == 0")
+    }
+
+    var failedAdapters = List[IndexedAdapter]()
+
+    val pushedCount = new AtomicInteger()
+
+    var currentContainsAdapters = containsAdapters
+    var currentMissingAdapters = missingAdapters
+
+    while (currentMissingAdapters.size > 0) {
+      val foldSize = Math.min(currentContainsAdapters.size, currentMissingAdapters.size)
+      (0 until foldSize).par foreach { idx =>
+        val srcAdapter = currentContainsAdapters(idx)
+        val destAdapter = currentMissingAdapters(idx)
+
+        val is: InputStream = srcAdapter.load(ctx)._1
+        try {
+          log.debug("storing %s to adapter %s".format(ctx.getId(), destAdapter.getSignature))
+          destAdapter.store(ctx, is)
+          pushedCount.incrementAndGet()
+          currentMissingAdapters = currentMissingAdapters.diff(List(destAdapter))
+          currentContainsAdapters = currentContainsAdapters ++ List(destAdapter)
+        }
+        catch {
+          case e: Exception => {
+            log.error(String.format("failed to sync block %s to %s", ctx, String.valueOf(destAdapter.URI)), e)
+            failedAdapters = failedAdapters ++ List(destAdapter)
+          }
+        }
+        finally {
+          FileUtil.SafeClose(is)
+        }
+      }
+    }
+
+    if (pushedCount.get() != missingAdapters.size) {
+      val missingCount = missingAdapters.size - pushedCount.get()
+      log.error("failed to store block %s on %d of %d adapters".format(ctx, missingCount, missingAdapters.size))
+      val successAdapters = currentContainsAdapters.diff(containsAdapters)
+      throw new MultiWriteBlockException(ctx, containsAdapters, successAdapters, failedAdapters)
     }
   }
 
