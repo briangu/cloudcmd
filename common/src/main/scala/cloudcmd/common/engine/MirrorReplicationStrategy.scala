@@ -75,8 +75,8 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
       throw new IllegalArgumentException("InputStream size %d > BUFFER_SIZE %d".format(length, BUFFER_SIZE))
     }
 
-    val containsAdapters = adapters.filter(_.contains(ctx)).sortBy(_.Tier).toList
-    val missingAdapters = adapters.diff(containsAdapters).sortBy(_.Tier).toList
+    val containsAdapters = adapters.filter(_.contains(ctx))
+    val missingAdapters = adapters.diff(containsAdapters)
 
     val readBuff = readBuffer.get()
     val buff = buffer.get()
