@@ -3,7 +3,6 @@ package cloudcmd.common.adapters
 import org.json.{JSONArray, JSONObject}
 import cloudcmd.common.{FileMetaData, ContentAddressableStorage}
 import org.jboss.netty.handler.codec.http.HttpResponseStatus
-import java.net.URI
 
 class DirectIndexedHttpAdapter extends DirectHttpAdapter with IndexedAdapter {
 

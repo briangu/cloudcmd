@@ -93,6 +93,55 @@ object CloudAdapter {
 class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConfig) {
 
   def addRoutes(server: ViperServer) {
+
+    // WARNING: order of routes matters, more specific must come first
+
+    server.addRoute(new OAuthPostRestRoute(config, "/blocks/containsAll", new OAuthRouteHandler {
+      def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
+        val ctxs = fromJsonArray(new JSONArray(args.getOrElse("ctxs", "[]")))
+        val res = cas.containsAll(ctxs)
+        val arr = new JSONArray
+        res.map {
+          case (ctx: BlockContext, status: Boolean) =>
+            val obj = ctx.toJson
+            obj.put("_status", status)
+            arr.put(obj)
+        }
+        new JsonResponse(arr)
+      }
+    }))
+
+    server.addRoute(new OAuthPostRestRoute(config, "/blocks/ensureAll", new OAuthRouteHandler {
+      def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
+        val ctxs = fromJsonArray(new JSONArray(args.getOrElse("ctxs", "[]")))
+        val blockLevelCheck = if (args.contains("blockLevelCheck")) args.get("blockLevelCheck").get.toBoolean else false
+        val res = cas.ensureAll(ctxs, blockLevelCheck)
+        val arr = new JSONArray
+        res.map {
+          case (ctx: BlockContext, status: Boolean) =>
+            val obj = ctx.toJson
+            obj.put("_status", status)
+            arr.put(obj)
+        }
+        new JsonResponse(arr)
+      }
+    }))
+
+    server.addRoute(new OAuthPostRestRoute(config, "/blocks/removeAll", new OAuthRouteHandler {
+      def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
+        val ctxs = fromJsonArray(new JSONArray(args.getOrElse("ctxs", "[]")))
+        val res = cas.removeAll(ctxs)
+        val arr = new JSONArray
+        res.map {
+          case (ctx: BlockContext, status: Boolean) =>
+            val obj = ctx.toJson
+            obj.put("_status", status)
+            arr.put(obj)
+        }
+        new JsonResponse(arr)
+      }
+    }))
+
     server.addRoute(new OAuthGetRestRoute(config, "/blocks/$key", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
         val ctx = CloudAdapter.getBlockContext(args)
@@ -126,64 +175,10 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
       }
     }))
 
-    // ACTIONS
-
-    server.addRoute(new OAuthGetRestRoute(config, "/ping", new OAuthRouteHandler {
-      def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        new StatusResponse(HttpResponseStatus.OK)
-      }
-    }))
-
     server.addRoute(new OAuthGetRestRoute(config, "/blocks", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
         val arr = new JSONArray
         cas.describe().foreach(arr.put)
-        new JsonResponse(arr)
-      }
-    }))
-
-    server.addRoute(new OAuthPostRestRoute(config, "/blocks/containsAll", new OAuthRouteHandler {
-      def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        val ctxs = fromJsonArray(new JSONArray(args.get("ctxs")))
-        val res = cas.containsAll(ctxs)
-        val arr = new JSONArray
-        res.map {
-          case (ctx: BlockContext, status: Boolean) =>
-            val obj = ctx.toJson
-            obj.put("_status", status)
-            arr.put(obj)
-        }
-        new JsonResponse(arr)
-      }
-    }))
-
-    server.addRoute(new OAuthPostRestRoute(config, "/blocks/ensureAll", new OAuthRouteHandler {
-      def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        val ctxs = fromJsonArray(new JSONArray(args.get("ctxs")))
-        val blockLevelCheck = if (args.contains("blockLevelCheck")) args.get("blockLevelCheck").get.toBoolean else false
-        val res = cas.ensureAll(ctxs, blockLevelCheck)
-        val arr = new JSONArray
-        res.map {
-          case (ctx: BlockContext, status: Boolean) =>
-            val obj = ctx.toJson
-            obj.put("_status", status)
-            arr.put(obj)
-        }
-        new JsonResponse(arr)
-      }
-    }))
-
-    server.addRoute(new OAuthPostRestRoute(config, "/blocks/removeAll", new OAuthRouteHandler {
-      def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        val ctxs = fromJsonArray(new JSONArray(args.get("ctxs")))
-        val res = cas.removeAll(ctxs)
-        val arr = new JSONArray
-        res.map {
-          case (ctx: BlockContext, status: Boolean) =>
-            val obj = ctx.toJson
-            obj.put("_status", status)
-            arr.put(obj)
-        }
         new JsonResponse(arr)
       }
     }))
@@ -196,6 +191,12 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
         }
         val fmds = cas.find(filter)
         new JsonResponse(FileMetaData.toJsonArray(fmds))
+      }
+    }))
+
+    server.addRoute(new OAuthGetRestRoute(config, "/ping", new OAuthRouteHandler {
+      def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
+        new StatusResponse(HttpResponseStatus.OK)
       }
     }))
   }
