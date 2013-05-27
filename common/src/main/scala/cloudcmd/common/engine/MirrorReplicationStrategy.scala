@@ -42,11 +42,12 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
       if (missingAdapters.size == 1) {
         storeSingleStream(ctx, dis, adapters)
       } else {
-        if (dis.available() <= BUFFER_SIZE) {
-          storeViaMemoryStream(ctx, dis, adapters)
-        } else {
-          storeViaMultiStreamBootstrap(ctx, dis, adapters)
-        }
+//        if (dis.available() <= BUFFER_SIZE) {
+//          storeViaMemoryStream(ctx, dis, adapters)
+//        } else {
+//          storeViaMultiStreamBootstrap(ctx, dis, adapters)
+//        }
+        storeViaMultiStreamBootstrap(ctx, dis, adapters)
       }
     } else {
       storeViaStreamMirror(ctx, adapters)
