@@ -33,7 +33,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
       dis
     }
 
-    val startContainsCount = containsAdapters.size
+    val startContainsAdapters = containsAdapters
     var failedAdapters = List[IndexedAdapter]()
     var missingAdapters = adapters.diff(containsAdapters).sortBy(_.Tier).toList
     if (missingAdapters.size > 0) {
@@ -86,10 +86,11 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
         }
       }
 
-      if ((pushedCount.get() + startContainsCount) != adapters.size) {
-        val missingCount = adapters.size - startContainsCount - pushedCount.get()
+      if ((pushedCount.get() + startContainsAdapters.size) != adapters.size) {
+        val missingCount = adapters.size - startContainsAdapters.size - pushedCount.get()
         log.error("failed to store block %s on %d of %d adapters".format(ctx, missingCount, adapters.size))
-        throw new MultiWriteBlockException(ctx, failedAdapters)
+        val successAdapters = containsAdapters.diff(startContainsAdapters)
+        throw new MultiWriteBlockException(ctx, adapters, successAdapters, failedAdapters)
       }
     }
   }

@@ -8,6 +8,7 @@ import java.io.File
 import org.json.JSONObject
 import cloudcmd.common.engine.{DefaultFileProcessor, FileProcessor}
 import cloudcmd.cld.AdapterUtil
+import cloudcmd.common.adapters.MultiWriteBlockException
 
 @SubCommand(name = "add", description = "add files")
 class Add extends Command {
@@ -70,6 +71,14 @@ class Add extends Command {
             System.err.print("adding: %s".format(removePathPrefix(absoluteInputPath, file.getAbsolutePath)))
             fileProcessor.add(file, file.getName, tags, properties)
           } catch {
+            case e: MultiWriteBlockException => {
+              System.err.println("\nfailed to add %d blocks %s for %s".format(e.failedAdapters.size, e.ctx, file.getAbsolutePath), e)
+              if (e.successAdapters.size > 0) {
+                // TODO: apply threshold
+              } else {
+                throw e
+              }
+            }
             case e: Exception => {
               System.err.println("\rfailed to add file: " + removePathPrefix(absoluteInputPath, file.getAbsolutePath))
               System.err.println(e.printStackTrace())

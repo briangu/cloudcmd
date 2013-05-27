@@ -5,6 +5,7 @@ import cloudcmd.common.{ContentAddressableStorage, RandomAccessFileInputStream, 
 import cloudcmd.common.util.{JsonUtil, CryptoUtil}
 import org.json.JSONObject
 import org.apache.log4j.Logger
+import cloudcmd.common.adapters.MultiWriteBlockException
 
 class DefaultFileProcessor(cas: ContentAddressableStorage) extends FileProcessor {
 
@@ -49,8 +50,16 @@ class DefaultFileProcessor(cas: ContentAddressableStorage) extends FileProcessor
       try {
         cas.store(fmd.createBlockContext(blockHash), fis)
       } catch {
+        case e: MultiWriteBlockException => {
+          log.error("failed to add %d blocks %s for %s".format(e.failedAdapters.size, blockHash, file.getAbsolutePath), e)
+          if (e.successAdapters.size > 0) {
+            // TODO: apply threshold
+          } else {
+            throw e
+          }
+        }
         case e:Exception => {
-          log.error("failed to add block %s for %s".format(blockHash, file.getAbsoluteFile), e)
+          log.error("failed to add block %s for %s".format(blockHash, file.getAbsolutePath), e)
           throw e
         }
       }
@@ -59,8 +68,16 @@ class DefaultFileProcessor(cas: ContentAddressableStorage) extends FileProcessor
         // TODO: store canonical json
         cas.store(fmd.createBlockContext, new ByteArrayInputStream(fmd.getDataAsString.getBytes("UTF-8")))
       } catch {
+        case e: MultiWriteBlockException => {
+          log.error("failed to add %d blocks %s for %s".format(e.failedAdapters.size, blockHash, file.getAbsolutePath), e)
+          if (e.successAdapters.size > 0) {
+            // TODO: apply threshold
+          } else {
+            throw e
+          }
+        }
         case e:Exception => {
-          log.error("failed to add meta %s for %s".format(fmd.getHash, file.getAbsoluteFile), e)
+          log.error("failed to add meta %s for %s".format(fmd.getHash, file.getAbsolutePath), e)
           throw e
         }
       }
