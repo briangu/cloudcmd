@@ -21,7 +21,7 @@ class DirectHttpAdapter extends DirectAdapter {
   var _urlEnsureAll : String = null
   var _urlDescribe : String = null
 
-  private def buildUrls() {
+  protected def buildUrls() {
     _urlPing = "%s/ping".format(_host)
     _urlContainsAll = "%s/blocks/containsAll".format(_host)
     _urlRemoveAll = "%s/blocks/removeAll".format(_host)
@@ -129,7 +129,7 @@ class DirectHttpAdapter extends DirectAdapter {
     ctxsResponseArrToMap(new JSONArray(response.getResponseBody("UTF-8")))
   }
 
-  private def ctxsResponseArrToMap(arr: JSONArray) : Map[BlockContext, Boolean] = {
+  protected def ctxsResponseArrToMap(arr: JSONArray) : Map[BlockContext, Boolean] = {
     Map() ++ (0 until arr.length).par.flatMap{
       idx =>
         val obj = arr.getJSONObject(idx)

@@ -83,11 +83,11 @@ class ReplicationStrategyAdapter(adapters: List[IndexedAdapter], storage: Replic
    * @param filter
    * @return a set of meta blocks
    */
-  def find(filter: JSONObject): Set[FileMetaData] = {
+  def find(filter: JSONObject): Seq[FileMetaData] = {
     val results = new mutable.HashSet[FileMetaData] with mutable.SynchronizedSet[FileMetaData]
     adapters.par.foreach { adapter =>
       adapter.find(filter) foreach { results.add }
     }
-    results.toSet
+    results.toSeq
   }
 }

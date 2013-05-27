@@ -62,7 +62,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     val allHashes = underlying.describe()
 
     val underlyingMeta = allHashes.filter(_.endsWith(".meta"))
-    val cachedMeta = find().map(_.getHash)
+    val cachedMeta = find().map(_.getHash).toSet
     val newMeta = underlyingMeta.diff(cachedMeta)
     val deletedMeta = cachedMeta -- underlyingMeta
 
@@ -114,7 +114,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     _addAllHashData(_getDescription.toSet)
   }
 
-  def find(filter: JSONObject): Set[FileMetaData] = {
+  def find(filter: JSONObject): Seq[FileMetaData] = {
     val results = new ListBuffer[FileMetaData]
 
     var db: Connection = null
@@ -204,7 +204,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
       SqlUtil.SafeClose(statement)
       SqlUtil.SafeClose(db)
     }
-    results.toSet
+    results
   }
 
   override def contains(ctx: BlockContext) : Boolean = {

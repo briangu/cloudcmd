@@ -7,7 +7,7 @@ import cloudcmd.common._
 import org.jboss.netty.buffer.ChannelBufferInputStream
 import org.jboss.netty.handler.codec.http.HttpHeaders._
 import io.viper.core.server.router.RouteResponse.RouteResponseDispose
-import org.json.JSONArray
+import org.json.{JSONObject, JSONArray}
 import io.viper.common.ViperServer
 import io.viper.core.server.router._
 import cloudcmd.common.util.StreamUtil
@@ -185,6 +185,17 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
             arr.put(obj)
         }
         new JsonResponse(arr)
+      }
+    }))
+
+    server.addRoute(new OAuthPostRestRoute(config, "/find", new OAuthRouteHandler {
+      def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
+        val filter = new JSONObject(args.getOrElse("filter", "{}"))
+        if (!filter.has("count")) {
+          filter.put("count", 500)
+        }
+        val fmds = cas.find(filter)
+        new JsonResponse(FileMetaData.toJsonArray(fmds))
       }
     }))
   }
