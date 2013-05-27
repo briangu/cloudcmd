@@ -3,11 +3,23 @@ package cloudcmd.common.engine
 import cloudcmd.common.{BlockContext, FileUtil}
 import cloudcmd.common.adapters.{MultiWriteBlockException, DataNotFoundException, IndexedAdapter}
 import org.apache.log4j.Logger
-import java.io.InputStream
+import java.io.{ByteArrayInputStream, InputStream}
 import util.Random
 import java.util.concurrent.atomic.AtomicInteger
+import java.nio.ByteBuffer
+import java.nio.channels.Channels
 
 class MirrorReplicationStrategy extends ReplicationStrategy {
+
+  val BUFFER_SIZE = 32 * 1024 * 1024
+  val READ_BUFFER_SIZE = 1024 * 1024
+
+  private val readBuffer = new ThreadLocal[ByteBuffer] {
+    override def initialValue = ByteBuffer.allocate(READ_BUFFER_SIZE)
+  }
+  private val buffer = new ThreadLocal[ByteBuffer] {
+    override def initialValue = ByteBuffer.allocate(BUFFER_SIZE)
+  }
 
   private val log: Logger = Logger.getLogger(classOf[MirrorReplicationStrategy])
 
@@ -23,6 +35,66 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
       throw new IllegalArgumentException("no adapters to store to")
     }
 
+    val containsAdapters = adapters.filter(_.contains(ctx))
+    if (containsAdapters.size == 0 && dis.available() <= BUFFER_SIZE) {
+      storeViaMemoryStream(ctx, dis, adapters)
+    } else {
+      storeViaStreamRelay(ctx, dis, adapters)
+    }
+  }
+
+  def storeViaMemoryStream(ctx: BlockContext, dis: InputStream, adapters: List[IndexedAdapter]) {
+    val length = dis.available()
+    if (length > BUFFER_SIZE) {
+      throw new IllegalArgumentException("InputStream size %d > BUFFER_SIZE %d".format(length, BUFFER_SIZE))
+    }
+
+    val readBuff = readBuffer.get()
+    val buff = buffer.get()
+    val channel = Channels.newChannel(dis)
+
+    var count = 0
+    readBuff.clear
+    buff.clear
+    while (channel.read(readBuff) != -1) {
+      readBuff.flip()
+      System.arraycopy(readBuff.array(), 0, buff.array(), count, readBuff.limit())
+      count = count + readBuff.limit()
+      readBuff.clear
+    }
+    buff.flip()
+
+    val pushedCount = new AtomicInteger()
+    var failedAdapters = List[IndexedAdapter]()
+
+    adapters.par.foreach { adapter =>
+      val is: InputStream = new ByteArrayInputStream(buff.array(), 0, length)
+
+      try {
+        log.debug("storing %s to adapter %s".format(ctx.getId(), adapter.getSignature))
+        adapter.store(ctx, is)
+        pushedCount.incrementAndGet()
+      }
+      catch {
+        case e: Exception => {
+          log.error(String.format("failed to sync block %s to %s", ctx, String.valueOf(adapter.URI)), e)
+          failedAdapters = failedAdapters ++ List(adapter)
+        }
+      }
+      finally {
+        FileUtil.SafeClose(is)
+      }
+    }
+
+    if (pushedCount.get() != adapters.size) {
+      val missingCount = adapters.size - pushedCount.get()
+      log.error("failed to store block %s on %d of %d adapters".format(ctx, missingCount, adapters.size))
+      val successAdapters = adapters.diff(failedAdapters)
+      throw new MultiWriteBlockException(ctx, adapters, successAdapters, failedAdapters)
+    }
+  }
+
+  def storeViaStreamRelay(ctx: BlockContext, dis: InputStream, adapters: List[IndexedAdapter]) {
     var containsAdapters = adapters.filter(_.contains(ctx)).sortBy(_.Tier).toList
     val nis = if (containsAdapters.size == 0) {
       log.debug("storing %s to adapter %s".format(ctx.getId(), adapters(0).getSignature))
@@ -63,9 +135,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
 
       if (missingAdapters.size > 0) {
         if (containsAdapters.size > 0) {
-          // TODO: we should have better planning here on which containsAdapters to use so the same
-          //       one doesn't get overused if there are equal options
-          missingAdapters.par.foreach { adapter =>
+          missingAdapters.foreach { adapter =>
             val is: InputStream = load(ctx, containsAdapters)._1
             try {
               log.debug("storing %s to adapter %s".format(ctx.getId(), adapter.getSignature))
@@ -83,6 +153,8 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
               FileUtil.SafeClose(is)
             }
           }
+        } else {
+          log.error(String.format("no adapters contain block after attempted store: %s", ctx))
         }
       }
 

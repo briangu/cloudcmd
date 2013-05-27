@@ -48,7 +48,7 @@ object SimpleOAuthSessionService {
     if (file.exists()) {
       new JSONObject(FileUtil.readFile(file))
     } else {
-      System.err.println("Warning: could find auth.json")
+      System.err.println("Warning: could not find auth.json")
       new JSONObject()
     }
   }
