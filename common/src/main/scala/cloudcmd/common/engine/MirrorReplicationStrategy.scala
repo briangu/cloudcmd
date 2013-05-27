@@ -179,8 +179,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
     try {
       is = load(ctx, hashProviders)._1
       store(ctx, is, adapters)
-    }
-    catch {
+    } catch {
       case e: DataNotFoundException => {
         log.error("no adapter has block %s".format(ctx), e)
       }
@@ -202,8 +201,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
         try {
           isConsistent = adapter.ensure(ctx, blockLevelCheck)
           if (isConsistent) {
-            // TODO: enable verbose flag
-            //_wm.make(new MemoryElement("msg", "body", String.format("successfully validated block %s is on adapter %s", hash, adapter.URI)))
+            log.debug(String.format("block %s valid on adapter %s", ctx, adapter.URI))
           } else {
             log.warn(String.format("bad block %s found on adapter %s", ctx, adapter.URI))
           }
