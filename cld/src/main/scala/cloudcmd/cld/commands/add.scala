@@ -40,7 +40,8 @@ class Add extends Command {
   }
 
   def getAbsoluteInputPath: String = {
-    new File(_path).getAbsolutePath
+    val file = new File(_path)
+    if (file.isDirectory) file.getAbsolutePath else file.getParentFile.getAbsolutePath
   }
 
   def removePathPrefix(cwd: String, path: String): String = {
@@ -51,43 +52,52 @@ class Add extends Command {
 
     val absoluteInputPath = getAbsoluteInputPath
 
-    FileWalker.enumerateFolders(_path, new FileWalker.FileHandler {
-      def skipDir(file: File): Boolean = {
-        val skip = fileTypeUtil.skipDir(file.getName)
-        if (skip) {
-          System.err.println(String.format("Skipping dir: " + file.getAbsolutePath))
+    val inputFile = new File(path)
+    if (inputFile.isDirectory) {
+      FileWalker.enumerateFolders(_path, new FileWalker.FileHandler {
+        def skipDir(file: File): Boolean = {
+          val skip = fileTypeUtil.skipDir(file.getName)
+          if (skip) {
+            System.err.println(String.format("Skipping dir: " + file.getAbsolutePath))
+          }
+          skip
         }
-        skip
-      }
 
-      def process(file: File) {
-        if (!file.exists()) return // catch soft links
-        val fileName: String = file.getName
-        val extIndex: Int = fileName.lastIndexOf(".")
-        val ext: String = if ((extIndex > 0)) fileName.substring(extIndex + 1) else null
-        if (!fileTypeUtil.skipExt(ext)) {
-          val startTime = System.currentTimeMillis
-          try {
-            System.err.print("adding: %s".format(removePathPrefix(absoluteInputPath, file.getAbsolutePath)))
-            fileProcessor.add(file, file.getName, tags, properties)
-          } catch {
-            case e: MultiWriteBlockException => {
-              System.err.println("\nfailed to add %d blocks %s for %s".format(e.failedAdapters.size, e.ctx, file.getAbsolutePath), e)
-              if (e.successAdapters.size > 0) {
-                // TODO: apply threshold
-              } else {
-                throw e
-              }
-            }
-            case e: Exception => {
-              System.err.println("\rfailed to add file: " + removePathPrefix(absoluteInputPath, file.getAbsolutePath))
-              System.err.println(e.printStackTrace())
-            }
-          } finally {
-            System.err.println("\r%6d ms to add %s".format((System.currentTimeMillis - startTime), removePathPrefix(absoluteInputPath, file.getAbsolutePath)))
+        def process(file: File) {
+          processFile(file, absoluteInputPath, fileProcessor, fileTypeUtil, properties, tags)
+        }
+      })
+    } else {
+      processFile(inputFile, absoluteInputPath, fileProcessor, fileTypeUtil, properties, tags)
+    }
+  }
+
+  def processFile(file: File, absoluteInputPath: String, fileProcessor: FileProcessor, fileTypeUtil: FileTypeUtil, properties: JSONObject, tags: Set[String]) {
+    if (!file.exists()) return // catch soft links
+    val fileName: String = file.getName
+    val extIndex: Int = fileName.lastIndexOf(".")
+    val ext: String = if ((extIndex > 0)) fileName.substring(extIndex + 1) else null
+    if (!fileTypeUtil.skipExt(ext)) {
+      val startTime = System.currentTimeMillis
+      try {
+        System.err.print("adding: %s".format(removePathPrefix(absoluteInputPath, file.getAbsolutePath)))
+        fileProcessor.add(file, file.getName, tags, properties)
+      } catch {
+        case e: MultiWriteBlockException => {
+          System.err.println("\nfailed to add %d blocks %s for %s".format(e.failedAdapters.size, e.ctx, file.getAbsolutePath), e)
+          if (e.successAdapters.size > 0) {
+            // TODO: apply threshold
+          } else {
+            throw e
           }
         }
+        case e: Exception => {
+          System.err.println("\rfailed to add file: " + removePathPrefix(absoluteInputPath, file.getAbsolutePath))
+          System.err.println(e.printStackTrace())
+        }
+      } finally {
+        System.err.println("\r%6d ms to add %s".format((System.currentTimeMillis - startTime), removePathPrefix(absoluteInputPath, file.getAbsolutePath)))
       }
-    })
+    }
   }
 }
