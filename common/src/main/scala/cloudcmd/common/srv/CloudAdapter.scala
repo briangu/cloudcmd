@@ -12,6 +12,7 @@ import io.viper.common.ViperServer
 import io.viper.core.server.router._
 import cloudcmd.common.util.{CryptoUtil, StreamUtil}
 import java.nio.ByteBuffer
+import java.util
 
 class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentAddressableStorage) extends Route(route) {
 
@@ -100,9 +101,40 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentA
     }
 
     if (ctx.hashEquals(hash) && (length == contentLength)) {
-      store(ctx, new ByteArrayInputStream(array, 0, length))
+      if (ctx.isMeta) {
+        validateAndStoreMeta(ctx, request, array, length)
+      } else {
+        store(ctx, new ByteArrayInputStream(array, 0, length))
+      }
     } else {
       new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
+    }
+  }
+
+  def validateAndStoreMeta(ctx: BlockContext, request: HttpRequest, array: Array[Byte], length: Int): HttpResponse = {
+    try {
+      val data = util.Arrays.copyOfRange(array, 0, length)
+      val metaJson = new JSONObject(new String(data, "UTF-8"))
+      val fmd = FileMetaData.create(ctx.hash, metaJson)
+      if (!fmd.hasProperties || !fmd.getProperties.has("ownerId")) {
+        new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
+      } else {
+        val ownerId = fmd.getProperties.getString("ownerId")
+        val isValid = ctx.ownerId match {
+          case Some(id) => ownerId == id
+          case None => false
+        }
+        if (isValid) {
+          store(ctx, new ByteArrayInputStream(array, 0, length))
+        } else {
+          new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
+        }
+      }
+    } catch {
+      case e: Exception => {
+        // TODO: log
+        new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
+      }
     }
   }
 
