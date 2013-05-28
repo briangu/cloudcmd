@@ -84,7 +84,7 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentA
     }
   }
 
-  def storeViaSpooledMemory(ctx: BlockContext, request: HttpRequest): HttpResponse = {
+  private def storeViaSpooledMemory(ctx: BlockContext, request: HttpRequest): HttpResponse = {
     val contentLength = request.getHeader(HttpHeaders.Names.CONTENT_LENGTH).toInt
 
     var is: InputStream = null
@@ -147,7 +147,7 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentA
 }
 
 object CloudAdapter {
-  def getBlockContext(args: Map[String, String], session: Option[OAuthSession] = None) : BlockContext = {
+  def getBlockContext(args: Map[String, String], session: Option[OAuthSession]) : BlockContext = {
     val (hash, tags) = args.get("key").get.split(",").toList.splitAt(1)
     val ownerId = session match {
       case Some(sess) => Some(sess.getAsRequestToken.getKey())
@@ -165,7 +165,7 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
 
     server.addRoute(new OAuthPostRestRoute(config, "/blocks/containsAll", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        val ctxs = fromJsonArray(new JSONArray(args.getOrElse("ctxs", "[]")))
+        val ctxs = fromJsonArray(new JSONArray(args.getOrElse("ctxs", "[]")), session)
         val res = cas.containsAll(ctxs)
         val arr = new JSONArray
         res.map {
@@ -180,7 +180,7 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
 
     server.addRoute(new OAuthPostRestRoute(config, "/blocks/ensureAll", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        val ctxs = fromJsonArray(new JSONArray(args.getOrElse("ctxs", "[]")))
+        val ctxs = fromJsonArray(new JSONArray(args.getOrElse("ctxs", "[]")), session)
         val blockLevelCheck = if (args.contains("blockLevelCheck")) args.get("blockLevelCheck").get.toBoolean else false
         val res = cas.ensureAll(ctxs, blockLevelCheck)
         val arr = new JSONArray
@@ -196,7 +196,7 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
 
     server.addRoute(new OAuthPostRestRoute(config, "/blocks/removeAll", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        val ctxs = fromJsonArray(new JSONArray(args.getOrElse("ctxs", "[]")))
+        val ctxs = fromJsonArray(new JSONArray(args.getOrElse("ctxs", "[]")), session)
         val res = cas.removeAll(ctxs)
         val arr = new JSONArray
         res.map {
@@ -211,7 +211,7 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
 
     server.addRoute(new OAuthGetRestRoute(config, "/blocks/$key", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        val ctx = CloudAdapter.getBlockContext(args)
+        val ctx = CloudAdapter.getBlockContext(args, Some(session))
         if (cas.contains(ctx)) {
           val (is, length) = cas.load(ctx)
           val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
@@ -232,7 +232,7 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
 
     server.addRoute(new OAuthDeleteRestRoute(config, "/blocks/$key", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        val ctx = CloudAdapter.getBlockContext(args)
+        val ctx = CloudAdapter.getBlockContext(args, Some(session))
         val success = cas.remove(ctx)
         if (success) {
           new StatusResponse(HttpResponseStatus.NO_CONTENT)
@@ -245,7 +245,7 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
     server.addRoute(new OAuthGetRestRoute(config, "/blocks", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
         val arr = new JSONArray
-        cas.describe().foreach(arr.put)
+        cas.describe(Some(session.getAsRequestToken.getKey())).foreach(arr.put)
         new JsonResponse(arr)
       }
     }))
@@ -256,6 +256,8 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
         if (!filter.has("count")) {
           filter.put("count", 500)
         }
+        filter.put("PROPERTIES__OWNERID", session.getAsRequestToken.getKey)
+
         val fmds = cas.find(filter)
         new JsonResponse(FileMetaData.toJsonArray(fmds))
       }
@@ -268,8 +270,7 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
     }))
   }
 
-  private def fromJsonArray(arr: JSONArray): Set[BlockContext] = {
-    // TODO: use par here?
-    Set() ++ (0 until arr.length).par.map(idx => BlockContext.fromJson(arr.getJSONObject(idx)))
+  private def fromJsonArray(arr: JSONArray, session: OAuthSession): Set[BlockContext] = {
+    Set() ++ (0 until arr.length).map(idx => BlockContext.fromJson(arr.getJSONObject(idx), Some(session.getAsRequestToken.getKey())))
   }
 }

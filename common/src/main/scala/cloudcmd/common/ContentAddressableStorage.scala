@@ -70,7 +70,7 @@ trait ContentAddressableStorage {
    * not returned in describe(), so this method can help identify unreferenced blocks.
    * @return
    */
-  def describe() : Set[String]
+  def describe(ownerId: Option[String] = None) : Set[String]
 
 }
 

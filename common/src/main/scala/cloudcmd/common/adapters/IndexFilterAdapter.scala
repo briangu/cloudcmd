@@ -265,7 +265,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     result
   }
 
-  def describe(): Set[String] = {
+  def describe(ownerId: Option[String] = None): Set[String] = {
     _getDescription.toSet
   }
 

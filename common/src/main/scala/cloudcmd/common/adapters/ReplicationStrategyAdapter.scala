@@ -16,7 +16,7 @@ class ReplicationStrategyAdapter(adapters: List[IndexedAdapter], storage: Replic
     adapters.par.filter(_.contains(ctx)).toList
   }
 
-  def describe() : Set[String] = {
+  def describe(ownerId: Option[String] = None): Set[String] = {
     Set() ++ adapters.par.flatMap(a => a.describe().toSet)
   }
 

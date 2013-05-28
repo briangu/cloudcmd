@@ -101,7 +101,7 @@ class DirectFileAdapter extends DirectAdapter {
     (RandomAccessFileInputStream.create(file), file.length.toInt)
   }
 
-  def describe(): Set[String] = {
+  def describe(ownerId: Option[String] = None): Set[String] = {
     val hashes = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
     FileWalker.enumerateFolders(_dataDir, new FileWalker.FileHandler {
       def skipDir(file: File): Boolean = false

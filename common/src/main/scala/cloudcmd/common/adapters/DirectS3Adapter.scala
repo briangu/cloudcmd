@@ -126,7 +126,7 @@ class DirectS3Adapter extends DirectAdapter {
     (obj.getDataInputStream, obj.getContentLength.toInt)
   }
 
-  def describe(): Set[String] = {
+  def describe(ownerId: Option[String] = None): Set[String] = {
     Set() ++ _s3Service.listObjects(_bucketName).par.map(s3Object => s3Object.getKey)
   }
 }

@@ -6,13 +6,13 @@ import util.JsonUtil
 object BlockContext {
   def fromJson(json: String) : BlockContext = {
     val obj = new JSONObject(json)
-    new BlockContext(obj.getString("hash"), JsonUtil.createSet(obj.getJSONArray("tags")))
+    new BlockContext(obj.getString("hash"), JsonUtil.createSet(obj.getJSONArray("tags")), None)
   }
-  def fromJson(obj: JSONObject) : BlockContext = {
-    new BlockContext(obj.getString("hash"), JsonUtil.createSet(obj.getJSONArray("tags")))
+  def fromJson(obj: JSONObject, ownerId: Option[String] = None) : BlockContext = {
+    new BlockContext(obj.getString("hash"), JsonUtil.createSet(obj.getJSONArray("tags")), ownerId)
   }
-  def create(hash: String, tags: String, delim: String) : BlockContext = {
-    new BlockContext(hash, tags.split(delim).filter(_.length > 0).toSet)
+  def create(hash: String, tags: String, delim: String, ownerId: Option[String] = None) : BlockContext = {
+    new BlockContext(hash, tags.split(delim).filter(_.length > 0).toSet, ownerId)
   }
 }
 

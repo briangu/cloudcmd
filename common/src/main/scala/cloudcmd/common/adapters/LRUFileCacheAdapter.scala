@@ -160,5 +160,7 @@ class LRUFileCacheAdapter(underlying: DirectAdapter) extends DirectAdapter {
     * not returned in describe(), so this method can help identify unreferenced blocks.
     * @return
     */
-  def describe(): Set[String] = underlying.describe()
+  def describe(ownerId: Option[String] = None): Set[String] = {
+    underlying.describe()
+  }
 }
