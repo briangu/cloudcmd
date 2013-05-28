@@ -100,11 +100,7 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentA
     }
 
     if (ctx.hashEquals(hash) && (length == contentLength)) {
-      val is = new ByteArrayInputStream(array, 0, length)
-      cas.store(ctx, is)
-      val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CREATED)
-      response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, 0)
-      response
+      store(ctx, new ByteArrayInputStream(array, 0, length))
     } else {
       new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
     }
@@ -122,17 +118,25 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentA
 
     try {
       if (ctx.hashEquals(hash)) {
-        val is = new FileInputStream(file)
-        cas.store(ctx, is)
-        val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CREATED)
-        response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, 0)
-        response
+        val is =new FileInputStream(file)
+        try {
+          store(ctx, is)
+        } finally {
+          FileUtil.SafeClose(is)
+        }
       } else {
         new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
       }
     } finally {
       file.delete
     }
+  }
+
+  def store(ctx: BlockContext, is: InputStream): HttpResponse = {
+    cas.store(ctx, is)
+    val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CREATED)
+    response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, 0)
+    response
   }
 }
 
