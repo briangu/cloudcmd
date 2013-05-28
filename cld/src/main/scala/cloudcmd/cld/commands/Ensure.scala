@@ -73,8 +73,8 @@ class Ensure extends Command {
               sb.append("FAILED ensuring: %s\n".format(fmd.getPath))
 
               metaOK match {
-                case true => sb.append("\tOK meta: %s\n".format(metaBlock.getId()))
-                case false => sb.append("\tFAILED meta: %s\n".format(metaBlock.getId()))
+                case true => sb.append("\tOK meta: %s\n".format(metaBlock.getId))
+                case false => sb.append("\tFAILED meta: %s\n".format(metaBlock.getId))
               }
 
               (0 until blockHashEnsureResults.size) foreach { idx =>

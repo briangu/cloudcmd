@@ -125,7 +125,7 @@ class LRUFileCacheAdapter(underlying: DirectAdapter) extends DirectAdapter {
     * @return
     */
   def load(ctx: BlockContext): (InputStream, Int) = {
-    val file = _cacheMap.get(ctx.getId()) match {
+    val file = _cacheMap.get(ctx.getId) match {
       case Some(fileInfo) => {
         fileInfo.date = new Date().getTime
         fileFromParts(_cacheDir, fileInfo.name)
@@ -140,12 +140,12 @@ class LRUFileCacheAdapter(underlying: DirectAdapter) extends DirectAdapter {
           pruneFiles() // TODO: do async
         }
         val (hash, tmpFile) = StreamUtil.spoolStream(is, _cacheDirFile)
-        val realFile = fileFromParts(_cacheDir, ctx.getId())
+        val realFile = fileFromParts(_cacheDir, ctx.getId)
         val success = tmpFile.renameTo(realFile)
         if (!success) {
           log.warn("failed to rename file: " + realFile.getAbsolutePath)
         }
-        val fileInfo = FileInfo(ctx.getId(), realFile.length(), realFile.lastModified())
+        val fileInfo = FileInfo(ctx.getId, realFile.length(), realFile.lastModified())
         _cacheMap.put(fileInfo.name, fileInfo)
         tmpFile
       }

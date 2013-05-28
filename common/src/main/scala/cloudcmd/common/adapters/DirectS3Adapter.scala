@@ -42,7 +42,18 @@ class DirectS3Adapter extends DirectAdapter {
 
   def shutdown() {}
 
-  def parseAwsInfo(adapterUri: URI): (String, String, String, Boolean) = {
+  private def getObjectName(ctx: BlockContext): String = {
+    ctx.ownerId match {
+      case Some(id) => {
+        "%s/%s".format(id, ctx.hash)
+      }
+      case None => {
+        ctx.hash
+      }
+    }
+  }
+
+  private def parseAwsInfo(adapterUri: URI): (String, String, String, Boolean) = {
     val parts = adapterUri.getAuthority.split("@")
     if (parts.length != 2) throw new IllegalArgumentException("authority format: awsKey@bucketname")
     val queryParams = UriUtil.parseQueryString(adapterUri)
@@ -56,13 +67,13 @@ class DirectS3Adapter extends DirectAdapter {
 
   def containsAll(ctxs: Set[BlockContext]): Map[BlockContext, Boolean] = {
     Map() ++ ctxs.par.flatMap{ctx =>
-      Map(ctx -> _s3Service.isObjectInBucket(_bucketName, ctx.hash))
+      Map(ctx -> _s3Service.isObjectInBucket(_bucketName, getObjectName(ctx)))
     }
   }
 
   def removeAll(ctxs: Set[BlockContext]): Map[BlockContext, Boolean] = {
     Map() ++ ctxs.par.flatMap{ctx =>
-      _s3Service.deleteObject(_bucketName, ctx.hash)
+      _s3Service.deleteObject(_bucketName, getObjectName(ctx))
       Map(ctx -> true)
     }
   }
@@ -79,7 +90,9 @@ class DirectS3Adapter extends DirectAdapter {
       store(ctx, is, md5Hash, is.available)
     } else {
       val (hash, tmpFile) = StreamUtil.spoolStream(is)
-      if (hash != getHashFromDataFile(ctx.hash)) throw new RuntimeException("retrieved data hash %s not equal to expected %s".format(hash, ctx.hash))
+      if (hash != getHashFromDataFile(ctx.hash)) {
+        throw new RuntimeException("retrieved data hash %s not equal to expected %s".format(hash, ctx.hash))
+      }
       val fis = new FileInputStream(tmpFile)
       val buffer = new FileInputStream(tmpFile)
       try {
@@ -99,7 +112,7 @@ class DirectS3Adapter extends DirectAdapter {
   }
 
   private def store(ctx: BlockContext, data: InputStream, md5Digest: Array[Byte], length: Long) {
-    val s3Object: S3Object = new S3Object(ctx.hash)
+    val s3Object: S3Object = new S3Object(getObjectName(ctx))
     s3Object.setDataInputStream(new RepeatableInputStream(data, length.toInt))
     s3Object.setContentLength(length)
     s3Object.setMd5Hash(md5Digest)
@@ -109,7 +122,7 @@ class DirectS3Adapter extends DirectAdapter {
   }
 
   def load(ctx: BlockContext): (InputStream, Int) = {
-    val obj = _s3Service.getObject(_bucketName, ctx.hash)
+    val obj = _s3Service.getObject(_bucketName, getObjectName(ctx))
     (obj.getDataInputStream, obj.getContentLength.toInt)
   }
 

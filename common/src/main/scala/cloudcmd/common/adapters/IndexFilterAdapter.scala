@@ -238,13 +238,13 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
   }
 
   def store(ctx: BlockContext, is: InputStream) {
-    if (ctx.isMeta()) {
+    if (ctx.isMeta) {
       val bytes = StreamUtil.spoolStreamToBytes(is)
       underlying.store(ctx, new ByteArrayInputStream(bytes))
       if (_autoflush) {
         val fmd = FileMetaData.create(ctx.hash, new JSONObject(new String(bytes, "UTF-8")))
         _addAllFileMetaData(Seq(fmd), rebuildIndex = false)
-        _addAllHashData(Set(ctx.getId()), rebuild = false)
+        _addAllHashData(Set(ctx.getId), rebuild = false)
       } else {
         _fmdCache.put(ctx, new String(bytes, "UTF-8"))
       }

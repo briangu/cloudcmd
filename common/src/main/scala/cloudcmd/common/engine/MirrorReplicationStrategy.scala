@@ -41,7 +41,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
     val adapter = adapters(0)
     if (!adapter.contains(ctx)) {
       try {
-        log.debug("storing %s to adapter %s".format(ctx.getId(), adapter.getSignature))
+        log.debug("storing %s to adapter %s".format(ctx.getId, adapter.getSignature))
         adapter.store(ctx, dis)
       }
       catch {
@@ -60,7 +60,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
     if (missingAdapters.size > 0) {
       if (containsAdapters.size == 0) {
         try {
-          log.debug("storing %s to adapter %s".format(ctx.getId(), adapters(0).getSignature))
+          log.debug("storing %s to adapter %s".format(ctx.getId, adapters(0).getSignature))
           missingAdapters(0).store(ctx, dis)
         } catch {
           case e: Exception => {
@@ -106,7 +106,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
 
         val is: InputStream = srcAdapter.load(ctx)._1
         try {
-          log.debug("storing %s to adapter %s".format(ctx.getId(), destAdapter.getSignature))
+          log.debug("storing %s to adapter %s".format(ctx.getId, destAdapter.getSignature))
           destAdapter.store(ctx, is)
           pushedCount.incrementAndGet()
           currentMissingAdapters = currentMissingAdapters.diff(List(destAdapter))

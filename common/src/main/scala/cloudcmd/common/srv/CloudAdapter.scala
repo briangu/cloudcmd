@@ -50,11 +50,11 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentA
       val handlerArgs = args ++ RouteUtil.extractPathArgs(_route, path)
 
       if (handlerArgs.contains("key")) {
-        val ctx = CloudAdapter.getBlockContext(handlerArgs)
+        val ctx = CloudAdapter.getBlockContext(handlerArgs, Some(session))
         val contentLength = request.getHeader(HttpHeaders.Names.CONTENT_LENGTH).toInt
 
         try {
-          if (ctx.isMeta() || (contentLength <= BUFFER_SIZE)) {
+          if (ctx.isMeta || (contentLength <= BUFFER_SIZE)) {
             // TODO: validate meta using session
             storeViaSpooledMemory(ctx, request)
           } else {
@@ -147,9 +147,13 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentA
 }
 
 object CloudAdapter {
-  def getBlockContext(args: Map[String, String]) : BlockContext = {
+  def getBlockContext(args: Map[String, String], session: Option[OAuthSession] = None) : BlockContext = {
     val (hash, tags) = args.get("key").get.split(",").toList.splitAt(1)
-    new BlockContext(hash(0), tags.filter(_.length > 0).toSet)
+    val ownerId = session match {
+      case Some(sess) => Some(sess.getAsRequestToken.getKey())
+      case None => None
+    }
+    new BlockContext(hash(0), tags.filter(_.length > 0).toSet, ownerId)
   }
 }
 

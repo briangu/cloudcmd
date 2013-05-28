@@ -16,18 +16,19 @@ object BlockContext {
   }
 }
 
-class BlockContext(val hash: String, val routingTags: Set[String] = Set()) {
-  def getId() : String = hash
-  def isMeta() : Boolean = hash.endsWith(".meta")
+class BlockContext(val hash: String, val routingTags: Set[String] = Set(), val ownerId: Option[String] = None) {
+  def getId: String = hash
+  def isMeta: Boolean = hash.endsWith(".meta")
+
   def hashEquals(test: String) : Boolean = {
-    (if (isMeta()) test.equals(hash.substring(0, hash.length - ".meta".length)) else test.equals(hash))
+    (if (isMeta) test.equals(hash.substring(0, hash.length - ".meta".length)) else test.equals(hash))
   }
 
-  override def hashCode() : Int = 31 * getId().hashCode * routingTags.hashCode
+  override def hashCode() : Int = 31 * getId.hashCode * routingTags.hashCode
   override def equals(other: Any) : Boolean = {
     if (!other.isInstanceOf[BlockContext]) return false
     val octx = other.asInstanceOf[BlockContext]
-    getId().equals(octx.hash) && routingTags.equals(octx.routingTags)
+    getId.equals(octx.hash) && routingTags.equals(octx.routingTags)
   }
 
   def toJson : JSONObject = {
