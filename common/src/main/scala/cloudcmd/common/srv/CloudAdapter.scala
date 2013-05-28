@@ -2,7 +2,7 @@ package cloudcmd.common.srv
 
 import org.jboss.netty.channel.{ChannelFutureListener, MessageEvent, ChannelHandlerContext}
 import org.jboss.netty.handler.codec.http._
-import java.io.{FileInputStream, InputStream}
+import java.io.{ByteArrayInputStream, FileInputStream, InputStream}
 import cloudcmd.common._
 import org.jboss.netty.buffer.ChannelBufferInputStream
 import org.jboss.netty.handler.codec.http.HttpHeaders._
@@ -10,17 +10,26 @@ import io.viper.core.server.router.RouteResponse.RouteResponseDispose
 import org.json.{JSONObject, JSONArray}
 import io.viper.common.ViperServer
 import io.viper.core.server.router._
-import cloudcmd.common.util.StreamUtil
+import cloudcmd.common.util.{CryptoUtil, StreamUtil}
+import java.nio.ByteBuffer
 
 class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentAddressableStorage) extends Route(route) {
 
-  override
-  def isMatch(request: HttpRequest) : Boolean = {
+  val BUFFER_SIZE = 32 * 1024 * 1024
+  val READ_BUFFER_SIZE = 1024 * 1024
+
+  private val readBuffer = new ThreadLocal[ByteBuffer] {
+    override def initialValue = ByteBuffer.allocate(READ_BUFFER_SIZE)
+  }
+  private val buffer = new ThreadLocal[ByteBuffer] {
+    override def initialValue = ByteBuffer.allocate(BUFFER_SIZE)
+  }
+
+  override def isMatch(request: HttpRequest) : Boolean = {
     (super.isMatch(request) && request.getMethod.equals(HttpMethod.POST))
   }
 
-  override
-  def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
+  override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
     val msg = e.getMessage
 
     if (!(msg.isInstanceOf[HttpMessage]) && !(msg.isInstanceOf[HttpChunk])) {
@@ -40,31 +49,24 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentA
       val path = RouteUtil.parsePath(request.getUri)
       val handlerArgs = args ++ RouteUtil.extractPathArgs(_route, path)
 
-      var is: InputStream = null
-      try {
-        if (handlerArgs.contains("key")) {
-          val ctx = CloudAdapter.getBlockContext(handlerArgs)
-          is = new ChannelBufferInputStream(request.getContent, request.getHeader(HttpHeaders.Names.CONTENT_LENGTH).toInt)
-          val (hash, file) = StreamUtil.spoolStream(is)
-          try {
-            if (ctx.hashEquals(hash)) {
-              is.close()
-              is = new FileInputStream(file)
-              cas.store(ctx, is)
-              val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CREATED)
-              response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, 0)
-              response
-            } else {
-              new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
-            }
-          } finally {
-            file.delete
+      if (handlerArgs.contains("key")) {
+        val ctx = CloudAdapter.getBlockContext(handlerArgs)
+        val contentLength = request.getHeader(HttpHeaders.Names.CONTENT_LENGTH).toInt
+
+        try {
+          if (ctx.isMeta() || (contentLength <= BUFFER_SIZE)) {
+            // TODO: validate meta using session
+            storeViaSpooledMemory(ctx, request)
+          } else {
+            storeViaSpooledFile(ctx, request)
           }
-        } else {
-          new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
+        } catch {
+          case e: Exception => {
+            new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
+          }
         }
-      } finally {
-        if (is != null) is.close()
+      } else {
+        new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
       }
     } else {
       new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.FORBIDDEN)
@@ -79,6 +81,57 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentA
     val writeFuture = e.getChannel.write(response)
     if (!isKeepAlive(request)) {
       writeFuture.addListener(ChannelFutureListener.CLOSE)
+    }
+  }
+
+  def storeViaSpooledMemory(ctx: BlockContext, request: HttpRequest): HttpResponse = {
+    val contentLength = request.getHeader(HttpHeaders.Names.CONTENT_LENGTH).toInt
+
+    var is: InputStream = null
+    val (hash, array, length) = try {
+      is = new ChannelBufferInputStream(request.getContent, contentLength)
+      StreamUtil.spoolStreamToByteBuffer(is, readBuffer.get(), buffer.get())
+      val array = buffer.get().array()
+      val length = buffer.get().limit()
+      val hash = CryptoUtil.computeHashAsString(new ByteArrayInputStream(array, 0, length))
+      (hash, array, length)
+    } finally {
+      FileUtil.SafeClose(is)
+    }
+
+    if (ctx.hashEquals(hash) && (length == contentLength)) {
+      val is = new ByteArrayInputStream(array, 0, length)
+      cas.store(ctx, is)
+      val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CREATED)
+      response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, 0)
+      response
+    } else {
+      new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
+    }
+  }
+
+  def storeViaSpooledFile(ctx: BlockContext, request: HttpRequest): HttpResponse = {
+    var is: InputStream = null
+    val (hash, file) = try {
+      val contentLength = request.getHeader(HttpHeaders.Names.CONTENT_LENGTH).toInt
+      is = new ChannelBufferInputStream(request.getContent, contentLength)
+      StreamUtil.spoolStream(is)
+    } finally {
+      FileUtil.SafeClose(is)
+    }
+
+    try {
+      if (ctx.hashEquals(hash)) {
+        val is = new FileInputStream(file)
+        cas.store(ctx, is)
+        val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CREATED)
+        response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, 0)
+        response
+      } else {
+        new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
+      }
+    } finally {
+      file.delete
     }
   }
 }
