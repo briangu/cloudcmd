@@ -133,10 +133,16 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentA
   }
 
   def store(ctx: BlockContext, is: InputStream): HttpResponse = {
-    cas.store(ctx, is)
-    val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CREATED)
-    response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, 0)
-    response
+    try {
+      cas.store(ctx, is)
+      val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.CREATED)
+      response.setHeader(HttpHeaders.Names.CONTENT_LENGTH, 0)
+      response
+    } catch {
+      case e: Exception => {
+        new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
+      }
+    }
   }
 }
 
