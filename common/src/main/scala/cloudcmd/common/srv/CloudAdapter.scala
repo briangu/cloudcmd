@@ -288,7 +288,9 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
         if (!filter.has("count")) {
           filter.put("count", 500)
         }
-        filter.put("PROPERTIES__OWNERID", session.getAsRequestToken.getKey)
+
+        // NOTE: we currently assume keys are longs
+        filter.put("PROPERTIES__OWNERID", session.getAsRequestToken.getKey.toLong)
 
         val fmds = cas.find(filter)
         new JsonResponse(FileMetaData.toJsonArray(fmds))

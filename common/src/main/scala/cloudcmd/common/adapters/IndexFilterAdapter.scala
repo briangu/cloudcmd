@@ -427,7 +427,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
         bind.append(meta.getCreatedDate.asInstanceOf[AnyRef])
         bind.append(_buildTags(meta))
         // TODO: TOTAL HACK...USE STORED.IO ASAP
-        bind.append(if (meta.hasProperty("ownerId")) meta.getProperties.getLong("ownerId").asInstanceOf[AnyRef] else 0.asInstanceOf[AnyRef])
+        bind.append(if (meta.hasProperty("ownerId")) meta.getProperties.getString("ownerId").toLong.asInstanceOf[AnyRef] else 0.asInstanceOf[AnyRef])
         bind.append(meta.getDataAsString)
         (0 until bind.size).foreach(i => SqlUtil.bindVar(statement, i + 1, bind(i)))
         statement.addBatch()
