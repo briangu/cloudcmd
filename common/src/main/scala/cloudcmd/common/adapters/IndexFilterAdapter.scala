@@ -21,6 +21,8 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
   private val BATCH_SIZE = 1024
   private val WHITESPACE = " ,:-._$/\\"
 
+  private var _autoflush = false
+
   protected var _rootPath: String = null
   private var _cp: JdbcConnectionPool = null
   private val _fmdCache = new mutable.HashMap[BlockContext, String] with mutable.SynchronizedMap[BlockContext, String]
@@ -40,10 +42,19 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     _configDir = _dbDir
     new File(_dbDir).mkdirs
 
+    parseURIOptions(config)
+
     underlying.init(configDir, tier, adapterType, tags, config)
 
     if (IsOnLine) {
       _bootstrap(_configDir, _dbDir)
+    }
+  }
+
+  def parseURIOptions(adapterUri: URI) {
+    val queryParams = UriUtil.parseQueryString(adapterUri)
+    if (queryParams.containsKey("autoflush")) {
+      _autoflush = queryParams.get("autoflush").toBoolean
     }
   }
 
@@ -230,7 +241,13 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     if (ctx.isMeta()) {
       val bytes = StreamUtil.spoolStreamToBytes(is)
       underlying.store(ctx, new ByteArrayInputStream(bytes))
-      _fmdCache.put(ctx, new String(bytes, "UTF-8"))
+      if (_autoflush) {
+        val fmd = FileMetaData.create(ctx.hash, new JSONObject(new String(bytes, "UTF-8")))
+        _addAllFileMetaData(Seq(fmd), rebuildIndex = false)
+        _addAllHashData(Set(ctx.getId()), rebuild = false)
+      } else {
+        _fmdCache.put(ctx, new String(bytes, "UTF-8"))
+      }
     } else {
       underlying.store(ctx, is)
     }
