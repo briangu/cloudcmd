@@ -55,28 +55,28 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentA
         val ctx = CloudAdapter.getBlockContext(handlerArgs, Some(session))
         val contentLength = request.getHeader(HttpHeaders.Names.CONTENT_LENGTH).toInt
 
-        if (contentLength > MAX_UPLOAD_SIZE) {
-          return new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
-        }
-
-        try {
-          if (ctx.isMeta) {
-            if (contentLength <= BUFFER_SIZE) {
-              storeViaSpooledMemory(ctx, request)
+        if (contentLength <= MAX_UPLOAD_SIZE) {
+          try {
+            if (ctx.isMeta) {
+              if (contentLength <= BUFFER_SIZE) {
+                storeViaSpooledMemory(ctx, request)
+              } else {
+                new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
+              }
             } else {
+              if (contentLength <= BUFFER_SIZE) {
+                storeViaSpooledMemory(ctx, request)
+              } else {
+                storeViaSpooledFile(ctx, request)
+              }
+            }
+          } catch {
+            case e: Exception => {
               new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
             }
-          } else {
-            if (contentLength <= BUFFER_SIZE) {
-              storeViaSpooledMemory(ctx, request)
-            } else {
-              storeViaSpooledFile(ctx, request)
-            }
           }
-        } catch {
-          case e: Exception => {
-            new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
-          }
+        } else {
+          new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
         }
       } else {
         new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
@@ -340,7 +340,9 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
           case Some(hashId) => {
             val ctx = new BlockContext(hashId, ownerId = Some(srcCreatorId))
             try {
-              val fmd = FileMetaData.create(hashId, new JSONObject(StreamUtil.spoolStreamToString(cas.load(ctx)._1)))
+              val rawString = StreamUtil.spoolStreamToString(cas.load(ctx)._1)
+              val rawData = new JSONObject(rawString)
+              val fmd = FileMetaData.create(hashId, rawData)
               if (fmd.isCreator(srcCreatorId)) {
                 Some(fmd)
               } else {

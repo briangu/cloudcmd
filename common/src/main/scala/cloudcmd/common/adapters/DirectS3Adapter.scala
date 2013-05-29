@@ -129,7 +129,10 @@ class DirectS3Adapter extends DirectAdapter {
   def describe(ownerId: Option[String] = None): Set[String] = {
     ownerId match {
       case Some(id) => {
-        Set() ++ _s3Service.listObjects(_bucketName, "%s/".format(id), "/", Int.MaxValue).par.map(s3Object => s3Object.getKey)
+        val objList = _s3Service.listObjects(_bucketName, "%s/".format(id), "/", Int.MaxValue)
+        Set() ++ objList.par map {
+          s3Object => s3Object.getKey.substring(id.length + 2)
+        }
       }
       case None => {
         Set() ++ _s3Service.listObjects(_bucketName).par.map(s3Object => s3Object.getKey)

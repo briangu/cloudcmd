@@ -4,7 +4,7 @@ finish http server stack
 add tests
 
 add ability to only index certain file types (white list) - e.g. index *.jpg
-add ability to index single files or glob file list
+add ability to index glob file list
 add ability to blacklist adding files by matching regex
 
 add new replication policy - min copies

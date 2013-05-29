@@ -21,15 +21,16 @@ object Main {
 
       val app: CommandSet = new CommandSet("cld")
       app.addSubCommands(classOf[Adapter])
+      app.addSubCommands(classOf[Add])
+      app.addSubCommands(classOf[Ensure])
       app.addSubCommands(classOf[Find])
       app.addSubCommands(classOf[Get])
-      app.addSubCommands(classOf[Add])
       app.addSubCommands(classOf[Init])
       app.addSubCommands(classOf[Listing])
       app.addSubCommands(classOf[Print])
       app.addSubCommands(classOf[Reindex])
       app.addSubCommands(classOf[Remove])
-      app.addSubCommands(classOf[Ensure])
+      app.addSubCommands(classOf[Share])
       app.addSubCommands(classOf[Tag])
       app.invoke(args)
     }
