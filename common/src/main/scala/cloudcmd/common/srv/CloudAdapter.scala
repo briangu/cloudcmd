@@ -16,6 +16,7 @@ import java.util
 
 class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentAddressableStorage) extends Route(route) {
 
+  val MAX_UPLOAD_SIZE = 64 * 1024 * 1024
   val BUFFER_SIZE = 32 * 1024 * 1024
   val READ_BUFFER_SIZE = 1024 * 1024
 
@@ -54,12 +55,16 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentA
         val ctx = CloudAdapter.getBlockContext(handlerArgs, Some(session))
         val contentLength = request.getHeader(HttpHeaders.Names.CONTENT_LENGTH).toInt
 
+        if (contentLength > MAX_UPLOAD_SIZE) {
+          return new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
+        }
+
         try {
           if (ctx.isMeta) {
             if (contentLength <= BUFFER_SIZE) {
               storeViaSpooledMemory(ctx, request)
             } else {
-              return new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
+              new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
             }
           } else {
             if (contentLength <= BUFFER_SIZE) {
