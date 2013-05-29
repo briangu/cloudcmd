@@ -16,6 +16,15 @@ class Listing extends Command {
   }
 
   def doCommand(adapter: IndexedContentAddressableStorage) {
-    adapter.find() foreach { fmd => System.out.println(fmd.getPath) }
+    adapter.find() foreach { fmd =>
+      (fmd.getCreatorId, fmd.getOwnerId) match {
+        case (Some(creatorId), Some(ownerId)) if (creatorId != ownerId) => {
+          System.out.println("(shared from %s) %s".format(creatorId, fmd.getPath))
+        }
+        case (_,_) => {
+          System.out.println(fmd.getPath)
+        }
+      }
+    }
   }
 }
