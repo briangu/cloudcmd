@@ -64,6 +64,10 @@ class SimpleOAuthSessionService extends OAuthSessionService {
     }
   }
 
+  def isValidKey(key: String): Boolean = {
+    (key != null && SimpleOAuthSessionService.sessions.has(key))
+  }
+
   def setSession(key: String, session: OAuthSession) = {
     SimpleOAuthSessionService.sessions.put(key, session)
   }

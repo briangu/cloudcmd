@@ -1,6 +1,6 @@
 package cloudcmd.common
 
-import java.io.{File, ByteArrayInputStream}
+import java.io.{InputStream, File, ByteArrayInputStream}
 import org.json.JSONArray
 import org.json.JSONObject
 import util.{CryptoUtil, JsonUtil}
@@ -39,6 +39,10 @@ object FileMetaData {
     meta._tags = JsonUtil.createSet(data.getJSONArray("tags"))
     meta._hash = hash
     meta
+  }
+
+  def create(is: InputStream, data: JSONObject): FileMetaData = {
+    create(CryptoUtil.computeHashAsString(is) + ".meta", data)
   }
 
   def create(rawData: JSONObject): FileMetaData = {
@@ -229,6 +233,16 @@ class FileMetaData {
 
   def hasProperty(name: String) : Boolean = {
     hasProperties && getProperties.has(name)
+  }
+
+  def isCreator(creatorId: String): Boolean = {
+    if (hasProperty("creatorId")) {
+      creatorId == getProperties.getString("creatorId")
+    } else if (hasProperty("ownerId")) {
+      creatorId == getProperties.getString("ownerId")
+    } else {
+      false
+    }
   }
 
   private var _tags: Set[String] = null
