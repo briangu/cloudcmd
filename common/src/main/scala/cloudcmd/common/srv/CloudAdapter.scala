@@ -55,11 +55,18 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentA
         val contentLength = request.getHeader(HttpHeaders.Names.CONTENT_LENGTH).toInt
 
         try {
-          if (ctx.isMeta || (contentLength <= BUFFER_SIZE)) {
-            // TODO: validate meta using session
-            storeViaSpooledMemory(ctx, request)
+          if (ctx.isMeta) {
+            if (contentLength <= BUFFER_SIZE) {
+              storeViaSpooledMemory(ctx, request)
+            } else {
+              return new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
+            }
           } else {
-            storeViaSpooledFile(ctx, request)
+            if (contentLength <= BUFFER_SIZE) {
+              storeViaSpooledMemory(ctx, request)
+            } else {
+              storeViaSpooledFile(ctx, request)
+            }
           }
         } catch {
           case e: Exception => {
