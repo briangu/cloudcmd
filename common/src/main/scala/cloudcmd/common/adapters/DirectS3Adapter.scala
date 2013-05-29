@@ -126,6 +126,13 @@ class DirectS3Adapter extends DirectAdapter {
     (obj.getDataInputStream, obj.getContentLength.toInt)
   }
 
+  /** *
+    * Describe the contents of the s3 bucket.
+    * If ownerId is specified then return the description of the objects for that owner (without a prefix),
+    * otherwise return all objects for all owners prefixed by the ownerId
+    * @param ownerId Owner to describe objects for. May be None.
+    * @return
+    */
   def describe(ownerId: Option[String] = None): Set[String] = {
     ownerId match {
       case Some(id) => {
@@ -135,7 +142,7 @@ class DirectS3Adapter extends DirectAdapter {
         }
       }
       case None => {
-        Set() ++ _s3Service.listObjects(_bucketName).par.map(s3Object => s3Object.getKey)
+        Set() ++ _s3Service.listObjects(_bucketName).par.map(_.getKey)
       }
     }
   }

@@ -3,7 +3,7 @@ package cloudcmd.srv
 import io.viper.common.{NestServer, ViperServer}
 import cloudcmd.common.{IndexedContentAddressableStorage, FileUtil}
 import java.io._
-import cloudcmd.common.srv.{SimpleOAuthSessionService, CloudAdapter, OAuthRouteConfig}
+import cloudcmd.common.srv.{FileServices, SimpleOAuthSessionService, CloudAdapter, OAuthRouteConfig}
 import java.net.InetAddress
 import org.apache.log4j.Logger
 
@@ -55,9 +55,11 @@ object CloudServer {
 class CloudServer(cas: IndexedContentAddressableStorage, apiConfig: OAuthRouteConfig) extends ViperServer("res:///cloudserver") {
 
   val _apiHandler = new CloudAdapter(cas, apiConfig)
+  val _fileServices = new FileServices(cas, apiConfig)
 
   override
   def addRoutes {
     _apiHandler.addRoutes(this)
+    _fileServices.addRoutes(this)
   }
 }

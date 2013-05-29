@@ -83,22 +83,21 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
       val collections = newMeta.grouped(64 * 1024)
       collections.foreach{
         group =>
-          val addedFileMetaData = group.flatMap {
-            hash =>
-              try {
-                val ctx = new BlockContext(hash)
-                val is = if (cas.contains(ctx)) {
-                  cas.load(ctx)._1
-                } else {
-                  underlying.load(ctx)._1
-                }
-                List(FileMetaData.create(hash, JsonUtil.loadJson(is)))
-              } catch {
-                case e: Exception => {
-                  log.error(hash, e)
-                  Nil
-                }
+          val addedFileMetaData = group.flatMap { hash =>
+            try {
+              val ctx = BlockContext.createFromDescriptionHash(hash)
+              val is = if (cas.contains(ctx)) {
+                cas.load(ctx)._1
+              } else {
+                underlying.load(ctx)._1
               }
+              List(FileMetaData.create(ctx.hash, JsonUtil.loadJson(is)))
+            } catch {
+              case e: Exception => {
+                log.error(hash, e)
+                Nil
+              }
+            }
           }.toList
 
           // TODO: use notification center
@@ -219,12 +218,12 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
   }
 
   override def contains(ctx: BlockContext) : Boolean = {
-    _getDescription.contains(ctx.hash)
+    _getDescription.contains(ctx.description)
   }
 
   def containsAll(ctxs: Set[BlockContext]) : Map[BlockContext, Boolean] = {
     val description = _getDescription
-    Map() ++ ctxs.par.flatMap(ctx => Map(ctx -> description.contains(ctx.hash)))
+    Map() ++ ctxs.par.flatMap(ctx => Map(ctx -> description.contains(ctx.description)))
   }
 
   override def ensure(ctx: BlockContext, blockLevelCheck: Boolean): Boolean = {
@@ -244,7 +243,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
       if (_autoflush) {
         val fmd = FileMetaData.create(ctx.hash, new JSONObject(new String(bytes, "UTF-8")))
         _addAllFileMetaData(Seq(fmd), rebuildIndex = false)
-        _addAllHashData(Set(ctx.getId), rebuild = false)
+        _addAllHashData(Set(ctx.description), rebuild = false)
       } else {
         _fmdCache.put(ctx, new String(bytes, "UTF-8"))
       }

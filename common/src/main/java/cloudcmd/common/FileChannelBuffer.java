@@ -184,9 +184,15 @@ public class FileChannelBuffer extends AbstractChannelBuffer implements WrappedC
   }
 
   public ChannelBuffer slice(int index, int length) {
+    if (index != 0) {
+      throw new IllegalArgumentException("indexing not supported");
+    }
+
     ByteBuffer byteBuffer = ByteBuffer.allocate(length);
     try {
-      _channel.read(byteBuffer);
+      while (byteBuffer.position() < byteBuffer.limit()) {
+        _channel.read(byteBuffer);
+      }
       byteBuffer.flip();
     } catch (IOException e) {
       e.printStackTrace();

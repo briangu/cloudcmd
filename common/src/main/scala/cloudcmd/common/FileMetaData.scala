@@ -235,11 +235,45 @@ class FileMetaData {
     hasProperties && getProperties.has(name)
   }
 
-  def isCreator(creatorId: String): Boolean = {
+  def getCreatorId: Option[String] = {
     if (hasProperty("creatorId")) {
-      creatorId == getProperties.getString("creatorId")
+      Some(getProperties.getString("creatorId"))
     } else if (hasProperty("ownerId")) {
-      creatorId == getProperties.getString("ownerId")
+      // use the ownerId as creatorId if creatorId is not present
+      Some(getProperties.getString("ownerId"))
+    } else {
+      None
+    }
+  }
+
+  def getOwnerId: Option[String] = {
+    if (hasProperty("ownerId")) {
+      Some(getProperties.getString("ownerId"))
+    } else if (hasProperty("creatorId")) {
+      // use creatorId as ownerId if ownerId is not present
+      Some(getProperties.getString("creatorId"))
+    } else {
+      None
+    }
+  }
+
+  def isOwner(ownerId: String): Boolean = {
+    getOwnerId match {
+      case Some(id) => ownerId == id
+      case None => false
+    }
+  }
+
+  def isCreator(creatorId: String): Boolean = {
+    getCreatorId match {
+      case Some(id) => creatorId == id
+      case None => false
+    }
+  }
+
+  def isPublic: Boolean = {
+    if (hasProperty("isPublic")) {
+      getProperties.getBoolean("isPublic")
     } else {
       false
     }

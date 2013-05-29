@@ -37,7 +37,7 @@ class Get extends Command {
       var is: InputStream = null
       try {
         is = if ((_inputFilePath != null)) new FileInputStream(new File(_inputFilePath)) else System.in
-        FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(System.in))
+        FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(is))
       } finally {
         if (is ne System.in) is.close()
       }

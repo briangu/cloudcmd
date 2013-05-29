@@ -16,6 +16,7 @@ import java.util
 
 class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentAddressableStorage) extends Route(route) {
 
+  // TODO: make configurable
   val MAX_UPLOAD_SIZE = 64 * 1024 * 1024
   val BUFFER_SIZE = 32 * 1024 * 1024
   val READ_BUFFER_SIZE = 1024 * 1024
@@ -307,80 +308,6 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
 
         val fmds = cas.find(filter)
         new JsonResponse(FileMetaData.toJsonArray(fmds))
-      }
-    }))
-
-    // required:
-    // src meta hash id
-    // dest ownerId
-    // operation:
-    //  load meta from cas
-    //  verify creatorId of meta == current session ownerId
-    //  create new fmd with dest as ownerId, src ownerId as creatorId
-    //  create new block context with dest ownerId
-    //  store new fmd in dest store
-    server.addRoute(new OAuthPostRestRoute(config, "/share", new OAuthRouteHandler {
-      def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        val srcCreatorId = session.getAsRequestToken.getKey()
-        val destOwnerId = args.get("destOwnerId") match {
-          case Some(id) => {
-            // verify that the dest user exists
-            if (SimpleOAuthSessionService.instance.isValidKey(id)) {
-              id
-            } else {
-              return new StatusResponse(HttpResponseStatus.BAD_REQUEST)
-            }
-          }
-          case None => {
-            return new StatusResponse(HttpResponseStatus.BAD_REQUEST)
-          }
-        }
-
-        val srcFmd = args.get("metaHashId") match {
-          case Some(hashId) => {
-            val ctx = new BlockContext(hashId, ownerId = Some(srcCreatorId))
-            try {
-              val rawString = StreamUtil.spoolStreamToString(cas.load(ctx)._1)
-              val rawData = new JSONObject(rawString)
-              val fmd = FileMetaData.create(hashId, rawData)
-              if (fmd.isCreator(srcCreatorId)) {
-                Some(fmd)
-              } else {
-                return new StatusResponse(HttpResponseStatus.UNAUTHORIZED)
-              }
-            } catch {
-              case e: Exception => {
-                None
-              }
-            }
-          }
-          case None => {
-            None
-          }
-        }
-
-        srcFmd match {
-          case Some(fmd) => {
-            try {
-              fmd.getProperties.put("ownerId", destOwnerId)
-              fmd.getProperties.put("creatorId", srcCreatorId)
-              val rawBytes = new ByteArrayInputStream(fmd.getRawData.toString.getBytes("UTF-8"))
-              rawBytes.mark(0)
-              val shareFmd = FileMetaData.create(rawBytes, fmd.getRawData)
-              val shareCtx = new BlockContext(shareFmd.getHash, fmd.getTags, Some(destOwnerId))
-              rawBytes.reset()
-              cas.store(shareCtx, rawBytes)
-              new StatusResponse(HttpResponseStatus.OK)
-            } catch {
-              case e: Exception => {
-                new StatusResponse(HttpResponseStatus.BAD_REQUEST)
-              }
-            }
-          }
-          case None => {
-            new StatusResponse(HttpResponseStatus.NOT_FOUND)
-          }
-        }
       }
     }))
 

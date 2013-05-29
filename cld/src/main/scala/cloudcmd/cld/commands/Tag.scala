@@ -25,7 +25,7 @@ class Tag extends Command {
   def doCommand(adapter: IndexedContentAddressableStorage) {
     import scala.collection.JavaConversions._
 
-    val is = if ((_inputFilePath != null)) new FileInputStream(new File(_inputFilePath)) else System.in
+    val is = if (_inputFilePath != null) new FileInputStream(new File(_inputFilePath)) else System.in
     try {
       val selections = FileMetaData.fromJsonArray(JsonUtil.loadJsonArray(is))
 

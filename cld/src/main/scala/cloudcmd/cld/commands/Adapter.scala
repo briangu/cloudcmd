@@ -13,7 +13,7 @@ class Adapter extends Command {
   @Opt(opt = "r", longOpt = "remove", description = "remove adapter", required = false) private var _remove: String = null
   @Opt(opt = "l", longOpt = "list", description = "list adapters", required = false) private var _list: Boolean = false
   @Opt(opt = "a", longOpt = "add", description = "add adapter", required = false) private var _add: String = null
-  @Opt(opt = "d", longOpt = "dump", description = "dump adapter URI", required = false) private var _dumpUri: String = null
+  @Opt(opt = "d", longOpt = "describe", description = "describe adapter URI", required = false) private var _dumpUri: String = null
 
   def exec(commandLine: CommandContext) {
     if (_remove != null) {
