@@ -112,7 +112,6 @@ class FileServices(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
 
     server.addRoute(new OAuthGetRestRoute(config, "/files/$key", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        new StatusResponse(HttpResponseStatus.NOT_FOUND)
         val ownerId = session.getAsRequestToken.getKey()
 
         val srcFmd = args.get("key") match {
@@ -153,12 +152,6 @@ class FileServices(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
             new StatusResponse(HttpResponseStatus.NOT_FOUND)
           }
         }
-      }
-    }))
-
-    server.addRoute(new OAuthGetRestRoute(config, "/files/thumb/$key", new OAuthRouteHandler {
-      def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        new StatusResponse(HttpResponseStatus.NOT_FOUND)
       }
     }))
   }

@@ -1,7 +1,7 @@
 package cloudcmd.common.config
 
 import cloudcmd.common._
-import cloudcmd.common.adapters.IndexedAdapter
+import cloudcmd.common.adapters.{DirectAdapter, IndexedAdapter}
 import cloudcmd.common.engine.MirrorReplicationStrategy
 import cloudcmd.common.engine.ReplicationStrategy
 import org.json.JSONArray
@@ -27,6 +27,7 @@ class JsonConfigStorage extends ConfigStorage {
   private var _minTier = 0
   private var _maxTier = Int.MaxValue
   private var _allAdapters: List[IndexedAdapter] = null
+  private var _auxAdapters: Map[String, DirectAdapter] = null
   private var _adapterHandlers: Map[String, String] = null
 
   private def getConfigFile(path: String): String = {
@@ -77,6 +78,20 @@ class JsonConfigStorage extends ConfigStorage {
       adapters.append(adapter)
     }
     adapters.toList
+  }
+
+  private def loadAuxiliaryAdapters(config: JSONObject): Map[String, DirectAdapter] = {
+    if (config.has("auxAdapters")) {
+      import scala.collection.JavaConversions._
+      val adapterConfigs = config.getJSONObject("auxAdapters")
+      Map() ++ adapterConfigs.keys().flatMap { key =>
+        val adapterUri = new URI(adapterConfigs.getString(key.asInstanceOf[String]))
+        val adapter = loadAdapter(adapterUri)
+        Map(key.asInstanceOf[String] -> adapter)
+      }
+    } else {
+      Map()
+    }
   }
 
   private def getTierFromUri(adapterUri: URI): Int = {
@@ -132,12 +147,13 @@ class JsonConfigStorage extends ConfigStorage {
     _config = loadConfig(configRoot)
     _adapterHandlers = loadAdapterHandlers(_config)
     _allAdapters = loadAdapters(_config)
+    _auxAdapters = loadAuxiliaryAdapters(_config)
     _isDebug = loadDebug(_config)
   }
 
   def shutdown() {
-    if (_allAdapters == null) return
-    for (adapter <- _allAdapters) {
+    val adapters = (if (_allAdapters != null) _allAdapters else List()) ++ (if (_auxAdapters != null) _auxAdapters.values.toList else List())
+    for (adapter <- adapters) {
       try {
         adapter.shutdown()
       }
@@ -239,6 +255,10 @@ class JsonConfigStorage extends ConfigStorage {
 
   def getAllAdapters: List[IndexedAdapter] = {
     _allAdapters
+  }
+
+  def getAuxilaryAdapter(key: String): Option[DirectAdapter] = {
+    _auxAdapters.get(key)
   }
 
   def getMaxAdapterTier: Int = {
