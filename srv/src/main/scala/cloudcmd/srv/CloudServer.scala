@@ -1,11 +1,12 @@
 package cloudcmd.srv
 
 import io.viper.common.{NestServer, ViperServer}
-import cloudcmd.common.{IndexedContentAddressableStorage, FileUtil}
+import cloudcmd.common.{ContentAddressableStorage, IndexedContentAddressableStorage, FileUtil}
 import java.io._
 import cloudcmd.common.srv.{FileServices, SimpleOAuthSessionService, CloudAdapter, OAuthRouteConfig}
 import java.net.InetAddress
 import org.apache.log4j.Logger
+import cloudcmd.common.srv.nest.io.most.api.ThumbnailService
 
 object CloudServer {
 
@@ -45,21 +46,22 @@ object CloudServer {
         report("\t%s".format(adapter.getSignature))
       }
 
-      NestServer.run(port, new CloudServer(CloudServices.BlockStorage, apiConfig))
+      NestServer.run(port, new CloudServer(CloudServices.BlockStorage, apiConfig, CloudServices.ThumbCAS))
     } finally {
       CloudServices.shutdown()
     }
   }
 }
 
-class CloudServer(cas: IndexedContentAddressableStorage, apiConfig: OAuthRouteConfig) extends ViperServer("res:///cloudserver") {
+class CloudServer(cas: IndexedContentAddressableStorage, apiConfig: OAuthRouteConfig, thumbCAS: ContentAddressableStorage) extends ViperServer("res:///api.most.io") {
 
   val _apiHandler = new CloudAdapter(cas, apiConfig)
   val _fileServices = new FileServices(cas, apiConfig)
+  val _thumbService = new ThumbnailService(cas, apiConfig, thumbCAS)
 
-  override
-  def addRoutes {
+  override def addRoutes {
     _apiHandler.addRoutes(this)
+    _thumbService.addRoutes(this)
     _fileServices.addRoutes(this)
   }
 }

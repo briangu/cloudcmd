@@ -13,8 +13,6 @@ import cloudcmd.common.util.{FileTypeUtil, StreamUtil}
 import org.json.JSONObject
 import java.io.{InputStream, ByteArrayOutputStream, ByteArrayInputStream}
 import javax.imageio.ImageIO
-import com.thebuzzmedia.imgscalr.Scalr
-import com.thebuzzmedia.imgscalr.AsyncScalr
 import com.thebuzzmedia.imgscalr.{Scalr, AsyncScalr}
 
 object ThumbnailService {
