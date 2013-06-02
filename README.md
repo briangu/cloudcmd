@@ -203,17 +203,8 @@ For example, say a user wanted to store huge files reliably, but didn't want to 
 Build it
 -----------
 
-At this point cloudcmd is under active development, so setup can be a little tricky but very doable.
-
-Maven and a few other related projects required.  CloudCmd will include a web server for hosting storage, so that's why viper.io is included.
-
     git clone git://github.com/briangu/cloudcmd.git
     cd cloudcmd
-    git submodule init
-    git submodule update
-    cd viper.io
-    mvn clean install
-    cd ..
     mvn clean install
 
 Next, open your .bashrc, .profile, or whatever you use and add a CLOUDCMD_HOME environment variable pointing to your cloudcmd root directory.
