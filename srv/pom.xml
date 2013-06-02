@@ -15,7 +15,7 @@
     <dependency>
       <groupId>io.viper</groupId>
       <artifactId>io.viper.core</artifactId>
-      <version>0.1.2-SNAPSHOT</version>
+      <version>0.1.4</version>
     </dependency>
     <dependency>
       <groupId>cloudcmd</groupId>
