@@ -9,21 +9,30 @@ import java.io.{FileInputStream, InputStream}
 import java.net.URI
 import java.nio.channels.Channels
 import org.jets3t.service.io.RepeatableInputStream
+import scala.collection.mutable
 
-//     "s3://<aws id>@<bucket>?tier=2&tags=s3&secret=<aws secret>"
+//     "s3://<aws id>@<bucket>/<bucket path>?tier=2&tags=s3&secret=<aws secret>&useRRS=<bool>"
+//        secret - AWS secret
+//        (optional) tier - adapter tier
+//        (optional) useRRS - use reduced redundancy storage: default is true
+//        (optional) tags - tags that the adapter accepts or rejects
 
 class DirectS3Adapter extends DirectAdapter {
 
-  private var _bucketName: String = null
   private var _s3Service: RestS3Service = null
+
+  private var _bucketName: String = null
+  private var _objectPrefix: String = null
   private var _useReducedRedundancy: Boolean = true
 
   override def init(configDir: String, tier: Int, adapterType: String, tags: Set[String], uri: URI) {
     super.init(configDir, tier, adapterType, tags, uri)
-    val (awsKey, awsSecret, awsBucketName, useRRS) = parseAwsInfo(URI)
+
+    val (awsKey, awsSecret, awsBucketName, objectPrefix, useRRS) = parseAwsInfo(URI)
     val creds = new AWSCredentials(awsKey, awsSecret)
     _s3Service = new RestS3Service(creds)
     _bucketName = awsBucketName
+    _objectPrefix = objectPrefix
     _useReducedRedundancy = useRRS
 
     _isOnline = try {
@@ -42,38 +51,51 @@ class DirectS3Adapter extends DirectAdapter {
 
   def shutdown() {}
 
-  private def getObjectName(ctx: BlockContext): String = {
+  private def getObjectNameFromBlockContext(ctx: BlockContext): String = {
     ctx.ownerId match {
-      case Some(id) => {
-        "%s/%s".format(id, ctx.hash)
-      }
-      case None => {
-        ctx.hash
-      }
+      case Some(id) => "%s%s/%s".format(_objectPrefix, id, ctx.hash)
+      case None => "%s%s".format(_objectPrefix, ctx.hash)
     }
   }
 
-  private def parseAwsInfo(adapterUri: URI): (String, String, String, Boolean) = {
+  private def parseAwsInfo(adapterUri: URI): (String, String, String, String, Boolean) = {
     val parts = adapterUri.getAuthority.split("@")
-    if (parts.length != 2) throw new IllegalArgumentException("authority format: awsKey@bucketname")
-    val queryParams = UriUtil.parseQueryString(adapterUri)
-    if (!queryParams.containsKey("secret")) throw new IllegalArgumentException("missing aws secret")
-    val useRRS = Option(queryParams.get("useRRS")) match {
-      case Some(param) => param.toBoolean
-      case None => true // default
+    if (parts.length != 2) {
+      throw new IllegalArgumentException("authority format: awsKey@bucketname")
     }
-    (parts(0), queryParams.get("secret"), parts(1), useRRS)
+
+    val queryParams = UriUtil.parseQueryString(adapterUri)
+    if (!queryParams.containsKey("secret")) {
+      throw new IllegalArgumentException("missing aws secret")
+    }
+
+    val awsKey = parts(0)
+    val awsSecret = queryParams.get("secret")
+    val bucketName = parts(1)
+    val objectPrefix = if (adapterUri.getPath.length > 0) {
+      if (adapterUri.getPath.endsWith("/")) {
+       adapterUri.getPath
+      } else {
+        "%s/".format(adapterUri.getPath)
+      }
+    } else {
+      ""
+    }
+
+    val useRRS = Option(queryParams.get("useRRS")).getOrElse("true").toBoolean
+
+    (awsKey, awsSecret, bucketName, objectPrefix, useRRS)
   }
 
   def containsAll(ctxs: Set[BlockContext]): Map[BlockContext, Boolean] = {
     Map() ++ ctxs.par.flatMap{ctx =>
-      Map(ctx -> _s3Service.isObjectInBucket(_bucketName, getObjectName(ctx)))
+      Map(ctx -> _s3Service.isObjectInBucket(_bucketName, getObjectNameFromBlockContext(ctx)))
     }
   }
 
   def removeAll(ctxs: Set[BlockContext]): Map[BlockContext, Boolean] = {
     Map() ++ ctxs.par.flatMap{ctx =>
-      _s3Service.deleteObject(_bucketName, getObjectName(ctx))
+      _s3Service.deleteObject(_bucketName, getObjectNameFromBlockContext(ctx))
       Map(ctx -> true)
     }
   }
@@ -112,7 +134,7 @@ class DirectS3Adapter extends DirectAdapter {
   }
 
   private def store(ctx: BlockContext, data: InputStream, md5Digest: Array[Byte], length: Long) {
-    val s3Object: S3Object = new S3Object(getObjectName(ctx))
+    val s3Object: S3Object = new S3Object(getObjectNameFromBlockContext(ctx))
     s3Object.setDataInputStream(new RepeatableInputStream(data, length.toInt))
     s3Object.setContentLength(length)
     s3Object.setMd5Hash(md5Digest)
@@ -122,7 +144,7 @@ class DirectS3Adapter extends DirectAdapter {
   }
 
   def load(ctx: BlockContext): (InputStream, Int) = {
-    val obj = _s3Service.getObject(_bucketName, getObjectName(ctx))
+    val obj = _s3Service.getObject(_bucketName, getObjectNameFromBlockContext(ctx))
     (obj.getDataInputStream, obj.getContentLength.toInt)
   }
 
@@ -136,13 +158,12 @@ class DirectS3Adapter extends DirectAdapter {
   def describe(ownerId: Option[String] = None): Set[String] = {
     ownerId match {
       case Some(id) => {
-        val objList = _s3Service.listObjects(_bucketName, "%s/".format(id), "/", Int.MaxValue)
-        Set() ++ objList.par map {
-          s3Object => s3Object.getKey.substring(id.length + 2)
-        }
+        val objList = _s3Service.listObjects(_bucketName, "%s%s/".format(_objectPrefix, id), "/", Int.MaxValue)
+        Set() ++ objList.flatMap(obj => Set(obj.getKey.substring(id.length + 2)))
       }
       case None => {
-        Set() ++ _s3Service.listObjects(_bucketName).par.map(_.getKey)
+        val listObjects = _s3Service.listObjects(_bucketName, _objectPrefix, "/")
+        Set() ++ listObjects.flatMap(obj => Set(obj.getKey))
       }
     }
   }

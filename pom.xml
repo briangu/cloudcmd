@@ -13,6 +13,7 @@
   <modules>
     <module>common</module>
     <module>cld</module>
+    <module>examples</module>
     <module>srv</module>
   </modules>
 
