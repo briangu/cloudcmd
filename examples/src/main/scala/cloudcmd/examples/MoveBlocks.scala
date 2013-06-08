@@ -1,10 +1,10 @@
 package cloudcmd.examples
 
-import cloudcmd.common.adapters.DirectS3Adapter
 import java.net.URI
 import cloudcmd.common.BlockContext
+import cloudcmd.common.config.AdapterFactory
 
-object MoveS3Blocks {
+object MoveBlocks {
 
   def main(args: Array[String]) {
     if (args.size != 2) {
@@ -12,18 +12,16 @@ object MoveS3Blocks {
       return
     }
 
-    val srcAdapter = new DirectS3Adapter()
-    val destAdapter = new DirectS3Adapter()
+    val srcAdapter = AdapterFactory.createDirectAdapter(new URI(args(0)))
+    val destAdapter = AdapterFactory.createDirectAdapter(new URI(args(1)))
     val adapters = List(srcAdapter, destAdapter)
 
     try {
-      srcAdapter.init(".", 1, "", Set(), new URI(args(0)))
       if (!srcAdapter.IsOnLine) {
         println("src adapter %s is not online!".format(srcAdapter.getSignature))
         return
       }
 
-      destAdapter.init(".", 1, "", Set(), new URI(args(1)))
       if (!destAdapter.IsOnLine) {
         println("dest adapter %s is not online!".format(destAdapter.getSignature))
         return

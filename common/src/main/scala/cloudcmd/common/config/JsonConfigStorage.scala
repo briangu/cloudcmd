@@ -7,13 +7,11 @@ import cloudcmd.common.engine.ReplicationStrategy
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
-import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.IOException
 import java.net.URI
-import java.nio.channels.Channels
 import collection.mutable.ListBuffer
-import util.{CryptoUtil, JsonUtil}
+import util.JsonUtil
 
 class JsonConfigStorage extends ConfigStorage {
 
@@ -74,7 +72,7 @@ class JsonConfigStorage extends ConfigStorage {
     val adapters = new ListBuffer[IndexedAdapter]
     (0 until adapterUris.length()).foreach{ i =>
       val adapterUri = new URI(adapterUris.getString(i))
-      val adapter = loadAdapter(adapterUri)
+      val adapter = AdapterFactory.createIndexedAdapter(_configRoot, _adapterHandlers, adapterUri)
       adapters.append(adapter)
     }
     adapters.toList
@@ -86,60 +84,12 @@ class JsonConfigStorage extends ConfigStorage {
       val adapterConfigs = config.getJSONObject("auxAdapters")
       Map() ++ adapterConfigs.keys().flatMap { key =>
         val adapterUri = new URI(adapterConfigs.getString(key.asInstanceOf[String]))
-        val adapter = loadAdapter(adapterUri)
+        val adapter = AdapterFactory.createIndexedAdapter(_configRoot, _adapterHandlers, adapterUri)
         Map(key.asInstanceOf[String] -> adapter)
       }
     } else {
       Map()
     }
-  }
-
-  private def getTierFromUri(adapterUri: URI): Int = {
-    val queryParams = UriUtil.parseQueryString(adapterUri)
-    if ((queryParams.containsKey("tier"))) queryParams.get("tier").toInt else _defaultTier
-  }
-
-  private def getTagsFromUri(adapterUri: URI): Set[String] = {
-    val queryParams = UriUtil.parseQueryString(adapterUri)
-    if (queryParams.containsKey("tags")) {
-      val parts = queryParams.get("tags").split(",").filter(_.length > 0)
-      parts.flatMap(Set(_)).toSet
-    } else {
-      Set()
-    }
-  }
-
-  private def getAdapterSignature(uri: URI): String = {
-    val path = uri.getPath
-    if (path.length == 0) {
-      uri.getAuthority
-    } else {
-      path
-    }
-  }
-
-  private def loadAdapter(adapterUri: URI): IndexedAdapter = {
-    var adapter: IndexedAdapter = null
-    val scheme = adapterUri.getScheme
-    if (!_adapterHandlers.contains(scheme)) {
-      throw new IllegalArgumentException(String.format("scheme %s in adapter URI %s is not supported!", scheme, adapterUri))
-    }
-    val handlerType = _adapterHandlers.get(scheme).get
-    val tier = getTierFromUri(adapterUri)
-    val tags = getTagsFromUri(adapterUri)
-    val clazz = classOf[JsonConfigStorage].getClassLoader.loadClass(handlerType)
-    try {
-      adapter = clazz.newInstance.asInstanceOf[IndexedAdapter]
-      val adapterSignature = getAdapterSignature(adapterUri)
-      val adapterIdHash = CryptoUtil.digestToString(CryptoUtil.computeMD5Hash(Channels.newChannel(new ByteArrayInputStream(adapterSignature.getBytes("UTF-8")))))
-      adapter.init(_configRoot + File.separator + "adapterCaches" + File.separator + adapterIdHash, tier, handlerType, tags.toSet, adapterUri)
-    }
-    catch {
-      case e: Exception => {
-        throw new RuntimeException(String.format("failed to initialize adapter %s for adapter %s", handlerType, adapterUri), e)
-      }
-    }
-    adapter
   }
 
   def init(configRoot: String) {
@@ -245,7 +195,7 @@ class JsonConfigStorage extends ConfigStorage {
   }
 
   def removeAdapter(uri: URI): Boolean = {
-    val adapter = loadAdapter(uri)
+    val adapter = findAdapterByBestMatch(uri.toASCIIString)
     val contains = _allAdapters.contains(adapter)
     if (contains) {
       _allAdapters = _allAdapters.diff(List(adapter))
@@ -275,7 +225,7 @@ class JsonConfigStorage extends ConfigStorage {
 
   def addAdapter(adapterUri: URI) {
     try {
-      val adapter: IndexedAdapter = loadAdapter(adapterUri)
+      val adapter: IndexedAdapter = AdapterFactory.createIndexedAdapter(_configRoot, _adapterHandlers, adapterUri)
       _allAdapters = _allAdapters ++ List(adapter)
     }
     catch {
