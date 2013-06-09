@@ -32,10 +32,26 @@ class Adapter extends Command {
       CloudServices.ConfigService.writeConfig()
       list()
     } else if (_dumpUri != null) {
-      CloudServices.ConfigService.findAdapterByBestMatch(_dumpUri) match {
+      val adapter = CloudServices.ConfigService.findAdapterByBestMatch(_dumpUri) match {
         case Some(adapter) => {
-          adapter.describe().foreach { hash =>
-            System.out.println("%s".format(hash))
+          System.err.println("using adapter: %s".format(adapter.getSignature))
+          adapter
+        }
+        case None => {
+          System.err.println("adapter %s not found.".format(_dumpUri))
+          null
+        }
+      }
+
+      Option(adapter) match {
+        case Some(adapter) => {
+          val description = adapter.describe()
+          if (description.size > 0) {
+            description.foreach { hash =>
+              System.out.println("%s".format(hash))
+            }
+          } else {
+            System.out.println("no blocks found.")
           }
         }
         case None => {

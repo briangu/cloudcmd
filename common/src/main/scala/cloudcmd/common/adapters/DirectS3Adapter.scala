@@ -162,7 +162,11 @@ class DirectS3Adapter extends DirectAdapter {
         Set() ++ objList.flatMap(obj => Set(obj.getKey.substring(id.length + 2)))
       }
       case None => {
-        val listObjects = _s3Service.listObjects(_bucketName, _objectPrefix, "/")
+        val listObjects = if (_objectPrefix == "") {
+          _s3Service.listObjects(_bucketName)
+        } else {
+          _s3Service.listObjects(_bucketName, _objectPrefix, "/")
+        }
         Set() ++ listObjects.flatMap(obj => Set(obj.getKey))
       }
     }
