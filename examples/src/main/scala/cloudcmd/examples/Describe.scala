@@ -3,6 +3,7 @@ package cloudcmd.examples
 import cloudcmd.common.config.AdapterFactory
 import java.net.URI
 import cloudcmd.common.BlockContext
+import java.io.File
 
 object Describe {
 
@@ -12,7 +13,8 @@ object Describe {
       return
     }
 
-    val adapter = AdapterFactory.createDirectAdapter(new URI(args(0)))
+    val configRoot = System.getenv("HOME") + File.separator + ".cld"
+    val adapter = AdapterFactory.createIndexedAdapter(configRoot, AdapterFactory.getDefaultIndexedAdapterHandlers, new URI(args(0)))
     val ownerId = if (args.size >= 2) {
       Some(args(1))
     } else {
@@ -25,6 +27,7 @@ object Describe {
         return
       }
 
+      adapter.reindex()
       val blocks = adapter.describe(ownerId)
       println("adapter has %d blocks".format(blocks.size))
       blocks foreach { block =>

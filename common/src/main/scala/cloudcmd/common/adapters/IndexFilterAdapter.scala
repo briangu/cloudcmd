@@ -121,7 +121,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     _addAllFileMetaData(fmds.toSeq, rebuildIndex = true)
     _fmdCache.clear()
 
-    _addAllHashData(_getDescription.toSet)
+    _addAllHashData(_getDescription)
   }
 
   def find(filter: JSONObject): Seq[FileMetaData] = {
@@ -265,7 +265,21 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
   }
 
   def describe(ownerId: Option[String] = None): Set[String] = {
-    _getDescription.toSet
+    ownerId match {
+      case Some(_) => {
+        val prefix = "%s/".format(ownerId)
+        Set() ++_getDescription.flatMap { hash =>
+          if (hash.startsWith(prefix)) {
+            Set(hash.substring(prefix.length + 2))
+          } else {
+            None
+          }
+        }
+      }
+      case None => {
+        Set(_getDescription.toArray:_*) // TODO: faster way?
+      }
+    }
   }
 
   def _addAllFileMetaData(meta: Seq[FileMetaData], rebuildIndex: Boolean = false) {
@@ -298,7 +312,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     }
   }
 
-  def _addAllHashData(hashes: Set[String], rebuild: Boolean = false) {
+  def _addAllHashData(hashes: Iterable[String], rebuild: Boolean = false) {
     var db: Connection = null
     var st: Statement = null
     try {
@@ -447,7 +461,7 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
     }
   }
 
-  private def _addHashesToDb(db: Connection, hashes: Set[String]) {
+  private def _addHashesToDb(db: Connection, hashes: Iterable[String]) {
     var statement: PreparedStatement = null
     try {
       statement = db.prepareStatement(_addHashSql)
