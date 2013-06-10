@@ -266,9 +266,9 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
 
   def describe(ownerId: Option[String] = None): Set[String] = {
     ownerId match {
-      case Some(_) => {
-        val prefix = "%s/".format(ownerId)
-        Set() ++_getDescription.flatMap { hash =>
+      case Some(id) => {
+        val prefix = "%s/".format(id)
+        Set() ++ _getDescription.flatMap { hash =>
           if (hash.startsWith(prefix)) {
             Set(hash.substring(prefix.length + 2))
           } else {
