@@ -182,6 +182,6 @@ class DirectHttpAdapter extends DirectAdapter {
       .get
     if (response.getStatusCode != HttpResponseStatus.OK.getCode) throw new RuntimeException("unable to describe")
     val arr = new JSONArray(response.getResponseBody("UTF-8"))
-    Set() ++ (0 until arr.length).par.map(idx => arr.getString(idx))
+    Set() ++ (0 until arr.length).flatMap(idx => Set(arr.getString(idx)))
   }
 }
