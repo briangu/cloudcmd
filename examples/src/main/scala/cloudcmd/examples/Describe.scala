@@ -13,10 +13,15 @@ object Describe {
       return
     }
 
-    val configRoot = System.getenv("HOME") + File.separator + ".cld"
+    val configRoot = if (args.size >= 1) {
+      args(1)
+    } else {
+      System.getenv("HOME") + File.separator + ".cld"
+    }
+
     val adapter = AdapterFactory.createIndexedAdapter(configRoot, AdapterFactory.getDefaultIndexedAdapterHandlers, new URI(args(0)))
-    val ownerId = if (args.size >= 2) {
-      Some(args(1))
+    val ownerId = if (args.size >= 3) {
+      Some(args(2))
     } else {
       None
     }

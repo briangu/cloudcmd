@@ -176,6 +176,7 @@ class DirectHttpAdapter extends DirectAdapter {
    * @return
    */
   def describe(ownerId: Option[String] = None): Set[String] = {
+    // the ownerId is OAuth context's userId
     val response = asyncHttpClient
       .prepareGet(_urlDescribe)
       .execute

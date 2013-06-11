@@ -9,7 +9,6 @@ import java.io.{FileInputStream, InputStream}
 import java.net.URI
 import java.nio.channels.Channels
 import org.jets3t.service.io.RepeatableInputStream
-import scala.collection.mutable
 
 //     "s3://<aws id>@<bucket>/<bucket path>?tier=2&tags=s3&secret=<aws secret>&useRRS=<bool>"
 //        secret - AWS secret
