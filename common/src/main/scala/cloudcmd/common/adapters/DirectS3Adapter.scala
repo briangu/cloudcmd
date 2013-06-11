@@ -72,10 +72,15 @@ class DirectS3Adapter extends DirectAdapter {
     val awsSecret = queryParams.get("secret")
     val bucketName = parts(1)
     val objectPrefix = if (adapterUri.getPath.length > 0) {
-      if (adapterUri.getPath.endsWith("/")) {
-       adapterUri.getPath
+      val partial = if (adapterUri.getPath.endsWith("/")) {
+        adapterUri.getPath
       } else {
         "%s/".format(adapterUri.getPath)
+      }
+      if (partial.startsWith("/")) {
+        partial.substring(1)
+      } else {
+        partial
       }
     } else {
       ""
