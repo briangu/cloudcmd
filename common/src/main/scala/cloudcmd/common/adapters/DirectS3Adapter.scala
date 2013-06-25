@@ -10,54 +10,8 @@ import java.net.URI
 import java.nio.channels.Channels
 import org.jets3t.service.io.RepeatableInputStream
 
-//     "s3://<aws id>@<bucket>/<bucket path>?tier=2&tags=s3&secret=<aws secret>&useRRS=<bool>"
-//        secret - AWS secret
-//        (optional) tier - adapter tier
-//        (optional) useRRS - use reduced redundancy storage: default is true
-//        (optional) tags - tags that the adapter accepts or rejects
-
-class DirectS3Adapter extends DirectAdapter {
-
-  private var _s3Service: RestS3Service = null
-
-  private var _bucketName: String = null
-  private var _objectPrefix: String = null
-  private var _useReducedRedundancy: Boolean = true
-
-  override def init(configDir: String, tier: Int, adapterType: String, tags: Set[String], uri: URI) {
-    super.init(configDir, tier, adapterType, tags, uri)
-
-    val (awsKey, awsSecret, awsBucketName, objectPrefix, useRRS) = parseAwsInfo(URI)
-    val creds = new AWSCredentials(awsKey, awsSecret)
-    _s3Service = new RestS3Service(creds)
-    _bucketName = awsBucketName
-    _objectPrefix = objectPrefix
-    _useReducedRedundancy = useRRS
-
-    _isOnline = try {
-      if (!_s3Service.isBucketAccessible(_bucketName)) {
-        _s3Service.getOrCreateBucket(_bucketName)
-        _s3Service.isBucketAccessible(_bucketName)
-      } else {
-        true
-      }
-    } catch {
-      case e: Exception => {
-        false
-      }
-    }
-  }
-
-  def shutdown() {}
-
-  private def getObjectNameFromBlockContext(ctx: BlockContext): String = {
-    ctx.ownerId match {
-      case Some(id) => "%s%s/%s".format(_objectPrefix, id, ctx.hash)
-      case None => "%s%s".format(_objectPrefix, ctx.hash)
-    }
-  }
-
-  private def parseAwsInfo(adapterUri: URI): (String, String, String, String, Boolean) = {
+object DirectS3Adapter {
+  def parseAwsInfo(adapterUri: URI): (String, String, String, String, Boolean) = {
     val parts = adapterUri.getAuthority.split("@")
     if (parts.length != 2) {
       throw new IllegalArgumentException("authority format: awsKey@bucketname")
@@ -89,6 +43,54 @@ class DirectS3Adapter extends DirectAdapter {
     val useRRS = Option(queryParams.get("useRRS")).getOrElse("true").toBoolean
 
     (awsKey, awsSecret, bucketName, objectPrefix, useRRS)
+  }
+}
+
+//     "s3://<aws id>@<bucket>/<bucket path>?tier=2&tags=s3&secret=<aws secret>&useRRS=<bool>"
+//        secret - AWS secret
+//        (optional) tier - adapter tier
+//        (optional) useRRS - use reduced redundancy storage: default is true
+//        (optional) tags - tags that the adapter accepts or rejects
+
+class DirectS3Adapter extends DirectAdapter {
+
+  private var _s3Service: RestS3Service = null
+
+  private var _bucketName: String = null
+  private var _objectPrefix: String = null
+  private var _useReducedRedundancy: Boolean = true
+
+  override def init(configDir: String, tier: Int, adapterType: String, tags: Set[String], uri: URI) {
+    super.init(configDir, tier, adapterType, tags, uri)
+
+    val (awsKey, awsSecret, awsBucketName, objectPrefix, useRRS) = DirectS3Adapter.parseAwsInfo(URI)
+    val creds = new AWSCredentials(awsKey, awsSecret)
+    _s3Service = new RestS3Service(creds)
+    _bucketName = awsBucketName
+    _objectPrefix = objectPrefix
+    _useReducedRedundancy = useRRS
+
+    _isOnline = try {
+      if (!_s3Service.isBucketAccessible(_bucketName)) {
+        _s3Service.getOrCreateBucket(_bucketName)
+        _s3Service.isBucketAccessible(_bucketName)
+      } else {
+        true
+      }
+    } catch {
+      case e: Exception => {
+        false
+      }
+    }
+  }
+
+  def shutdown() {}
+
+  private def getObjectNameFromBlockContext(ctx: BlockContext): String = {
+    ctx.ownerId match {
+      case Some(id) => "%s%s/%s".format(_objectPrefix, id, ctx.hash)
+      case None => "%s%s".format(_objectPrefix, ctx.hash)
+    }
   }
 
   def containsAll(ctxs: Set[BlockContext]): Map[BlockContext, Boolean] = {
