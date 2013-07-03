@@ -13,8 +13,11 @@ import io.viper.core.server.router._
 import cloudcmd.common.util.{CryptoUtil, StreamUtil}
 import java.nio.ByteBuffer
 import java.util
+import org.apache.log4j.Logger
 
 class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentAddressableStorage) extends Route(route) {
+
+  private val log: Logger = Logger.getLogger(classOf[StoreHandler])
 
   // TODO: make configurable
   val MAX_UPLOAD_SIZE = 64 * 1024 * 1024
@@ -130,6 +133,7 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentA
       val metaJson = new JSONObject(new String(data, "UTF-8"))
       val fmd = FileMetaData.create(ctx.hash, metaJson)
       if (!fmd.hasProperties || !fmd.getProperties.has("ownerId")) {
+        log.warn("fmd is missing ownerId: %s".format(fmd.toJson.toString))
         new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.BAD_REQUEST)
       } else {
         val ownerId = fmd.getProperties.getString("ownerId")

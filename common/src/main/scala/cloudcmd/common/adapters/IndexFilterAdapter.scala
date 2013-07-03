@@ -578,6 +578,10 @@ class IndexFilterAdapter(underlying: DirectAdapter) extends IndexedAdapter {
           } finally {
             SqlUtil.SafeClose(statement)
             SqlUtil.SafeClose(db)
+
+            if (_description == null) {
+              _description = new mutable.HashSet[String] with mutable.SynchronizedSet[String]
+            }
           }
         }
       }
