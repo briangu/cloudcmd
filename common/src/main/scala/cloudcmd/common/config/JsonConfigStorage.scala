@@ -84,7 +84,7 @@ class JsonConfigStorage extends ConfigStorage {
       val adapterConfigs = config.getJSONObject("auxAdapters")
       Map() ++ adapterConfigs.keys().flatMap { key =>
         val adapterUri = new URI(adapterConfigs.getString(key.asInstanceOf[String]))
-        val adapter = AdapterFactory.createIndexedAdapter(_configRoot, _adapterHandlers, adapterUri)
+        val adapter = AdapterFactory.createDirectAdapter(_configRoot, _adapterHandlers, adapterUri)
         Map(key.asInstanceOf[String] -> adapter)
       }
     } else {
