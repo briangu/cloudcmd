@@ -3,7 +3,7 @@ package cloudcmd.srv
 import io.viper.common.{NestServer, ViperServer}
 import cloudcmd.common.{ContentAddressableStorage, IndexedContentAddressableStorage, FileUtil}
 import java.io._
-import cloudcmd.common.srv.{FileServices, SimpleOAuthSessionService, CloudAdapter, OAuthRouteConfig}
+import cloudcmd.common.srv.{FileServices, SimpleOAuthSessionService, IndexedCloudAdapter, OAuthRouteConfig}
 import java.net.InetAddress
 import org.apache.log4j.Logger
 import cloudcmd.common.srv.nest.io.most.api.ThumbnailService
@@ -55,7 +55,7 @@ object CloudServer {
 
 class CloudServer(cas: IndexedContentAddressableStorage, apiConfig: OAuthRouteConfig, thumbCAS: ContentAddressableStorage) extends ViperServer("res:///api.most.io") {
 
-  val _apiHandler = new CloudAdapter(cas, apiConfig)
+  val _apiHandler = new IndexedCloudAdapter(cas, apiConfig)
   val _fileServices = new FileServices(cas, apiConfig)
   val _thumbService = new ThumbnailService(cas, apiConfig, thumbCAS)
 

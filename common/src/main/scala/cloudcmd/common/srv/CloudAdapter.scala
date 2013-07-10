@@ -15,7 +15,7 @@ import java.nio.ByteBuffer
 import java.util
 import org.apache.log4j.Logger
 
-class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentAddressableStorage) extends Route(route) {
+class StoreHandler(config: OAuthRouteConfig, route: String, cas: ContentAddressableStorage) extends Route(route) {
 
   private val log: Logger = Logger.getLogger(classOf[StoreHandler])
 
@@ -32,13 +32,13 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentA
   }
 
   override def isMatch(request: HttpRequest) : Boolean = {
-    (super.isMatch(request) && request.getMethod.equals(HttpMethod.POST))
+    super.isMatch(request) && request.getMethod.equals(HttpMethod.POST)
   }
 
   override def messageReceived(ctx: ChannelHandlerContext, e: MessageEvent) {
     val msg = e.getMessage
 
-    if (!(msg.isInstanceOf[HttpMessage]) && !(msg.isInstanceOf[HttpChunk])) {
+    if (!msg.isInstanceOf[HttpMessage] && !msg.isInstanceOf[HttpChunk]) {
       ctx.sendUpstream(e)
       return
     }
@@ -56,7 +56,7 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentA
       val handlerArgs = args ++ RouteUtil.extractPathArgs(_route, path)
 
       if (handlerArgs.contains("key")) {
-        val ctx = CloudAdapter.getBlockContext(handlerArgs, Some(session))
+        val ctx = CloudAdapterUtil.getBlockContext(handlerArgs, Some(session))
         val contentLength = request.getHeader(HttpHeaders.Names.CONTENT_LENGTH).toInt
 
         if (contentLength <= MAX_UPLOAD_SIZE) {
@@ -195,26 +195,29 @@ class StoreHandler(config: OAuthRouteConfig, route: String, cas: IndexedContentA
   }
 }
 
-object CloudAdapter {
+object CloudAdapterUtil {
   def getBlockContext(args: Map[String, String], session: Option[OAuthSession]) : BlockContext = {
     val (hash, tags) = args.get("key").get.split(",").toList.splitAt(1)
     val ownerId = session match {
-      case Some(sess) => Some(sess.getAsRequestToken.getKey())
+      case Some(sess) => Some(sess.getAsRequestToken.getKey)
       case None => None
     }
     new BlockContext(hash(0), tags.filter(_.length > 0).toSet, ownerId)
   }
+
+  def fromJsonArray(arr: JSONArray, session: OAuthSession): Set[BlockContext] = {
+    Set() ++ (0 until arr.length).map(idx => BlockContext.fromJson(arr.getJSONObject(idx), Some(session.getAsRequestToken.getKey)))
+  }
 }
 
-class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConfig) {
-
+class DirectCloudAdapter(cas: ContentAddressableStorage, config: OAuthRouteConfig) {
   def addRoutes(server: ViperServer) {
 
     // WARNING: order of routes matters, more specific must come first
 
     server.addRoute(new OAuthPostRestRoute(config, "/blocks/containsAll", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        val ctxs = fromJsonArray(new JSONArray(args.getOrElse("ctxs", "[]")), session)
+        val ctxs = CloudAdapterUtil.fromJsonArray(new JSONArray(args.getOrElse("ctxs", "[]")), session)
         val res = cas.containsAll(ctxs)
         val arr = new JSONArray
         res.map {
@@ -229,7 +232,7 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
 
     server.addRoute(new OAuthPostRestRoute(config, "/blocks/ensureAll", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        val ctxs = fromJsonArray(new JSONArray(args.getOrElse("ctxs", "[]")), session)
+        val ctxs = CloudAdapterUtil.fromJsonArray(new JSONArray(args.getOrElse("ctxs", "[]")), session)
         val blockLevelCheck = if (args.contains("blockLevelCheck")) args.get("blockLevelCheck").get.toBoolean else false
         val res = cas.ensureAll(ctxs, blockLevelCheck)
         val arr = new JSONArray
@@ -245,7 +248,7 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
 
     server.addRoute(new OAuthPostRestRoute(config, "/blocks/removeAll", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        val ctxs = fromJsonArray(new JSONArray(args.getOrElse("ctxs", "[]")), session)
+        val ctxs = CloudAdapterUtil.fromJsonArray(new JSONArray(args.getOrElse("ctxs", "[]")), session)
         val res = cas.removeAll(ctxs)
         val arr = new JSONArray
         res.map {
@@ -260,7 +263,7 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
 
     server.addRoute(new OAuthGetRestRoute(config, "/blocks/$key", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        val ctx = CloudAdapter.getBlockContext(args, Some(session))
+        val ctx = CloudAdapterUtil.getBlockContext(args, Some(session))
         if (cas.contains(ctx)) {
           val (is, length) = cas.load(ctx)
           val response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK)
@@ -281,7 +284,7 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
 
     server.addRoute(new OAuthDeleteRestRoute(config, "/blocks/$key", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
-        val ctx = CloudAdapter.getBlockContext(args, Some(session))
+        val ctx = CloudAdapterUtil.getBlockContext(args, Some(session))
         val success = cas.remove(ctx)
         if (success) {
           new StatusResponse(HttpResponseStatus.NO_CONTENT)
@@ -294,10 +297,26 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
     server.addRoute(new OAuthGetRestRoute(config, "/blocks", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
         val arr = new JSONArray
-        cas.describe(Some(session.getAsRequestToken.getKey())).foreach(arr.put)
+        cas.describe(Some(session.getAsRequestToken.getKey)).foreach(arr.put)
         new JsonResponse(arr)
       }
     }))
+
+    server.addRoute(new OAuthGetRestRoute(config, "/ping", new OAuthRouteHandler {
+      def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
+        new StatusResponse(HttpResponseStatus.OK)
+      }
+    }))
+  }
+}
+
+class IndexedCloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConfig) extends DirectCloudAdapter(cas, config) {
+
+  override def addRoutes(server: ViperServer) {
+
+    // WARNING: order of routes matters, more specific must come first
+
+    super.addRoutes(server)
 
     server.addRoute(new OAuthPostRestRoute(config, "/find", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
@@ -320,9 +339,5 @@ class CloudAdapter(cas: IndexedContentAddressableStorage, config: OAuthRouteConf
         new StatusResponse(HttpResponseStatus.OK)
       }
     }))
-  }
-
-  private def fromJsonArray(arr: JSONArray, session: OAuthSession): Set[BlockContext] = {
-    Set() ++ (0 until arr.length).map(idx => BlockContext.fromJson(arr.getJSONObject(idx), Some(session.getAsRequestToken.getKey())))
   }
 }
