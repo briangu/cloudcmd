@@ -3,7 +3,7 @@ package cloudcmd.srv
 import cloudcmd.common.config.JsonConfigStorage
 import cloudcmd.common.adapters.{DirectAdapter, ReplicationStrategyAdapter}
 import cloudcmd.common.{ContentAddressableStorage, IndexedContentAddressableStorage}
-import cloudcmd.common.srv.nest.io.most.api.ThumbnailService
+import cloudcmd.common.srv.ThumbnailService
 
 object CloudServices {
 

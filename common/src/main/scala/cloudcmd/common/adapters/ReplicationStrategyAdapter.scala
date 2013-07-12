@@ -6,13 +6,13 @@ import cloudcmd.common.engine.ReplicationStrategy
 import org.json.JSONObject
 import scala.collection.mutable
 
-class ReplicationStrategyAdapter(adapters: List[IndexedAdapter], storage: ReplicationStrategy) extends IndexedContentAddressableStorage {
+class DirectReplicationStrategyAdapter(adapters: List[DirectAdapter], storage: ReplicationStrategy) extends ContentAddressableStorage {
 
-  def getAdaptersAccepts(ctx: BlockContext) : List[IndexedAdapter] = {
+  def getAdaptersAccepts(ctx: BlockContext) : List[DirectAdapter] = {
     adapters.filter(_.accepts(ctx)).toList
   }
 
-  private def getHashProviders(ctx: BlockContext) : List[IndexedAdapter] = {
+  private def getHashProviders(ctx: BlockContext) : List[DirectAdapter] = {
     adapters.par.filter(_.contains(ctx)).toList
   }
 
@@ -55,8 +55,11 @@ class ReplicationStrategyAdapter(adapters: List[IndexedAdapter], storage: Replic
   def removeAll(ctxs: Set[BlockContext]) : Map[BlockContext, Boolean] = {
     Map() ++ ctxs.par.flatMap( ctx => Map(ctx -> storage.remove(ctx, getHashProviders(ctx))) )
   }
+}
 
-  /** *
+class ReplicationStrategyAdapter(adapters: List[IndexedAdapter], storage: ReplicationStrategy) extends DirectReplicationStrategyAdapter(adapters, storage) with IndexedContentAddressableStorage {
+
+  /***
     * Refresh the storage index, which may be time consuming
     */
   def reindex(cas: ContentAddressableStorage) {
@@ -70,7 +73,7 @@ class ReplicationStrategyAdapter(adapters: List[IndexedAdapter], storage: Replic
     }
   }
 
-  /** *
+  /***
     * Flush the index cache that may be populated during a series of modifications (e.g. store)
     */
   def flushIndex() {

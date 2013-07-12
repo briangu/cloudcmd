@@ -1,17 +1,17 @@
 package cloudcmd.common.engine
 
-import cloudcmd.common.adapters.IndexedAdapter
+import cloudcmd.common.adapters.DirectAdapter
 import java.io.InputStream
 import cloudcmd.common.BlockContext
 
 trait ReplicationStrategy {
-  def isReplicated(ctx: BlockContext, adapters: List[IndexedAdapter]): Boolean
+  def isReplicated(ctx: BlockContext, adapters: List[DirectAdapter]): Boolean
 
-  def store(ctx: BlockContext, is: InputStream, adapters: List[IndexedAdapter])
+  def store(ctx: BlockContext, is: InputStream, adapters: List[DirectAdapter])
 
-  def load(ctx: BlockContext, adapters: List[IndexedAdapter]): (InputStream, Int)
+  def load(ctx: BlockContext, adapters: List[DirectAdapter]): (InputStream, Int)
 
-  def remove(ctx: BlockContext, adapters: List[IndexedAdapter]) : Boolean
+  def remove(ctx: BlockContext, adapters: List[DirectAdapter]) : Boolean
 
-  def ensure(ctx: BlockContext, hashProviders: List[IndexedAdapter], adapters: List[IndexedAdapter], blockLevelCheck: Boolean) : Boolean
+  def ensure(ctx: BlockContext, hashProviders: List[DirectAdapter], adapters: List[DirectAdapter], blockLevelCheck: Boolean) : Boolean
 }

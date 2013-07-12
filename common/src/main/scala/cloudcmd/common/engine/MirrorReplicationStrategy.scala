@@ -1,7 +1,7 @@
 package cloudcmd.common.engine
 
 import cloudcmd.common.{BlockContext, FileUtil}
-import cloudcmd.common.adapters.{MultiWriteBlockException, DataNotFoundException, IndexedAdapter}
+import cloudcmd.common.adapters.{DirectAdapter, MultiWriteBlockException, DataNotFoundException}
 import org.apache.log4j.Logger
 import java.io.InputStream
 import util.Random
@@ -11,14 +11,14 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
 
   private val log: Logger = Logger.getLogger(classOf[MirrorReplicationStrategy])
 
-  def isReplicated(ctx: BlockContext, adapters: List[IndexedAdapter]): Boolean = {
+  def isReplicated(ctx: BlockContext, adapters: List[DirectAdapter]): Boolean = {
     val acceptsAdapters = adapters.filter(_.accepts(ctx))
     val adaptersMissingBlock = acceptsAdapters.filter(!_.contains(ctx))
     val replicated = adaptersMissingBlock.size == 0
     replicated
   }
 
-  def store(ctx: BlockContext, dis: InputStream, adapters: List[IndexedAdapter]) {
+  def store(ctx: BlockContext, dis: InputStream, adapters: List[DirectAdapter]) {
     if (adapters == null || adapters.size == 0) {
       throw new IllegalArgumentException("no adapters to store to")
     }
@@ -37,7 +37,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
     }
   }
 
-  def storeSingleStream(ctx: BlockContext, dis: InputStream, adapters: List[IndexedAdapter]) {
+  def storeSingleStream(ctx: BlockContext, dis: InputStream, adapters: List[DirectAdapter]) {
     val adapter = adapters(0)
     if (!adapter.contains(ctx)) {
       try {
@@ -53,7 +53,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
     }
   }
 
-  def storeViaMultiStreamBootstrap(ctx: BlockContext, dis: InputStream, adapters: List[IndexedAdapter]) {
+  def storeViaMultiStreamBootstrap(ctx: BlockContext, dis: InputStream, adapters: List[DirectAdapter]) {
     val containsAdapters = adapters.filter(_.contains(ctx))
     val missingAdapters = adapters.diff(containsAdapters).sortBy(_.Tier).toList
 
@@ -75,7 +75,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
     }
   }
 
-  def storeViaTierClusters(ctx: BlockContext, adapters: List[IndexedAdapter]) {
+  def storeViaTierClusters(ctx: BlockContext, adapters: List[DirectAdapter]) {
     val containsAdapters = adapters.filter(_.contains(ctx))
     val missingAdapterGroups = adapters.diff(containsAdapters).sortBy(_.Tier).groupBy(_.Tier)
 
@@ -86,12 +86,12 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
     }
   }
 
-  def storeViaFanFold(ctx: BlockContext, containsAdapters: List[IndexedAdapter], missingAdapters: List[IndexedAdapter]) {
+  def storeViaFanFold(ctx: BlockContext, containsAdapters: List[DirectAdapter], missingAdapters: List[DirectAdapter]) {
     if (containsAdapters.size == 0) {
       throw new IllegalArgumentException("containsAdapters.size == 0")
     }
 
-    var failedAdapters = List[IndexedAdapter]()
+    var failedAdapters = List[DirectAdapter]()
 
     val pushedCount = new AtomicInteger()
 
@@ -132,12 +132,12 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
     }
   }
 
-  def load(ctx: BlockContext, hashProviders: List[IndexedAdapter]): (InputStream, Int) = {
+  def load(ctx: BlockContext, hashProviders: List[DirectAdapter]): (InputStream, Int) = {
     if (hashProviders.size == 0) throw new DataNotFoundException(ctx)
     Random.shuffle(hashProviders).sortBy(x => x.Tier).toList(0).load(ctx)
   }
 
-  def remove(ctx: BlockContext, hashProviders: List[IndexedAdapter]) : Boolean = {
+  def remove(ctx: BlockContext, hashProviders: List[DirectAdapter]) : Boolean = {
     var success = true
     hashProviders.par.foreach {
       adapter =>
@@ -158,19 +158,19 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
     success
   }
 
-  def ensure(ctx: BlockContext, hashProviders: List[IndexedAdapter], adapters: List[IndexedAdapter], blockLevelCheck: Boolean) : Boolean = {
+  def ensure(ctx: BlockContext, hashProviders: List[DirectAdapter], adapters: List[DirectAdapter], blockLevelCheck: Boolean) : Boolean = {
     if (hashProviders.size == 0) {
       return false
     }
     val consistencyResults = ensureExistingBlocks(ctx, hashProviders, blockLevelCheck)
-    val validProviders = consistencyResults.filter{case (adapter:IndexedAdapter, consistent: Boolean) => consistent}.keySet.toList
+    val validProviders = consistencyResults.filter{case (adapter:DirectAdapter, consistent: Boolean) => consistent}.keySet.toList
     if (validProviders.size == 0) {
       throw new DataNotFoundException(ctx)
     }
     sync(ctx, validProviders, adapters)
   }
 
-  private def sync(ctx: BlockContext, hashProviders: List[IndexedAdapter], adapters: List[IndexedAdapter]) : Boolean = {
+  private def sync(ctx: BlockContext, hashProviders: List[DirectAdapter], adapters: List[DirectAdapter]) : Boolean = {
     if (isReplicated(ctx, adapters)) {
       return true
     }
@@ -194,7 +194,7 @@ class MirrorReplicationStrategy extends ReplicationStrategy {
     isReplicated(ctx, adapters)
   }
 
-  private def ensureExistingBlocks(ctx: BlockContext, hashProviders: List[IndexedAdapter], blockLevelCheck: Boolean) : Map[IndexedAdapter, Boolean] = {
+  private def ensureExistingBlocks(ctx: BlockContext, hashProviders: List[DirectAdapter], blockLevelCheck: Boolean) : Map[DirectAdapter, Boolean] = {
     Map() ++ hashProviders.flatMap {
       adapter =>
         var isConsistent = false

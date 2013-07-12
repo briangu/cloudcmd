@@ -3,10 +3,9 @@ package cloudcmd.srv
 import io.viper.common.{NestServer, ViperServer}
 import cloudcmd.common.{ContentAddressableStorage, IndexedContentAddressableStorage, FileUtil}
 import java.io._
-import cloudcmd.common.srv.{FileServices, SimpleOAuthSessionService, IndexedCloudAdapter, OAuthRouteConfig}
+import cloudcmd.common.srv._
 import java.net.InetAddress
 import org.apache.log4j.Logger
-import cloudcmd.common.srv.nest.io.most.api.ThumbnailService
 
 object CloudServer {
 

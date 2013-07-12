@@ -61,6 +61,17 @@ object RepairS3 {
       val creds = new AWSCredentials(awsKey, awsSecret)
       val s3Service = new RestS3Service(creds)
 
+      malformed.par foreach { hash =>
+        try {
+          println("deleting block %s to destination".format(hash))
+          s3Service.deleteObject(awsBucketName, hash)
+        } catch {
+          case e: Exception => {
+            println("failed to delete block: %s %s".format(hash, e))
+          }
+        }
+      }
+
       repaired.par foreach { case (src, dest) =>
         val ctx = new BlockContext(src)
         try {
