@@ -25,7 +25,7 @@ object ThumbnailService {
   }
 }
 
-class ThumbnailService(cas: IndexedContentAddressableStorage, config: OAuthRouteConfig, thumbCAS: ContentAddressableStorage) {
+class ThumbnailService(cas: ContentAddressableStorage, config: OAuthRouteConfig, thumbCAS: ContentAddressableStorage) {
 
   final val THUMBNAIL_CREATE_THRESHOLD = 128 * 1024 // TODO: come from config
   final val THUMB_WIDTH = 512
