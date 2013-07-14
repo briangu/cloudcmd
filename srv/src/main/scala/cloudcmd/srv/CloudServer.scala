@@ -41,7 +41,7 @@ object CloudServer {
       CloudServices.initWithTierRange(0, Int.MaxValue)
 
       report("using all available adapters:")
-      CloudServices.ConfigService.getFilteredAdapters foreach { adapter =>
+      CloudServices.ConfigService.getFilteredIndexedAdapters foreach { adapter =>
         report("\t%s".format(adapter.getSignature))
       }
 

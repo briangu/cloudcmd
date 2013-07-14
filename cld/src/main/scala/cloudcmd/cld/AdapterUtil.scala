@@ -8,7 +8,7 @@ object AdapterUtil {
   def exec(p1: CommandContext, uri: String = null, minTier: Number = 0, maxTier: Number = Integer.MAX_VALUE, doCommand: (IndexedContentAddressableStorage) => Unit) {
     val matchedAdapter = Option(uri) match {
       case Some(uri) => {
-        CloudServices.ConfigService.findAdapterByBestMatch(uri) match {
+        CloudServices.ConfigService.findIndexedAdapterByBestMatch(uri) match {
           case Some(adapter) => {
             System.err.println("using adapter: %s".format(adapter.getSignature))
             adapter
@@ -26,7 +26,7 @@ object AdapterUtil {
         } else {
           System.err.println("using all available adapters:")
         }
-        CloudServices.ConfigService.getFilteredAdapters foreach { adapter =>
+        CloudServices.ConfigService.getFilteredIndexedAdapters foreach { adapter =>
           System.err.println("\t%s".format(adapter.getSignature))
         }
         CloudServices.BlockStorage

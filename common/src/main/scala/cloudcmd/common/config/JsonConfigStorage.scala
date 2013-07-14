@@ -24,7 +24,7 @@ class JsonConfigStorage extends ConfigStorage {
   private var _defaultTier: Int = 0
   private var _minTier = 0
   private var _maxTier = Int.MaxValue
-  private var _allAdapters: List[IndexedAdapter] = null
+  private var _primaryAdapters: List[DirectAdapter] = null
   private var _auxAdapters: Map[String, DirectAdapter] = null
   private var _adapterHandlers: Map[String, String] = null
 
@@ -61,18 +61,18 @@ class JsonConfigStorage extends ConfigStorage {
     JsonUtil.toStringMap(config.getJSONObject("adapterHandlers"))
   }
 
-  private def loadAdapters(config: JSONObject): List[IndexedAdapter] = {
+  private def loadPrimaryAdapters(config: JSONObject): List[DirectAdapter] = {
     if (!config.has("adapters")) throw new IllegalArgumentException("config is missing the adapters field")
     val adapterConfigs = config.getJSONArray("adapters")
     _defaultTier = if (config.has("defaultTier")) config.getInt("defaultTier") else DEFAULT_TIER
-    loadAdapters(adapterConfigs)
+    loadPrimaryAdapters(adapterConfigs)
   }
 
-  private def loadAdapters(adapterUris: JSONArray): List[IndexedAdapter] = {
-    val adapters = new ListBuffer[IndexedAdapter]
+  private def loadPrimaryAdapters(adapterUris: JSONArray): List[DirectAdapter] = {
+    val adapters = new ListBuffer[DirectAdapter]
     (0 until adapterUris.length()).foreach{ i =>
       val adapterUri = new URI(adapterUris.getString(i))
-      val adapter = AdapterFactory.createIndexedAdapter(_configRoot, _adapterHandlers, adapterUri)
+      val adapter = AdapterFactory.createDirectAdapter(_configRoot, _adapterHandlers, adapterUri)
       adapters.append(adapter)
     }
     adapters.toList
@@ -96,13 +96,13 @@ class JsonConfigStorage extends ConfigStorage {
     _configRoot = configRoot
     _config = loadConfig(configRoot)
     _adapterHandlers = loadAdapterHandlers(_config)
-    _allAdapters = loadAdapters(_config)
+    _primaryAdapters = loadPrimaryAdapters(_config)
     _auxAdapters = loadAuxiliaryAdapters(_config)
     _isDebug = loadDebug(_config)
   }
 
   def shutdown() {
-    val adapters = (if (_allAdapters != null) _allAdapters else List()) ++ (if (_auxAdapters != null) _auxAdapters.values.toList else List())
+    val adapters = (if (_primaryAdapters != null) _primaryAdapters else List()) ++ (if (_auxAdapters != null) _auxAdapters.values.toList else List())
     for (adapter <- adapters) {
       try {
         adapter.shutdown()
@@ -163,7 +163,7 @@ class JsonConfigStorage extends ConfigStorage {
   private def rebuildConfig() {
     _config.put("defaultTier", _defaultTier)
     val adapters = new JSONArray
-    for (adapter <- _allAdapters) {
+    for (adapter <- _primaryAdapters) {
       adapters.put(adapter.URI.toString)
     }
     _config.put("adapters", adapters)
@@ -180,14 +180,12 @@ class JsonConfigStorage extends ConfigStorage {
     }
   }
 
-  def getAdapter(adapterURI: URI): IndexedAdapter = {
-    val adapters: List[IndexedAdapter] = getAllAdapters
-    for (adapter <- adapters) {
-      if (adapter.URI == adapterURI) {
-        return adapter
-      }
-    }
-    null
+  def getIndexedAdapter(adapterURI: URI): Option[IndexedAdapter] = {
+    getPrimaryIndexedAdapters.find(_.URI == adapterURI)
+  }
+
+  def getDirectAdapter(adapterURI: URI): Option[DirectAdapter] = {
+    getPrimaryDirectAdapters.find(_.URI == adapterURI)
   }
 
   def getReplicationStrategy: ReplicationStrategy = {
@@ -195,16 +193,20 @@ class JsonConfigStorage extends ConfigStorage {
   }
 
   def removeAdapter(uri: URI): Boolean = {
-    val adapter = findAdapterByBestMatch(uri.toASCIIString)
-    val contains = _allAdapters.contains(adapter)
+    val adapter = findIndexedAdapterByBestMatch(uri.toASCIIString)
+    val contains = _primaryAdapters.contains(adapter)
     if (contains) {
-      _allAdapters = _allAdapters.diff(List(adapter))
+      _primaryAdapters = _primaryAdapters.diff(List(adapter))
     }
     contains
   }
 
-  def getAllAdapters: List[IndexedAdapter] = {
-    _allAdapters
+  def getPrimaryIndexedAdapters: List[IndexedAdapter] = {
+    _primaryAdapters.filter(_.isInstanceOf[IndexedAdapter]).map(_.asInstanceOf[IndexedAdapter])
+  }
+
+  def getPrimaryDirectAdapters: List[DirectAdapter] = {
+    _primaryAdapters
   }
 
   def getAuxilaryAdapter(key: String): Option[DirectAdapter] = {
@@ -212,21 +214,25 @@ class JsonConfigStorage extends ConfigStorage {
   }
 
   def getMaxAdapterTier: Int = {
-    _allAdapters.map(_.Tier).max
+    _primaryAdapters.map(_.Tier).max
   }
 
   def getMinAdapterTier: Int = {
-    _allAdapters.map(_.Tier).min
+    _primaryAdapters.map(_.Tier).min
   }
 
-  def getFilteredAdapters: List[IndexedAdapter] = {
-    _allAdapters.filter(a => a.Tier >= _minTier && a.Tier <= _maxTier && a.IsOnLine && !a.IsFull).toList
+  def getFilteredIndexedAdapters: List[IndexedAdapter] = {
+    getPrimaryIndexedAdapters.filter(a => a.Tier >= _minTier && a.Tier <= _maxTier && a.IsOnLine && !a.IsFull).toList
+  }
+
+  def getFilteredDirectAdapters: List[DirectAdapter] = {
+    getPrimaryDirectAdapters.filter(a => a.Tier >= _minTier && a.Tier <= _maxTier && a.IsOnLine && !a.IsFull).toList
   }
 
   def addAdapter(adapterUri: URI) {
     try {
       val adapter: IndexedAdapter = AdapterFactory.createIndexedAdapter(_configRoot, _adapterHandlers, adapterUri)
-      _allAdapters = _allAdapters ++ List(adapter)
+      _primaryAdapters = _primaryAdapters ++ List(adapter)
     }
     catch {
       case e: ClassNotFoundException => e.printStackTrace()

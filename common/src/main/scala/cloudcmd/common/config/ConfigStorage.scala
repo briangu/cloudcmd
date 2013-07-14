@@ -1,6 +1,6 @@
 package cloudcmd.common.config
 
-import cloudcmd.common.adapters.IndexedAdapter
+import cloudcmd.common.adapters.{DirectAdapter, IndexedAdapter}
 import cloudcmd.common.engine.ReplicationStrategy
 import java.net.URI
 
@@ -17,9 +17,13 @@ trait ConfigStorage {
 
   def setAdapterTierRange(minTier: Int, maxTier: Int)
 
-  def getAllAdapters: List[IndexedAdapter]
+  def getPrimaryDirectAdapters: List[DirectAdapter]
 
-  def getFilteredAdapters: List[IndexedAdapter]
+  def getFilteredDirectAdapters: List[DirectAdapter]
+
+  def getPrimaryIndexedAdapters: List[IndexedAdapter]
+
+  def getFilteredIndexedAdapters: List[IndexedAdapter]
 
   def addAdapter(adapterUri: URI)
 
@@ -31,10 +35,10 @@ trait ConfigStorage {
 
   def writeConfig()
 
-  def findAdapterByBestMatch(id: String): Option[IndexedAdapter] = {
+  def findIndexedAdapterByBestMatch(id: String): Option[IndexedAdapter] = {
     var maxMatchLength = 0
     var maxMatchAdapter: Option[IndexedAdapter] = None
-    for (adapter <- getAllAdapters) {
+    for (adapter <- getPrimaryIndexedAdapters) {
       val adapterUri = adapter.URI.toASCIIString
       if (id.length <= adapterUri.length) {
         var idx = 0
@@ -50,7 +54,8 @@ trait ConfigStorage {
     maxMatchAdapter
   }
 
-  def getAdapter(adapterURI: URI): IndexedAdapter
+  def getIndexedAdapter(adapterURI: URI): Option[IndexedAdapter]
+  def getDirectAdapter(adapterURI: URI): Option[DirectAdapter]
 
   def getReplicationStrategy: ReplicationStrategy
 }

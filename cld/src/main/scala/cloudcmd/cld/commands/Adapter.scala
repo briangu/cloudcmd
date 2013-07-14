@@ -17,7 +17,7 @@ class Adapter extends Command {
 
   def exec(commandLine: CommandContext) {
     if (_remove != null) {
-      CloudServices.ConfigService.findAdapterByBestMatch(_remove) match {
+      CloudServices.ConfigService.findIndexedAdapterByBestMatch(_remove) match {
         case Some(adapter) => {
           CloudServices.ConfigService.removeAdapter(adapter.URI)
           CloudServices.ConfigService.writeConfig()
@@ -32,7 +32,7 @@ class Adapter extends Command {
       CloudServices.ConfigService.writeConfig()
       list()
     } else if (_dumpUri != null) {
-      val adapter = CloudServices.ConfigService.findAdapterByBestMatch(_dumpUri) match {
+      val adapter = CloudServices.ConfigService.findIndexedAdapterByBestMatch(_dumpUri) match {
         case Some(adapter) => {
           System.err.println("using adapter: %s".format(adapter.getSignature))
           adapter
@@ -66,7 +66,7 @@ class Adapter extends Command {
   def list() {
     System.err.println("Adapters:")
     System.err.println()
-    for (adapter <- CloudServices.ConfigService.getAllAdapters) {
+    for (adapter <- CloudServices.ConfigService.getPrimaryIndexedAdapters) {
       System.err.println("Adapter: " + adapter.Type)
       System.err.println("  URI: " + adapter.URI.toString)
       System.err.println("  Signature: " + adapter.getSignature)

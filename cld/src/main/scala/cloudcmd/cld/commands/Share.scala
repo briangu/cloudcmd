@@ -31,7 +31,7 @@ class Share extends Command {
   def doCommand(adapter: IndexedContentAddressableStorage) {
     val urlPrefix = if (_uri == null) "http" else _uri
 
-    CloudServices.ConfigService.findAdapterByBestMatch(urlPrefix) match {
+    CloudServices.ConfigService.findIndexedAdapterByBestMatch(urlPrefix) match {
       case Some(adapter) => {
         val asyncHttpClient = new AsyncHttpClient()
         try {
