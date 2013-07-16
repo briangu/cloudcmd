@@ -11,7 +11,7 @@ import io.viper.core.server.router.RouteResponse.RouteResponseDispose
 import scala.Some
 import cloudcmd.common.adapters.DataNotFoundException
 
-class FileServices(cas: IndexedContentAddressableStorage, config: OAuthRouteConfig) {
+class FileServices(cas: ContentAddressableStorage, config: OAuthRouteConfig) {
 
   private def loadMeta(ctx: BlockContext): Option[FileMetaData] = {
     try {
