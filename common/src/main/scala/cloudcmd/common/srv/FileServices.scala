@@ -110,7 +110,7 @@ class FileServices(cas: ContentAddressableStorage, config: OAuthRouteConfig) {
       }
     }))
 
-    server.addRoute(new OAuthGetRestRoute(config, "/files/$key", new OAuthRouteHandler {
+    server.addRoute(new OAuthGetRestRoute(config, "/files/share/$key", new OAuthRouteHandler {
       def exec(session: OAuthSession, args: Map[String, String]): RouteResponse = {
         val ownerId = session.getAsRequestToken.getKey()
 
