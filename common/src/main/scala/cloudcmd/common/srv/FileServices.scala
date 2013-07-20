@@ -65,7 +65,7 @@ class FileServices(cas: ContentAddressableStorage, config: OAuthRouteConfig) {
         val destOwnerId = args.get("destOwnerId") match {
           case Some(id) => {
             // verify that the dest user exists
-            if (SimpleOAuthSessionService.instance.isValidKey(id)) {
+            if (config.sessions.getSession(id) != null) {
               id
             } else {
               return new StatusResponse(HttpResponseStatus.BAD_REQUEST)
