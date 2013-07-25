@@ -168,7 +168,7 @@ class DirectS3Adapter extends DirectAdapter {
         val objList = _s3Service.listObjects(_bucketName, prefix, "/", Int.MaxValue)
         Set() ++ objList.flatMap{ obj =>
           if (obj.getKey.length > prefix.length) {
-            Set(obj.getKey.substring(prefix.length + 2))
+            Set(obj.getKey.substring(prefix.length))
           } else {
             // sometimes S3 returns the prefix object itself
             None

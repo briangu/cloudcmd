@@ -3,7 +3,7 @@ package cloudcmd.common.srv
 import io.viper.core.server.router.{RouteResponse, RouteUtil, Route}
 import org.jboss.netty.channel._
 import org.jboss.netty.handler.codec.http.HttpVersion._
-import java.net.URLDecoder
+import java.net.{URI, URLDecoder}
 import org.jboss.netty.buffer.ChannelBuffers._
 import org.jboss.netty.handler.codec.http.HttpHeaders._
 import org.jboss.netty.handler.codec.http
@@ -140,10 +140,10 @@ object OAuthRestRoute {
     val baseURL = config.baseHostPort + request.getUri
     val timestamp = authMap.get("oauth_timestamp").get.toLong
     val nonce = URLDecoder.decode(authMap.get("oauth_nonce").get, "UTF-8")
-    val queryParams = getQueryParams(request)
     val formParams = getFormParams(request)
+    val queryParams = getQueryParams(request)
 
-    val signature = sigCalc.calculateSignature(method, baseURL, timestamp, nonce, queryParams, formParams)
+    val signature = sigCalc.calculateSignature(method, baseURL, timestamp, nonce, formParams, queryParams)
     if (signature == URLDecoder.decode(authMap.get("oauth_signature").get, "UTF-8")) {
       import scala.collection.JavaConversions._
       val args = Map() ++ queryParams.entrySet.flatMap{ entry => Map(entry.getKey -> entry.getValue.get(0)) } ++ formParams.entrySet.flatMap{  entry => Map(entry.getKey -> entry.getValue.get(0)) }
@@ -154,7 +154,7 @@ object OAuthRestRoute {
   }
 
   def getQueryParams(request: HttpRequest) : FluentStringsMap = {
-    val queryParams = RouteUtil.extractQueryParams(request.getUri)
+    val queryParams = RouteUtil.extractQueryParams(new URI(request.getUri))
     val map = new FluentStringsMap()
     import scala.collection.JavaConversions._
     queryParams.foreach{ case (key, value) => map.put(key, List(value)) }
