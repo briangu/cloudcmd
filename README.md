@@ -1,7 +1,7 @@
 cloudcmd
 ========
 
-Cloudcmd (cloud command) is a generalized storage system with the aim of pretty much enabling users to:
+Cloudcmd (cloud command) is a generalized storage system with the aim of enabling users to:
 
 * store files where and how they want
 * store files with a level of data integrity they want
