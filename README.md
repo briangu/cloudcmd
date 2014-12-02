@@ -5,7 +5,9 @@ Cloudcmd (cloud command) is a generalized storage system with the aim of enablin
 
 * store files where and how they want
 * store files with a level of data integrity they want
-* find and retrieve files they want
+* tag files to with appropriate information to enable rich search capabilities
+* search files to retrieve files they want
+* add and remove storage dynamically
 
 The system as a whole can be described as a generalization of a dropbox, google drive, skydrive, enabling people to combine different kinds of storage in useful ways to free themselves of single providers.
 
